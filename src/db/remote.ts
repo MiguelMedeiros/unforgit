@@ -2,9 +2,14 @@ import { PrismaClient } from "../generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type {
   Memory,
+  MemoryLink,
   CreateMemoryInput,
+  CreateLinkInput,
+  LinkQuery,
   RecallQuery,
   RecallResult,
+  ListQuery,
+  StoreStats,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -163,6 +168,112 @@ export class RemoteStore {
     }));
   }
 
+  async list(query: ListQuery): Promise<Memory[]> {
+    const where: Record<string, unknown> = {
+      orgId: query.orgId,
+      repoId: query.repoId,
+    };
+
+    if (query.types && query.types.length > 0) {
+      where.memoryType = { in: query.types };
+    }
+    if (query.status && query.status.length > 0) {
+      where.status = { in: query.status };
+    }
+    if (query.visibility && query.visibility.length > 0) {
+      where.visibility = { in: query.visibility };
+    }
+    if (query.tags && query.tags.length > 0) {
+      where.tags = { hasSome: query.tags };
+    }
+    if (query.search) {
+      where.text = { contains: query.search, mode: "insensitive" };
+    }
+
+    const sortField =
+      query.sortBy === "updatedAt"
+        ? "updatedAt"
+        : query.sortBy === "confidence"
+          ? "confidence"
+          : "createdAt";
+
+    const rows = await this.prisma.memory.findMany({
+      where,
+      orderBy: { [sortField]: query.sortOrder ?? "desc" },
+      take: query.limit ?? 50,
+      skip: query.offset ?? 0,
+    });
+
+    return rows.map((r) =>
+      prismaRowToMemory(r as unknown as Record<string, unknown>),
+    );
+  }
+
+  async count(query: ListQuery): Promise<number> {
+    const where: Record<string, unknown> = {
+      orgId: query.orgId,
+      repoId: query.repoId,
+    };
+
+    if (query.types && query.types.length > 0) {
+      where.memoryType = { in: query.types };
+    }
+    if (query.status && query.status.length > 0) {
+      where.status = { in: query.status };
+    }
+    if (query.visibility && query.visibility.length > 0) {
+      where.visibility = { in: query.visibility };
+    }
+    if (query.tags && query.tags.length > 0) {
+      where.tags = { hasSome: query.tags };
+    }
+    if (query.search) {
+      where.text = { contains: query.search, mode: "insensitive" };
+    }
+
+    return this.prisma.memory.count({ where });
+  }
+
+  async stats(orgId: string, repoId: string): Promise<StoreStats> {
+    const rows = await this.prisma.$queryRawUnsafe<
+      Array<{
+        memory_type: string;
+        status: string;
+        visibility: string;
+        cnt: bigint;
+      }>
+    >(
+      `SELECT memory_type, status, visibility, COUNT(*) as cnt
+       FROM memories WHERE org_id = $1 AND repo_id = $2
+       GROUP BY memory_type, status, visibility`,
+      orgId,
+      repoId,
+    );
+
+    const stats: StoreStats = {
+      total: 0,
+      byType: { episodic: 0, semantic: 0, procedural: 0 },
+      byStatus: { active: 0, deprecated: 0, superseded: 0 },
+      byVisibility: { private: 0, repo: 0 },
+    };
+
+    for (const row of rows) {
+      const count = Number(row.cnt);
+      stats.total += count;
+      if (row.memory_type in stats.byType) {
+        stats.byType[row.memory_type as keyof typeof stats.byType] += count;
+      }
+      if (row.status in stats.byStatus) {
+        stats.byStatus[row.status as keyof typeof stats.byStatus] += count;
+      }
+      if (row.visibility in stats.byVisibility) {
+        stats.byVisibility[row.visibility] += count;
+      }
+    }
+
+    return stats;
+  }
+
   async deprecate(id: string, reason?: string): Promise<boolean> {
     try {
       const existing = await this.prisma.memory.findUnique({ where: { id } });
@@ -216,6 +327,101 @@ export class RemoteStore {
     } catch {
       return false;
     }
+  }
+
+  async link(input: CreateLinkInput): Promise<MemoryLink> {
+    const row = await this.prisma.memoryLink.create({
+      data: {
+        sourceId: input.sourceId,
+        targetId: input.targetId,
+        linkType: input.linkType,
+        metadata: input.metadata as Record<string, string> | undefined,
+      },
+    });
+
+    return {
+      id: row.id,
+      sourceId: row.sourceId,
+      targetId: row.targetId,
+      linkType: row.linkType as MemoryLink["linkType"],
+      metadata: row.metadata as Record<string, unknown> | undefined,
+      createdAt: row.createdAt,
+    };
+  }
+
+  async unlink(
+    sourceId: string,
+    targetId: string,
+    linkType: string,
+  ): Promise<boolean> {
+    try {
+      await this.prisma.memoryLink.delete({
+        where: {
+          sourceId_targetId_linkType: { sourceId, targetId, linkType },
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async getLinks(query: LinkQuery): Promise<MemoryLink[]> {
+    const where: Record<string, unknown> = {
+      OR: [
+        { sourceId: query.memoryId },
+        { targetId: query.memoryId },
+      ],
+    };
+
+    if (query.linkType) {
+      where.linkType = query.linkType;
+    }
+
+    const rows = await this.prisma.memoryLink.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      sourceId: row.sourceId,
+      targetId: row.targetId,
+      linkType: row.linkType as MemoryLink["linkType"],
+      metadata: row.metadata as Record<string, unknown> | undefined,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  async getLinkedMemories(
+    memoryId: string,
+    linkType?: string,
+  ): Promise<Memory[]> {
+    const linkWhere: Record<string, unknown> = {
+      OR: [{ sourceId: memoryId }, { targetId: memoryId }],
+    };
+    if (linkType) linkWhere.linkType = linkType;
+
+    const links = await this.prisma.memoryLink.findMany({
+      where: linkWhere,
+      include: { source: true, target: true },
+    });
+
+    const seen = new Set<string>();
+    const memories: Memory[] = [];
+
+    for (const link of links) {
+      const other =
+        link.sourceId === memoryId ? link.target : link.source;
+      if (!seen.has(other.id)) {
+        seen.add(other.id);
+        memories.push(
+          prismaRowToMemory(other as unknown as Record<string, unknown>),
+        );
+      }
+    }
+
+    return memories;
   }
 
   async disconnect(): Promise<void> {

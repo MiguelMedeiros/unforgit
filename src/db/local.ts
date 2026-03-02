@@ -4,9 +4,14 @@ import path from "node:path";
 import fs from "node:fs";
 import type {
   Memory,
+  MemoryLink,
   CreateMemoryInput,
+  CreateLinkInput,
+  LinkQuery,
   RecallQuery,
   RecallResult,
+  ListQuery,
+  StoreStats,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -50,7 +55,30 @@ CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
   INSERT INTO memories_fts(rowid, text, summary)
     VALUES (new.rowid, new.text, new.summary);
 END;
+
+CREATE TABLE IF NOT EXISTS memory_links (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+  target_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+  link_type TEXT NOT NULL CHECK(link_type IN ('related_to','derived_from','contradicts','depends_on')),
+  metadata TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(source_id, target_id, link_type)
+);
 `;
+
+function rowToLink(row: Record<string, unknown>): MemoryLink {
+  return {
+    id: row.id as string,
+    sourceId: row.source_id as string,
+    targetId: row.target_id as string,
+    linkType: row.link_type as MemoryLink["linkType"],
+    metadata: row.metadata
+      ? JSON.parse(row.metadata as string)
+      : undefined,
+    createdAt: new Date(row.created_at as string),
+  };
+}
 
 function rowToMemory(row: Record<string, unknown>): Memory {
   return {
@@ -85,6 +113,7 @@ export class LocalStore {
     }
     this.db = new Database(dbPath);
     this.db.pragma("journal_mode = WAL");
+    this.db.pragma("foreign_keys = ON");
     this.db.exec(SCHEMA_SQL);
   }
 
@@ -220,6 +249,142 @@ export class LocalStore {
       .slice(0, k);
   }
 
+  list(query: ListQuery): Memory[] {
+    const conditions: string[] = ["org_id = ?", "repo_id = ?"];
+    const params: unknown[] = [query.orgId, query.repoId];
+
+    if (query.types && query.types.length > 0) {
+      conditions.push(
+        `memory_type IN (${query.types.map(() => "?").join(",")})`,
+      );
+      params.push(...query.types);
+    }
+
+    if (query.status && query.status.length > 0) {
+      conditions.push(
+        `status IN (${query.status.map(() => "?").join(",")})`,
+      );
+      params.push(...query.status);
+    }
+
+    if (query.visibility && query.visibility.length > 0) {
+      conditions.push(
+        `visibility IN (${query.visibility.map(() => "?").join(",")})`,
+      );
+      params.push(...query.visibility);
+    }
+
+    if (query.search) {
+      const ftsQuery = query.search.replace(/[^\w\s]/g, " ").trim();
+      if (ftsQuery) {
+        conditions.push(
+          "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
+        );
+        params.push(ftsQuery);
+      }
+    }
+
+    const sortCol =
+      query.sortBy === "updatedAt"
+        ? "updated_at"
+        : query.sortBy === "confidence"
+          ? "confidence"
+          : "created_at";
+    const sortDir = query.sortOrder === "asc" ? "ASC" : "DESC";
+    const limit = query.limit ?? 50;
+    const offset = query.offset ?? 0;
+
+    const sql = `
+      SELECT * FROM memories
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY ${sortCol} ${sortDir}
+      LIMIT ? OFFSET ?
+    `;
+    params.push(limit, offset);
+
+    const rows = this.db.prepare(sql).all(...params) as Array<
+      Record<string, unknown>
+    >;
+    return rows.map(rowToMemory);
+  }
+
+  count(query: ListQuery): number {
+    const conditions: string[] = ["org_id = ?", "repo_id = ?"];
+    const params: unknown[] = [query.orgId, query.repoId];
+
+    if (query.types && query.types.length > 0) {
+      conditions.push(
+        `memory_type IN (${query.types.map(() => "?").join(",")})`,
+      );
+      params.push(...query.types);
+    }
+
+    if (query.status && query.status.length > 0) {
+      conditions.push(
+        `status IN (${query.status.map(() => "?").join(",")})`,
+      );
+      params.push(...query.status);
+    }
+
+    if (query.visibility && query.visibility.length > 0) {
+      conditions.push(
+        `visibility IN (${query.visibility.map(() => "?").join(",")})`,
+      );
+      params.push(...query.visibility);
+    }
+
+    if (query.search) {
+      const ftsQuery = query.search.replace(/[^\w\s]/g, " ").trim();
+      if (ftsQuery) {
+        conditions.push(
+          "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
+        );
+        params.push(ftsQuery);
+      }
+    }
+
+    const sql = `SELECT COUNT(*) as cnt FROM memories WHERE ${conditions.join(" AND ")}`;
+    const row = this.db.prepare(sql).get(...params) as { cnt: number };
+    return row.cnt;
+  }
+
+  stats(orgId: string, repoId: string): StoreStats {
+    const rows = this.db
+      .prepare(
+        `SELECT memory_type, status, visibility, COUNT(*) as cnt
+         FROM memories WHERE org_id = ? AND repo_id = ?
+         GROUP BY memory_type, status, visibility`,
+      )
+      .all(orgId, repoId) as Array<{
+      memory_type: string;
+      status: string;
+      visibility: string;
+      cnt: number;
+    }>;
+
+    const stats: StoreStats = {
+      total: 0,
+      byType: { episodic: 0, semantic: 0, procedural: 0 },
+      byStatus: { active: 0, deprecated: 0, superseded: 0 },
+      byVisibility: { private: 0, repo: 0 },
+    };
+
+    for (const row of rows) {
+      stats.total += row.cnt;
+      if (row.memory_type in stats.byType) {
+        stats.byType[row.memory_type as keyof typeof stats.byType] += row.cnt;
+      }
+      if (row.status in stats.byStatus) {
+        stats.byStatus[row.status as keyof typeof stats.byStatus] += row.cnt;
+      }
+      if (row.visibility in stats.byVisibility) {
+        stats.byVisibility[row.visibility] += row.cnt;
+      }
+    }
+
+    return stats;
+  }
+
   deprecate(id: string, reason?: string): boolean {
     const now = new Date().toISOString();
     const result = this.db
@@ -271,6 +436,91 @@ export class LocalStore {
       )
       .run();
     return result.changes;
+  }
+
+  link(input: CreateLinkInput): MemoryLink {
+    const id = uuid();
+    const now = new Date().toISOString();
+
+    this.db
+      .prepare(
+        `INSERT INTO memory_links (id, source_id, target_id, link_type, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.sourceId,
+        input.targetId,
+        input.linkType,
+        input.metadata ? JSON.stringify(input.metadata) : null,
+        now,
+      );
+
+    return this.getLinkById(id)!;
+  }
+
+  unlink(sourceId: string, targetId: string, linkType: string): boolean {
+    const result = this.db
+      .prepare(
+        "DELETE FROM memory_links WHERE source_id = ? AND target_id = ? AND link_type = ?",
+      )
+      .run(sourceId, targetId, linkType);
+    return result.changes > 0;
+  }
+
+  getLinks(query: LinkQuery): MemoryLink[] {
+    const conditions: string[] = [
+      "(source_id = ? OR target_id = ?)",
+    ];
+    const params: unknown[] = [query.memoryId, query.memoryId];
+
+    if (query.linkType) {
+      conditions.push("link_type = ?");
+      params.push(query.linkType);
+    }
+
+    const sql = `SELECT * FROM memory_links WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
+    const rows = this.db.prepare(sql).all(...params) as Array<
+      Record<string, unknown>
+    >;
+    return rows.map(rowToLink);
+  }
+
+  getLinkedMemories(memoryId: string, linkType?: string): Memory[] {
+    const conditions: string[] = [
+      "(l.source_id = ? OR l.target_id = ?)",
+    ];
+    const params: unknown[] = [memoryId, memoryId];
+
+    if (linkType) {
+      conditions.push("l.link_type = ?");
+      params.push(linkType);
+    }
+
+    const sql = `
+      SELECT m.* FROM memories m
+      JOIN memory_links l ON (
+        (l.source_id = ? AND l.target_id = m.id) OR
+        (l.target_id = ? AND l.source_id = m.id)
+      )
+      ${linkType ? "WHERE l.link_type = ?" : ""}
+      ORDER BY m.created_at DESC
+    `;
+    const linkedParams = linkType
+      ? [memoryId, memoryId, linkType]
+      : [memoryId, memoryId];
+
+    const rows = this.db.prepare(sql).all(...linkedParams) as Array<
+      Record<string, unknown>
+    >;
+    return rows.map(rowToMemory);
+  }
+
+  private getLinkById(id: string): MemoryLink | undefined {
+    const row = this.db
+      .prepare("SELECT * FROM memory_links WHERE id = ?")
+      .get(id) as Record<string, unknown> | undefined;
+    return row ? rowToLink(row) : undefined;
   }
 
   close(): void {

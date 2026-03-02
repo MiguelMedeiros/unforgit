@@ -59,6 +59,16 @@ export async function consolidateRoutes(
       for (const ep of episodic) {
         const ok = await store.supersede(ep.id, newMemory.id);
         if (ok) superseded.push(ep.id);
+
+        try {
+          await store.link({
+            sourceId: newMemory.id,
+            targetId: ep.id,
+            linkType: "derived_from",
+          });
+        } catch {
+          // Link creation is best-effort during consolidation
+        }
       }
     }
 

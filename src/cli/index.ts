@@ -6,6 +6,8 @@ import { promoteCommand } from "./commands/promote.js";
 import { consolidateCommand } from "./commands/consolidate.js";
 import { deprecateCommand } from "./commands/deprecate.js";
 import { supersedeCommand } from "./commands/supersede.js";
+import { webCommand } from "./commands/web.js";
+import { linkCommand, unlinkCommand, linksCommand } from "./commands/link.js";
 
 const program = new Command();
 
@@ -21,5 +23,9 @@ program.addCommand(promoteCommand);
 program.addCommand(consolidateCommand);
 program.addCommand(deprecateCommand);
 program.addCommand(supersedeCommand);
+program.addCommand(webCommand);
+program.addCommand(linkCommand);
+program.addCommand(unlinkCommand);
+program.addCommand(linksCommand);
 
 program.parse();

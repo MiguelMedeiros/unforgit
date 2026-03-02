@@ -38,7 +38,9 @@ pnpm run db:generate
 hippo init
 ```
 
-This creates `.hippocampus/` with `local.db` and `hippo.yaml`. The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
+This creates `.hippocampus/` with `local.db` and `hippo.yaml`, plus Cursor IDE integration (`.cursor/rules/` and `.cursor/mcp.json`). The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
+
+Use `--no-cursor-rule` to skip Cursor integration.
 
 ### Add memories
 
@@ -179,6 +181,42 @@ await memory.consolidate({
 });
 ```
 
+## MCP Server (Cursor IDE)
+
+Hippocampus includes an MCP (Model Context Protocol) server for native integration with Cursor IDE. When configured, the AI agent gets direct access to `hippo_recall` and `hippo_add` tools — no shell commands needed.
+
+### Setup
+
+`hippo init` automatically creates `.cursor/mcp.json` with the MCP server config. If you need to set it up manually:
+
+```json
+{
+  "mcpServers": {
+    "hippocampus": {
+      "command": "hippo-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Restart Cursor after adding the MCP config.
+
+### Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `hippo_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?` |
+| `hippo_add` | Store a new memory | `text`, `type`, `tags?` |
+
+The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.hippocampus/hippo.yaml` in the current workspace.
+
+### Cursor Rule
+
+`hippo init` also creates `.cursor/rules/hippocampus-memory.mdc` which instructs the AI agent to:
+- Recall relevant memories at the start of every conversation
+- Save noteworthy decisions, bugs, and procedures during the conversation
+
 ## Auto-Visibility Policy
 
 When `visibility` is set to `auto`, the system decides:
@@ -194,6 +232,8 @@ src/
 ├── server/          # Fastify HTTP API
 │   ├── routes/      # memory, recall, curate, consolidate
 │   └── index.ts     # App factory + server start
+├── mcp/             # MCP server (hippo-mcp)
+│   └── index.ts     # Stdio transport + tools
 ├── cli/             # Commander CLI (hippo)
 │   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede
 │   └── index.ts     # CLI entry point

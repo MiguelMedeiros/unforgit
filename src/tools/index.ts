@@ -4,6 +4,8 @@ import { resolveVisibility } from "../core/policy.js";
 import { mergeAndRank } from "../core/recall.js";
 import type {
   MemoryType,
+  MemoryLink,
+  LinkType,
   Visibility,
   RecallResult,
 } from "../core/types.js";
@@ -42,6 +44,18 @@ export interface ConsolidateParams {
   repo?: string;
   fromPr?: string;
   window?: { from?: Date; to?: Date };
+}
+
+export interface LinkParams {
+  sourceId: string;
+  targetId: string;
+  linkType: LinkType;
+  metadata?: Record<string, unknown>;
+}
+
+export interface GetLinksParams {
+  memoryId: string;
+  linkType?: LinkType;
 }
 
 export function createMemoryTools(config: ToolConfig) {
@@ -186,6 +200,24 @@ export function createMemoryTools(config: ToolConfig) {
       }
 
       return client.consolidate(body);
+    },
+
+    async link(params: LinkParams): Promise<MemoryLink> {
+      const store = getLocal();
+      try {
+        return store.link(params);
+      } finally {
+        store.close();
+      }
+    },
+
+    async getLinks(params: GetLinksParams): Promise<MemoryLink[]> {
+      const store = getLocal();
+      try {
+        return store.getLinks(params);
+      } finally {
+        store.close();
+      }
     },
   };
 }

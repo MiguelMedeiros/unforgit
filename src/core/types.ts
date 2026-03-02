@@ -70,6 +70,54 @@ export interface PolicyResult {
   suggestion?: "promote";
 }
 
+export interface ListQuery {
+  orgId: string;
+  repoId: string;
+  types?: MemoryType[];
+  status?: Status[];
+  visibility?: ("private" | "repo")[];
+  tags?: string[];
+  search?: string;
+  offset?: number;
+  limit?: number;
+  sortBy?: "createdAt" | "updatedAt" | "confidence";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface StoreStats {
+  total: number;
+  byType: Record<MemoryType, number>;
+  byStatus: Record<Status, number>;
+  byVisibility: Record<string, number>;
+}
+
+export type LinkType =
+  | "related_to"
+  | "derived_from"
+  | "contradicts"
+  | "depends_on";
+
+export interface MemoryLink {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  linkType: LinkType;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface CreateLinkInput {
+  sourceId: string;
+  targetId: string;
+  linkType: LinkType;
+  metadata?: Record<string, unknown>;
+}
+
+export interface LinkQuery {
+  memoryId: string;
+  linkType?: LinkType;
+}
+
 export interface HippoConfig {
   remote: {
     url: string;

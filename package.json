@@ -5,12 +5,15 @@
   "type": "module",
   "main": "dist/server/index.js",
   "bin": {
-    "hippo": "dist/cli/index.js"
+    "hippo": "dist/cli/index.js",
+    "hippo-mcp": "dist/mcp/index.js"
   },
   "scripts": {
     "dev:server": "tsx watch src/server/index.ts",
     "dev:cli": "tsx src/cli/index.ts",
+    "dev:web": "cd web && next dev -p 3838",
     "build": "tsup",
+    "build:web": "cd web && next build",
     "start": "node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +31,7 @@
   "license": "MIT",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "better-sqlite3": "^12.6.2",

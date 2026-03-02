@@ -28,6 +28,24 @@ model Memory {
   supersedes   Memory?  @relation("Supersedes", fields: [supersedesId], references: [id])
   supersededBy Memory[] @relation("Supersedes")
 
+  sourceLinks  MemoryLink[] @relation("SourceLinks")
+  targetLinks  MemoryLink[] @relation("TargetLinks")
+
   @@index([orgId, repoId, memoryType, status])
   @@map("memories")
+}
+
+model MemoryLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  sourceId  String   @map("source_id") @db.Uuid
+  targetId  String   @map("target_id") @db.Uuid
+  linkType  String   @map("link_type")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  source Memory @relation("SourceLinks", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Memory @relation("TargetLinks", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, linkType])
+  @@map("memory_links")
 }

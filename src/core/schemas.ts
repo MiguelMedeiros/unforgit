@@ -62,3 +62,22 @@ export const supersedeSchema = z.object({
 export const deprecateSchema = z.object({
   reason: z.string().optional(),
 });
+
+export const linkTypeSchema = z.enum([
+  "related_to",
+  "derived_from",
+  "contradicts",
+  "depends_on",
+]);
+
+export const createLinkSchema = z.object({
+  sourceId: z.string().min(1),
+  targetId: z.string().min(1),
+  linkType: linkTypeSchema,
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const linkQuerySchema = z.object({
+  memoryId: z.string().min(1),
+  linkType: linkTypeSchema.optional(),
+});

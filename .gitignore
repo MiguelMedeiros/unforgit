@@ -10,3 +10,5 @@ src/generated/
 *.log
 .DS_Store
 coverage/
+.next/
+web/.next/
