@@ -1,0 +1,62 @@
+{
+  "name": "hippocampus",
+  "version": "0.1.0",
+  "description": "Repository memory system — shared + local knowledge for agents and developers",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "bin": {
+    "hippo": "dist/cli/index.js"
+  },
+  "scripts": {
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:cli": "tsx src/cli/index.ts",
+    "build": "tsup",
+    "start": "node dist/server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push"
+  },
+  "keywords": [
+    "memory",
+    "ai",
+    "agents",
+    "knowledge-base",
+    "repository"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
+    "better-sqlite3": "^12.6.2",
+    "commander": "^14.0.3",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.7.4",
+    "fastify-type-provider-zod": "^6.1.0",
+    "pg": "^8.19.0",
+    "prisma": "^7.4.2",
+    "uuid": "^13.0.0",
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "better-sqlite3",
+      "esbuild",
+      "prisma"
+    ]
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.3.3",
+    "@types/pg": "^8.18.0",
+    "@types/uuid": "^11.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

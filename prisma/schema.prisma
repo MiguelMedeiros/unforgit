@@ -1,0 +1,33 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model Memory {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @map("org_id") @db.Uuid
+  repoId       String   @map("repo_id")
+  scopeType    String   @default("repo") @map("scope_type")
+  memoryType   String   @map("memory_type")
+  visibility   String   @default("repo")
+  status       String   @default("active")
+  text         String
+  summary      String?
+  tags         String[]
+  sourceRefs   Json?    @map("source_refs")
+  confidence   Float?
+  ttlSeconds   Int?     @map("ttl_seconds")
+  supersedesId String?  @map("supersedes_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  supersedes   Memory?  @relation("Supersedes", fields: [supersedesId], references: [id])
+  supersededBy Memory[] @relation("Supersedes")
+
+  @@index([orgId, repoId, memoryType, status])
+  @@map("memories")
+}
