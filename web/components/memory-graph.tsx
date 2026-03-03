@@ -34,6 +34,8 @@ interface MemoryNode {
   tags: string[];
   status: string;
   confidence?: number;
+  authorId?: string;
+  authorName?: string;
   createdAt: string;
   linkCount: number;
 }
@@ -145,10 +147,14 @@ export function MemoryGraph() {
 
   useEffect(() => {
     fetch("/api/graph")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch graph data");
+        return r.json();
+      })
       .then((data) => {
         const linkCountMap = new Map<string, number>();
-        for (const link of data.links) {
+        const links = data.links ?? [];
+        for (const link of links) {
           linkCountMap.set(
             link.sourceId,
             (linkCountMap.get(link.sourceId) ?? 0) + 1,
@@ -159,7 +165,8 @@ export function MemoryGraph() {
           );
         }
 
-        const memNodes: MemoryNode[] = data.memories.map(
+        const memories = data.memories ?? [];
+        const memNodes: MemoryNode[] = memories.map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (m: any) => ({
             id: m.id,
@@ -169,12 +176,14 @@ export function MemoryGraph() {
             tags: m.tags ?? [],
             status: m.status,
             confidence: m.confidence,
+            authorId: m.authorId,
+            authorName: m.authorName,
             createdAt: m.createdAt,
             linkCount: linkCountMap.get(m.id) ?? 0,
           }),
         );
 
-        const memEdges: MemoryEdge[] = data.links.map(
+        const memEdges: MemoryEdge[] = links.map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (l: any) => ({
             id: l.id,
@@ -187,6 +196,9 @@ export function MemoryGraph() {
         setNodes(memNodes);
         setEdges(memEdges);
         initialFitDone.current = false;
+      })
+      .catch((err) => {
+        console.error("Failed to load graph:", err);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -428,12 +440,24 @@ export function MemoryGraph() {
     [],
   );
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (d: string) => {
+    const date = new Date(d);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    const diffMonth = Math.floor(diffDay / 30);
+    const diffYear = Math.floor(diffDay / 365);
+
+    if (diffSec < 60) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    if (diffDay < 30) return `${diffDay}d ago`;
+    if (diffMonth < 12) return `${diffMonth}mo ago`;
+    return `${diffYear}y ago`;
+  };
 
   const linkedNodeCount = useMemo(() => {
     const ids = new Set<string>();
@@ -498,14 +522,27 @@ export function MemoryGraph() {
             cooldownTicks={120}
             d3AlphaDecay={0.02}
             d3VelocityDecay={0.3}
+            d3AlphaMin={0.001}
             enableNodeDrag={true}
             backgroundColor="transparent"
+            dagMode={undefined}
+            d3Force={(name, force) => {
+              if (name === "charge" && force) {
+                force.strength(-120).distanceMax(250);
+              }
+              if (name === "center" && force) {
+                force.strength(0.1);
+              }
+              if (name === "link" && force) {
+                force.distance(80).strength(0.4);
+              }
+            }}
           />
         )}
 
         {/* Controls */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-          <div className="flex flex-col gap-0.5 rounded-xl border border-border/30 bg-[rgba(28,28,30,0.85)] glass p-1">
+        <div className="absolute top-4 left-4 flex flex-col items-start gap-2 z-10">
+          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
             {[
               { icon: ZoomIn, action: handleZoomIn, title: "Zoom in" },
               { icon: ZoomOut, action: handleZoomOut, title: "Zoom out" },
@@ -518,27 +555,28 @@ export function MemoryGraph() {
                 className="rounded-lg p-2 transition-colors hover:bg-white/[0.08]"
                 title={title}
               >
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <Icon className="h-4 w-4 text-muted-foreground" />
               </button>
             ))}
           </div>
 
-          <button
-            onClick={() => setShowOrphans(!showOrphans)}
-            className={`flex items-center gap-1.5 rounded-xl border border-border/30 px-3 py-2 text-[11px] font-medium glass transition-all ${
-              showOrphans
-                ? "bg-apple-blue/20 text-apple-blue border-apple-blue/30"
-                : "bg-[rgba(28,28,30,0.85)] text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
-            }`}
-            title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}
-          >
-            {showOrphans ? (
-              <EyeOff className="h-3 w-3" />
-            ) : (
-              <Eye className="h-3 w-3" />
-            )}
-            Orphans
-          </button>
+          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
+            <button
+              onClick={() => setShowOrphans(!showOrphans)}
+              className={`rounded-lg p-2 transition-colors ${
+                showOrphans
+                  ? "bg-apple-blue/20 text-apple-blue"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"
+              }`}
+              title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}
+            >
+              {showOrphans ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Legend */}
@@ -660,7 +698,10 @@ export function MemoryGraph() {
               </div>
             )}
 
-            <div className="flex gap-4 text-[11px] text-muted-foreground/70">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground/70">
+              {selectedNode.authorName && (
+                <span>By: {selectedNode.authorName}</span>
+              )}
               {selectedNode.confidence !== undefined && (
                 <span>
                   Confidence: {(selectedNode.confidence * 100).toFixed(0)}%

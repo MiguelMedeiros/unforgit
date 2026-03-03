@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -58,10 +59,13 @@ export function CreateMemoryDialog({
       });
 
       if (res.ok) {
+        toast.success("Memory created");
         setText("");
         setTagsInput("");
         onOpenChange(false);
         onCreated();
+      } else {
+        toast.error("Failed to create memory");
       }
     } finally {
       setSubmitting(false);

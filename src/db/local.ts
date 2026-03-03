@@ -12,6 +12,10 @@ import type {
   RecallResult,
   ListQuery,
   StoreStats,
+  ConsolidateMemoriesInput,
+  ConsolidateMemoriesResult,
+  ReconsolidateInput,
+  FindSimilarQuery,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -31,6 +35,10 @@ CREATE TABLE IF NOT EXISTS memories (
   confidence REAL,
   ttl_seconds INTEGER,
   supersedes_id TEXT,
+  is_consolidation INTEGER NOT NULL DEFAULT 0,
+  consolidation_version INTEGER,
+  author_id TEXT,
+  author_name TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -98,6 +106,10 @@ function rowToMemory(row: Record<string, unknown>): Memory {
     confidence: (row.confidence as number) ?? undefined,
     ttlSeconds: (row.ttl_seconds as number) ?? undefined,
     supersedesId: (row.supersedes_id as string) ?? undefined,
+    isConsolidation: row.is_consolidation === 1,
+    consolidationVersion: (row.consolidation_version as number) ?? undefined,
+    authorId: (row.author_id as string) ?? undefined,
+    authorName: (row.author_name as string) ?? undefined,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
@@ -115,6 +127,31 @@ export class LocalStore {
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     this.db.exec(SCHEMA_SQL);
+    this.migrateSchema();
+  }
+
+  private migrateSchema(): void {
+    const columns = this.db
+      .prepare("PRAGMA table_info(memories)")
+      .all() as Array<{ name: string }>;
+    const columnNames = columns.map((c) => c.name);
+
+    if (!columnNames.includes("is_consolidation")) {
+      this.db.exec(
+        "ALTER TABLE memories ADD COLUMN is_consolidation INTEGER NOT NULL DEFAULT 0",
+      );
+    }
+    if (!columnNames.includes("consolidation_version")) {
+      this.db.exec(
+        "ALTER TABLE memories ADD COLUMN consolidation_version INTEGER",
+      );
+    }
+    if (!columnNames.includes("author_id")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN author_id TEXT");
+    }
+    if (!columnNames.includes("author_name")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN author_name TEXT");
+    }
   }
 
   store(input: CreateMemoryInput): Memory {
@@ -128,8 +165,8 @@ export class LocalStore {
     this.db
       .prepare(
         `INSERT INTO memories
-        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, ttl_seconds, created_at, updated_at)
-        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, ttl_seconds, author_id, author_name, created_at, updated_at)
+        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -143,6 +180,8 @@ export class LocalStore {
         input.sourceRefs ? JSON.stringify(input.sourceRefs) : null,
         input.confidence ?? null,
         input.ttlSeconds ?? null,
+        input.authorId ?? null,
+        input.authorName ?? null,
         now,
         now,
       );
@@ -196,7 +235,7 @@ export class LocalStore {
         JOIN memories m ON m.rowid = fts.rowid
         WHERE fts.memories_fts MATCH ?
           AND ${whereClause}
-        ORDER BY fts.rank
+        ORDER BY m.is_consolidation DESC, fts.rank
         LIMIT ?
       `;
       finalParams = [ftsQuery, ...params, k * 2];
@@ -205,7 +244,7 @@ export class LocalStore {
         SELECT m.*, 0 AS fts_rank
         FROM memories m
         WHERE ${whereClause}
-        ORDER BY m.created_at DESC
+        ORDER BY m.is_consolidation DESC, m.created_at DESC
         LIMIT ?
       `;
       finalParams = [...params, k * 2];
@@ -221,7 +260,9 @@ export class LocalStore {
         ? Math.min(1, Math.abs(row.fts_rank as number) / 10)
         : 0.5;
 
-      return {
+      const consolidationBoost = memory.isConsolidation ? 0.1 : 0;
+
+      const result: RecallResult = {
         id: memory.id,
         memoryType: memory.memoryType,
         text: memory.text,
@@ -229,12 +270,30 @@ export class LocalStore {
         tags: memory.tags,
         sourceRefs: memory.sourceRefs,
         score: computeCompositeScore(
-          textScore,
+          textScore + consolidationBoost,
           memory.createdAt,
           memory.confidence,
         ),
         source: "local" as const,
+        isConsolidation: memory.isConsolidation,
+        consolidationVersion: memory.consolidationVersion,
       };
+
+      if (query.includeConsolidatedSources && memory.isConsolidation) {
+        const sources = this.getConsolidatedSources(memory.id);
+        result.sourceMemories = sources.map((src) => ({
+          id: src.id,
+          memoryType: src.memoryType,
+          text: src.text,
+          summary: src.summary,
+          tags: src.tags,
+          sourceRefs: src.sourceRefs,
+          score: 0,
+          source: "local" as const,
+        }));
+      }
+
+      return result;
     });
 
     if (query.tags && query.tags.length > 0) {
@@ -521,6 +580,243 @@ export class LocalStore {
       .prepare("SELECT * FROM memory_links WHERE id = ?")
       .get(id) as Record<string, unknown> | undefined;
     return row ? rowToLink(row) : undefined;
+  }
+
+  consolidateMemories(input: ConsolidateMemoriesInput): ConsolidateMemoriesResult {
+    const { orgId, repoId, sourceIds, consolidatedText, memoryType, tags, preserveOriginals = true } = input;
+
+    if (sourceIds.length < 2) {
+      throw new Error("At least 2 source memories are required for consolidation");
+    }
+
+    const sourceMemories = sourceIds
+      .map((id) => this.getById(id))
+      .filter((m): m is Memory => m !== undefined);
+
+    if (sourceMemories.length !== sourceIds.length) {
+      const foundIds = sourceMemories.map((m) => m.id);
+      const missingIds = sourceIds.filter((id) => !foundIds.includes(id));
+      throw new Error(`Source memories not found: ${missingIds.join(", ")}`);
+    }
+
+    const inferredType = memoryType ?? this.inferMemoryType(sourceMemories);
+    const mergedTags = tags ?? this.mergeTags(sourceMemories);
+
+    const id = uuid();
+    const now = new Date().toISOString();
+    const version = 1;
+
+    this.db
+      .prepare(
+        `INSERT INTO memories
+        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
+        VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        orgId,
+        repoId,
+        inferredType,
+        consolidatedText,
+        null,
+        JSON.stringify(mergedTags),
+        JSON.stringify({ consolidated_from: sourceIds }),
+        null,
+        version,
+        now,
+        now,
+      );
+
+    for (const sourceId of sourceIds) {
+      this.link({
+        sourceId: id,
+        targetId: sourceId,
+        linkType: "derived_from",
+        metadata: { consolidation: true },
+      });
+    }
+
+    if (preserveOriginals) {
+      for (const sourceId of sourceIds) {
+        this.supersede(sourceId, id);
+      }
+    }
+
+    return {
+      consolidatedId: id,
+      version,
+      sourcesPreserved: sourceIds.length,
+      sourceIds,
+    };
+  }
+
+  reconsolidate(input: ReconsolidateInput): ConsolidateMemoriesResult {
+    const { orgId, repoId, existingConsolidationId, additionalSourceIds = [], newText, tags } = input;
+
+    const existing = this.getById(existingConsolidationId);
+    if (!existing) {
+      throw new Error(`Consolidation not found: ${existingConsolidationId}`);
+    }
+    if (!existing.isConsolidation) {
+      throw new Error(`Memory ${existingConsolidationId} is not a consolidation`);
+    }
+
+    const existingLinks = this.getLinks({ memoryId: existingConsolidationId, linkType: "derived_from" });
+    const existingSourceIds = existingLinks
+      .filter((l) => l.sourceId === existingConsolidationId)
+      .map((l) => l.targetId);
+
+    const allSourceIds = [...new Set([...existingSourceIds, ...additionalSourceIds])];
+
+    for (const id of additionalSourceIds) {
+      const mem = this.getById(id);
+      if (!mem) {
+        throw new Error(`Additional source memory not found: ${id}`);
+      }
+    }
+
+    const newVersion = (existing.consolidationVersion ?? 1) + 1;
+    const mergedTags = tags ?? existing.tags;
+
+    const id = uuid();
+    const now = new Date().toISOString();
+
+    this.db
+      .prepare(
+        `INSERT INTO memories
+        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
+        VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        orgId,
+        repoId,
+        existing.memoryType,
+        newText,
+        null,
+        JSON.stringify(mergedTags),
+        JSON.stringify({
+          consolidated_from: allSourceIds,
+          previous_consolidation: existingConsolidationId,
+        }),
+        null,
+        newVersion,
+        now,
+        now,
+      );
+
+    this.link({
+      sourceId: id,
+      targetId: existingConsolidationId,
+      linkType: "derived_from",
+      metadata: { reconsolidation: true, previous_version: existing.consolidationVersion ?? 1 },
+    });
+
+    for (const sourceId of additionalSourceIds) {
+      this.link({
+        sourceId: id,
+        targetId: sourceId,
+        linkType: "derived_from",
+        metadata: { consolidation: true },
+      });
+      this.supersede(sourceId, id);
+    }
+
+    this.supersede(existingConsolidationId, id);
+
+    return {
+      consolidatedId: id,
+      version: newVersion,
+      sourcesPreserved: allSourceIds.length,
+      sourceIds: allSourceIds,
+    };
+  }
+
+  findSimilar(query: FindSimilarQuery): RecallResult[] {
+    const { orgId, repoId, memoryId, threshold = 0.3, k = 10 } = query;
+
+    const memory = this.getById(memoryId);
+    if (!memory) {
+      throw new Error(`Memory not found: ${memoryId}`);
+    }
+
+    const results = this.recall({
+      orgId,
+      repoId,
+      query: memory.text,
+      k: k + 1,
+    });
+
+    return results
+      .filter((r) => r.id !== memoryId && r.score >= threshold)
+      .slice(0, k);
+  }
+
+  getConsolidationHistory(memoryId: string): Memory[] {
+    const memory = this.getById(memoryId);
+    if (!memory) {
+      return [];
+    }
+
+    const history: Memory[] = [];
+
+    if (memory.isConsolidation) {
+      const sourceLinks = this.getLinks({ memoryId, linkType: "derived_from" });
+      for (const link of sourceLinks) {
+        const targetId = link.sourceId === memoryId ? link.targetId : link.sourceId;
+        const target = this.getById(targetId);
+        if (target) {
+          history.push(target);
+          if (target.isConsolidation) {
+            history.push(...this.getConsolidationHistory(targetId));
+          }
+        }
+      }
+    }
+
+    return history;
+  }
+
+  getConsolidatedSources(consolidationId: string): Memory[] {
+    const memory = this.getById(consolidationId);
+    if (!memory || !memory.isConsolidation) {
+      return [];
+    }
+
+    const sourceLinks = this.getLinks({ memoryId: consolidationId, linkType: "derived_from" });
+    const sources: Memory[] = [];
+
+    for (const link of sourceLinks) {
+      if (link.sourceId === consolidationId) {
+        const source = this.getById(link.targetId);
+        if (source && !source.isConsolidation) {
+          sources.push(source);
+        }
+      }
+    }
+
+    return sources;
+  }
+
+  private inferMemoryType(memories: Memory[]): Memory["memoryType"] {
+    const typeCounts = { episodic: 0, semantic: 0, procedural: 0 };
+    for (const m of memories) {
+      typeCounts[m.memoryType]++;
+    }
+
+    if (typeCounts.procedural > 0) return "procedural";
+    if (typeCounts.semantic >= typeCounts.episodic) return "semantic";
+    return "episodic";
+  }
+
+  private mergeTags(memories: Memory[]): string[] {
+    const tagSet = new Set<string>();
+    for (const m of memories) {
+      for (const tag of m.tags) {
+        tagSet.add(tag);
+      }
+    }
+    return Array.from(tagSet);
   }
 
   close(): void {

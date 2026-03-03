@@ -8,6 +8,12 @@ import { deprecateCommand } from "./commands/deprecate.js";
 import { supersedeCommand } from "./commands/supersede.js";
 import { webCommand } from "./commands/web.js";
 import { linkCommand, unlinkCommand, linksCommand } from "./commands/link.js";
+import {
+  mergeCommand,
+  remergeCommand,
+  similarCommand,
+  historyCommand,
+} from "./commands/merge.js";
 
 const program = new Command();
 
@@ -27,5 +33,9 @@ program.addCommand(webCommand);
 program.addCommand(linkCommand);
 program.addCommand(unlinkCommand);
 program.addCommand(linksCommand);
+program.addCommand(mergeCommand);
+program.addCommand(remergeCommand);
+program.addCommand(similarCommand);
+program.addCommand(historyCommand);
 
 program.parse();

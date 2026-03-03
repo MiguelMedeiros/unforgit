@@ -32,7 +32,7 @@ const server = new McpServer({
 
 server.tool(
   "hippo_recall",
-  "Search local repository memories by query. Returns relevant past decisions, conventions, bugs, and procedures stored across sessions.",
+  "Search local repository memories by query. Returns relevant past decisions, conventions, bugs, and procedures stored across sessions. Consolidated memories are prioritized by default.",
   {
     query: z.string().describe("Search query (natural language)"),
     types: z
@@ -51,8 +51,13 @@ server.tool(
       .optional()
       .default(10)
       .describe("Max number of results"),
+    expandHistory: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("If true, includes source memories for each consolidation"),
   },
-  async ({ query, types, tags, k }) => {
+  async ({ query, types, tags, k, expandHistory }) => {
     const { store, orgId, repoId } = getStore();
 
     try {
@@ -63,6 +68,8 @@ server.tool(
         types: types as MemoryType[] | undefined,
         tags,
         k,
+        expandHistory,
+        includeConsolidatedSources: expandHistory,
       });
 
       if (results.length === 0) {
@@ -72,11 +79,22 @@ server.tool(
       }
 
       const formatted = results.map((r) => {
+        const consolidationMarker = r.isConsolidation
+          ? ` [consolidated v${r.consolidationVersion ?? 1}]`
+          : "";
         const parts = [
-          `[${r.memoryType}] ${r.id.slice(0, 8)} (score: ${r.score.toFixed(3)})`,
+          `[${r.memoryType}] ${r.id.slice(0, 8)}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
           r.text,
         ];
         if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
+
+        if (expandHistory && r.sourceMemories && r.sourceMemories.length > 0) {
+          parts.push("Source memories:");
+          for (const src of r.sourceMemories) {
+            parts.push(`  └─ [${src.memoryType}] ${src.id.slice(0, 8)}: ${src.text.slice(0, 80)}...`);
+          }
+        }
+
         return parts.join("\n");
       });
 
@@ -94,9 +112,26 @@ server.tool(
   },
 );
 
+function getGitAuthor(): { authorId?: string; authorName?: string } {
+  try {
+    const { execSync } = require("child_process");
+    const name = execSync("git config user.name", { encoding: "utf8", cwd }).trim();
+    const email = execSync("git config user.email", { encoding: "utf8", cwd }).trim();
+    return {
+      authorId: email || undefined,
+      authorName: name || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+const AUTO_LINK_THRESHOLD = 0.25;
+const AUTO_LINK_MAX = 3;
+
 server.tool(
   "hippo_add",
-  "Store a memory in the local repository knowledge base. Use for decisions, conventions, bugs, gotchas, and procedures worth remembering across sessions.",
+  "Store a memory in the local repository knowledge base. Use for decisions, conventions, bugs, gotchas, and procedures worth remembering across sessions. Automatically links to related existing memories.",
   {
     text: z
       .string()
@@ -112,9 +147,15 @@ server.tool(
       .optional()
       .default([])
       .describe("Tags for discoverability (e.g. auth, bug, deploy)"),
+    autoLink: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Automatically link to related memories (default: true)"),
   },
-  async ({ text, type, tags }) => {
+  async ({ text, type, tags, autoLink }) => {
     const { store, orgId, repoId } = getStore();
+    const author = getGitAuthor();
 
     try {
       const input = {
@@ -124,6 +165,8 @@ server.tool(
         text,
         tags,
         visibility: "private" as const,
+        authorId: author.authorId,
+        authorName: author.authorName,
       };
 
       const policy = resolveVisibility(input);
@@ -138,6 +181,50 @@ server.tool(
         `Visibility: ${memory.visibility}`,
         `Tags: ${memory.tags.join(", ") || "(none)"}`,
       ];
+
+      const linkedIds: string[] = [];
+      if (autoLink) {
+        const stopWords = new Set(["the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall", "can", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during", "before", "after", "above", "below", "between", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just", "and", "but", "if", "or", "because", "until", "while", "this", "that", "these", "those", "it", "its"]);
+        const words = text
+          .toLowerCase()
+          .replace(/[_-]/g, " ")
+          .replace(/[^\w\s]/g, " ")
+          .split(/\s+/)
+          .filter((w) => w.length > 2 && !stopWords.has(w));
+        const uniqueWords = [...new Set(words)].slice(0, 10);
+        const searchQuery = uniqueWords.join(" OR ");
+        
+        const similar = store.recall({
+          orgId,
+          repoId,
+          query: searchQuery,
+          k: AUTO_LINK_MAX + 5,
+        });
+
+        for (const match of similar) {
+          if (match.id === memory.id) continue;
+          if (match.score < AUTO_LINK_THRESHOLD) continue;
+          if (linkedIds.length >= AUTO_LINK_MAX) break;
+
+          try {
+            store.link({
+              sourceId: memory.id,
+              targetId: match.id,
+              linkType: "related_to",
+            });
+            linkedIds.push(match.id);
+          } catch (err) {
+            console.error("Auto-link error:", err);
+          }
+        }
+
+        if (linkedIds.length > 0) {
+          parts.push(`\nAuto-linked to ${linkedIds.length} related memories:`);
+          for (const id of linkedIds) {
+            parts.push(`  → ${id.slice(0, 8)}`);
+          }
+        }
+      }
 
       if (policy.suggestion === "promote") {
         parts.push(
@@ -267,6 +354,245 @@ server.tool(
             text: `Found ${links.length} links:\n\n${formatted.join("\n")}`,
           },
         ],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_consolidate",
+  "Consolidate multiple related memories into a single unified memory. The original memories are preserved and linked via 'derived_from' relationships, creating a commit-like history. Use this to reduce noise while maintaining full history.",
+  {
+    sourceIds: z
+      .array(z.string().min(1))
+      .min(2)
+      .describe("IDs of memories to consolidate (minimum 2)"),
+    consolidatedText: z
+      .string()
+      .min(1)
+      .describe("The unified text combining insights from all source memories"),
+    memoryType: z
+      .enum(["episodic", "semantic", "procedural"])
+      .optional()
+      .describe("Type for the consolidated memory (auto-inferred if not provided)"),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe("Tags for the consolidated memory (merged from sources if not provided)"),
+    preserveOriginals: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("If true, marks original memories as 'superseded' (default: true)"),
+  },
+  async ({ sourceIds, consolidatedText, memoryType, tags, preserveOriginals }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const result = store.consolidateMemories({
+        orgId,
+        repoId,
+        sourceIds,
+        consolidatedText,
+        memoryType: memoryType as MemoryType | undefined,
+        tags,
+        preserveOriginals,
+      });
+
+      const parts = [
+        `Consolidated memory created: ${result.consolidatedId}`,
+        `Version: ${result.version}`,
+        `Sources preserved: ${result.sourcesPreserved}`,
+        `Source IDs: ${result.sourceIds.map((id) => id.slice(0, 8)).join(", ")}`,
+        "",
+        "Original memories are now linked via 'derived_from' and marked as 'superseded'.",
+        "Use hippo_recall to search - consolidated memories are prioritized.",
+        "Use hippo_history to view the full consolidation history.",
+      ];
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_reconsolidate",
+  "Update an existing consolidation with new information or additional source memories. Creates a new version while preserving the previous consolidation in history.",
+  {
+    existingConsolidationId: z
+      .string()
+      .min(1)
+      .describe("ID of the existing consolidated memory to update"),
+    newText: z
+      .string()
+      .min(1)
+      .describe("Updated consolidated text including any new information"),
+    additionalSourceIds: z
+      .array(z.string().min(1))
+      .optional()
+      .describe("IDs of additional memories to include in this consolidation"),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe("Updated tags (keeps existing if not provided)"),
+  },
+  async ({ existingConsolidationId, newText, additionalSourceIds, tags }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const result = store.reconsolidate({
+        orgId,
+        repoId,
+        existingConsolidationId,
+        additionalSourceIds,
+        newText,
+        tags,
+      });
+
+      const parts = [
+        `Reconsolidation complete: ${result.consolidatedId}`,
+        `New version: ${result.version}`,
+        `Total sources: ${result.sourcesPreserved}`,
+        `Previous consolidation: ${existingConsolidationId.slice(0, 8)} (now superseded)`,
+        "",
+        "The consolidation history is preserved. Use hippo_history to view all versions.",
+      ];
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_find_similar",
+  "Find memories similar to a given memory. Useful for identifying candidates for consolidation.",
+  {
+    memoryId: z.string().min(1).describe("ID of the memory to find similar ones for"),
+    threshold: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .default(0.3)
+      .describe("Minimum similarity score (0-1, default: 0.3)"),
+    k: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .optional()
+      .default(10)
+      .describe("Max number of similar memories to return"),
+  },
+  async ({ memoryId, threshold, k }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const similar = store.findSimilar({
+        orgId,
+        repoId,
+        memoryId,
+        threshold,
+        k,
+      });
+
+      if (similar.length === 0) {
+        return {
+          content: [{ type: "text", text: "No similar memories found." }],
+        };
+      }
+
+      const formatted = similar.map((r) => {
+        const parts = [
+          `[${r.memoryType}] ${r.id.slice(0, 8)} (score: ${r.score.toFixed(3)})`,
+          r.text,
+        ];
+        if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
+        return parts.join("\n");
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Found ${similar.length} similar memories:\n\n${formatted.join("\n\n")}`,
+          },
+        ],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_history",
+  "Get the consolidation history for a memory. Shows all source memories and previous consolidation versions.",
+  {
+    memoryId: z.string().min(1).describe("ID of the memory to get history for"),
+  },
+  async ({ memoryId }) => {
+    const { store } = getStore();
+
+    try {
+      const memory = store.getById(memoryId);
+      if (!memory) {
+        return {
+          content: [{ type: "text", text: "Memory not found." }],
+        };
+      }
+
+      const parts: string[] = [
+        `Memory: ${memory.id.slice(0, 8)}`,
+        `Type: ${memory.memoryType}`,
+        `Is Consolidation: ${memory.isConsolidation ? "Yes" : "No"}`,
+      ];
+
+      if (memory.isConsolidation) {
+        parts.push(`Version: ${memory.consolidationVersion ?? 1}`);
+
+        const sources = store.getConsolidatedSources(memoryId);
+        if (sources.length > 0) {
+          parts.push("", "Source memories:");
+          for (const src of sources) {
+            parts.push(`  - [${src.memoryType}] ${src.id.slice(0, 8)}: ${src.text.slice(0, 60)}...`);
+          }
+        }
+
+        const history = store.getConsolidationHistory(memoryId);
+        const previousVersions = history.filter((h) => h.isConsolidation);
+        if (previousVersions.length > 0) {
+          parts.push("", "Previous consolidation versions:");
+          for (const prev of previousVersions) {
+            parts.push(`  - v${prev.consolidationVersion ?? 1} (${prev.id.slice(0, 8)}): ${prev.text.slice(0, 60)}...`);
+          }
+        }
+      } else {
+        const links = store.getLinks({ memoryId, linkType: "derived_from" });
+        const consolidations = links.filter((l) => l.targetId === memoryId);
+        if (consolidations.length > 0) {
+          parts.push("", "Included in consolidations:");
+          for (const link of consolidations) {
+            const consol = store.getById(link.sourceId);
+            if (consol) {
+              parts.push(`  - v${consol.consolidationVersion ?? 1} (${consol.id.slice(0, 8)})`);
+            }
+          }
+        }
+      }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
       };
     } finally {
       store.close();

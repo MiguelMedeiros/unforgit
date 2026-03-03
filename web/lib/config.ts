@@ -4,7 +4,8 @@ import YAML from "yaml";
 import type { HippoConfig } from "./types";
 
 export function getWorkspacePath(): string {
-  return process.env.HIPPO_WORKSPACE || process.cwd();
+  const workspace = process.env.HIPPO_WORKSPACE || process.cwd();
+  return path.resolve(process.cwd(), workspace);
 }
 
 export function getHippoDir(): string {

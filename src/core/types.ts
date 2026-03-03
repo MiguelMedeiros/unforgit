@@ -18,6 +18,10 @@ export interface Memory {
   confidence?: number;
   ttlSeconds?: number;
   supersedesId?: string;
+  isConsolidation?: boolean;
+  consolidationVersion?: number;
+  authorId?: string;
+  authorName?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +37,8 @@ export interface CreateMemoryInput {
   confidence?: number;
   ttlSeconds?: number;
   visibility?: Visibility;
+  authorId?: string;
+  authorName?: string;
 }
 
 export interface RecallQuery {
@@ -44,6 +50,8 @@ export interface RecallQuery {
   timeRange?: { from?: Date; to?: Date };
   k?: number;
   includeDeprecated?: boolean;
+  expandHistory?: boolean;
+  includeConsolidatedSources?: boolean;
 }
 
 export interface RecallResult {
@@ -55,6 +63,9 @@ export interface RecallResult {
   sourceRefs?: Record<string, unknown>;
   score: number;
   source: "local" | "remote";
+  isConsolidation?: boolean;
+  consolidationVersion?: number;
+  sourceMemories?: RecallResult[];
 }
 
 export interface ConsolidateInput {
@@ -128,4 +139,38 @@ export interface HippoConfig {
     visibility: Visibility;
     memoryType: MemoryType;
   };
+}
+
+export interface ConsolidateMemoriesInput {
+  orgId: string;
+  repoId: string;
+  sourceIds: string[];
+  consolidatedText: string;
+  memoryType?: MemoryType;
+  tags?: string[];
+  preserveOriginals?: boolean;
+}
+
+export interface ConsolidateMemoriesResult {
+  consolidatedId: string;
+  version: number;
+  sourcesPreserved: number;
+  sourceIds: string[];
+}
+
+export interface ReconsolidateInput {
+  orgId: string;
+  repoId: string;
+  existingConsolidationId: string;
+  additionalSourceIds?: string[];
+  newText: string;
+  tags?: string[];
+}
+
+export interface FindSimilarQuery {
+  orgId: string;
+  repoId: string;
+  memoryId: string;
+  threshold?: number;
+  k?: number;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { HardDrive, Cloud } from "lucide-react";
+import { HardDrive, Cloud, CloudCheck } from "lucide-react";
 
 interface MemoryCardProps {
   id: string;
@@ -10,6 +10,7 @@ interface MemoryCardProps {
   tags: string[];
   status: string;
   source: "local" | "remote";
+  visibility?: string;
   createdAt: string;
   onClick?: () => void;
 }
@@ -44,6 +45,7 @@ export function MemoryCard({
   tags,
   status,
   source,
+  visibility,
   createdAt,
   onClick,
 }: MemoryCardProps) {
@@ -73,11 +75,22 @@ export function MemoryCard({
               <div className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
               <span className="text-[11px] text-muted-foreground/70">{status}</span>
             </div>
-            <div className="ml-auto flex items-center gap-1 text-muted-foreground/40">
-              {source === "local" ? (
-                <HardDrive className="h-3 w-3" />
+            <div 
+              className="ml-auto flex items-center gap-1"
+              title={
+                source === "remote" 
+                  ? "Remote" 
+                  : visibility === "repo" 
+                    ? "Local (synced)" 
+                    : "Local only"
+              }
+            >
+              {source === "remote" ? (
+                <Cloud className="h-3 w-3 text-muted-foreground/40" />
+              ) : visibility === "repo" ? (
+                <CloudCheck className="h-3 w-3 text-apple-green/70" />
               ) : (
-                <Cloud className="h-3 w-3" />
+                <HardDrive className="h-3 w-3 text-muted-foreground/40" />
               )}
             </div>
           </div>

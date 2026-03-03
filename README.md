@@ -86,6 +86,26 @@ hippo deprecate <id> --reason "outdated after migration"
 hippo supersede <old-id> --with <new-id>
 ```
 
+### Merge (Consolidate Memories)
+
+Combine multiple related memories into a single unified memory while preserving the full history — like a Git commit for knowledge.
+
+```bash
+# Find similar memories (candidates for merging)
+hippo similar <memory-id> --limit 10 --threshold 0.3
+
+# Merge multiple memories into one
+hippo merge <id1> <id2> <id3> -t "Unified deployment guide: run make release, kubectl apply, wait for health check, rollback on error"
+
+# Update an existing consolidation with new info
+hippo remerge <consolidation-id> -t "Updated text with new insights" --add "<new-memory-id>"
+
+# View consolidation history
+hippo history <memory-id>
+```
+
+The original memories are preserved and linked via `derived_from` relationships. By default, source memories are marked as `superseded` so they don't clutter recall results, but the history is always accessible.
+
 ## API Server
 
 ### Setup
@@ -206,8 +226,15 @@ Restart Cursor after adding the MCP config.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `hippo_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?` |
+| `hippo_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?`, `expandHistory?` |
 | `hippo_add` | Store a new memory | `text`, `type`, `tags?` |
+| `hippo_consolidate` | Merge multiple memories into one | `sourceIds`, `consolidatedText`, `memoryType?`, `tags?` |
+| `hippo_reconsolidate` | Update existing consolidation | `existingConsolidationId`, `newText`, `additionalSourceIds?`, `tags?` |
+| `hippo_find_similar` | Find memories similar to a given one | `memoryId`, `threshold?`, `k?` |
+| `hippo_history` | Get consolidation history | `memoryId` |
+| `hippo_link` | Create link between memories | `sourceId`, `targetId`, `linkType` |
+| `hippo_unlink` | Remove link between memories | `sourceId`, `targetId`, `linkType` |
+| `hippo_links` | Get all links for a memory | `memoryId`, `linkType?` |
 
 The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.hippocampus/hippo.yaml` in the current workspace.
 

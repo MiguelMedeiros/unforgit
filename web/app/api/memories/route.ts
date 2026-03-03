@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import type { ListQuery, Memory } from "@/lib/types";
 
+async function fetchRemoteMemories(
+  remoteUrl: string,
+  query: ListQuery,
+): Promise<{ memories: Memory[]; total: number }> {
+  try {
+    const params = new URLSearchParams();
+    params.set("orgId", query.orgId);
+    params.set("repoId", query.repoId);
+    if (query.types) params.set("types", query.types.join(","));
+    if (query.status) params.set("status", query.status.join(","));
+    if (query.tags) params.set("tags", query.tags.join(","));
+    if (query.search) params.set("search", query.search);
+    params.set("limit", String(query.limit ?? 50));
+    params.set("offset", String(query.offset ?? 0));
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortOrder) params.set("sortOrder", query.sortOrder);
+
+    const res = await fetch(`${remoteUrl}/v1/memories?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return { memories: [], total: 0 };
+    const data = await res.json();
+    return {
+      memories: data.memories ?? [],
+      total: data.total ?? data.memories?.length ?? 0,
+    };
+  } catch {
+    return { memories: [], total: 0 };
+  }
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const config = getConfig();
@@ -56,19 +87,32 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if ((source === "remote" || source === "both") && config.remote.url) {
+    const remoteData = await fetchRemoteMemories(config.remote.url, query);
+    memories.push(
+      ...remoteData.memories.map((m) => ({
+        ...m,
+        createdAt: new Date(m.createdAt),
+        updatedAt: new Date(m.updatedAt),
+        source: "remote" as const,
+      })),
+    );
+    total += remoteData.total;
+  }
+
   if (source === "both") {
     memories.sort((a, b) => {
       const aVal =
         sortBy === "confidence"
           ? (a.confidence ?? 0)
-          : a[sortBy ?? "createdAt"].getTime();
+          : new Date(a[sortBy ?? "createdAt"]).getTime();
       const bVal =
         sortBy === "confidence"
           ? (b.confidence ?? 0)
-          : b[sortBy ?? "createdAt"].getTime();
+          : new Date(b[sortBy ?? "createdAt"]).getTime();
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
-    memories = memories.slice(0, limit);
+    memories = memories.slice(offset, offset + limit);
   }
 
   return NextResponse.json({ memories, total });
