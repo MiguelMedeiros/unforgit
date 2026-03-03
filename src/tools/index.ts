@@ -15,6 +15,7 @@ export interface ToolConfig {
   remoteUrl: string;
   orgId: string;
   repoId: string;
+  apiKey?: string;
 }
 
 export interface RecallParams {
@@ -64,7 +65,7 @@ export function createMemoryTools(config: ToolConfig) {
   }
 
   function getRemote(): RemoteClient {
-    return new RemoteClient(config.remoteUrl);
+    return new RemoteClient(config.remoteUrl, config.apiKey);
   }
 
   return {

@@ -24,7 +24,7 @@ export const diffCommand = new Command("diff")
       process.exit(1);
     }
 
-    const client = new RemoteClient(config.remote.url);
+    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     if (memoryId) {
       await diffSingleMemory(store, client, memoryId, orgId, repoId);

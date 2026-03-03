@@ -720,4 +720,75 @@ export class RemoteStore {
   async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
   }
+
+  async validateApiKey(key: string): Promise<{ id: string; orgId: string; name: string } | null> {
+    const apiKey = await this.prisma.apiKey.findUnique({
+      where: { key },
+    });
+
+    if (!apiKey || !apiKey.isActive) {
+      return null;
+    }
+
+    await this.prisma.apiKey.update({
+      where: { id: apiKey.id },
+      data: { lastUsedAt: new Date() },
+    });
+
+    return {
+      id: apiKey.id,
+      orgId: apiKey.orgId,
+      name: apiKey.name,
+    };
+  }
+
+  async createApiKey(name: string, orgId: string): Promise<{ id: string; key: string; name: string; orgId: string }> {
+    const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
+
+    const apiKey = await this.prisma.apiKey.create({
+      data: {
+        key,
+        name,
+        orgId,
+      },
+    });
+
+    return {
+      id: apiKey.id,
+      key: apiKey.key,
+      name: apiKey.name,
+      orgId: apiKey.orgId,
+    };
+  }
+
+  async listApiKeys(orgId?: string): Promise<Array<{ id: string; name: string; orgId: string; isActive: boolean; createdAt: Date; lastUsedAt: Date | null }>> {
+    const where = orgId ? { orgId } : {};
+
+    const keys = await this.prisma.apiKey.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        orgId: true,
+        isActive: true,
+        createdAt: true,
+        lastUsedAt: true,
+      },
+    });
+
+    return keys;
+  }
+
+  async revokeApiKey(id: string): Promise<boolean> {
+    try {
+      await this.prisma.apiKey.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

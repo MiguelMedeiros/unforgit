@@ -106,6 +106,97 @@ hippo history <memory-id>
 
 The original memories are preserved and linked via `derived_from` relationships. By default, source memories are marked as `superseded` so they don't clutter recall results, but the history is always accessible.
 
+## Sync with Remote Server
+
+Hippocampus supports syncing memories between local (SQLite) and remote (PostgreSQL) storage.
+
+### Configuration
+
+Use the `hippo config` command to manage all settings:
+
+```bash
+# List all configuration
+hippo config list
+
+# Set remote server URL
+hippo config set remote.url https://hippo.example.com
+
+# Get a specific value
+hippo config get remote.url
+```
+
+### Authentication
+
+The remote server requires API key authentication:
+
+```bash
+# Set API key for this repository
+hippo auth set hk_your_api_key_here
+
+# Check authentication status
+hippo auth status
+
+# Remove API key
+hippo auth remove
+```
+
+### OpenAI API Key (for auto-consolidation)
+
+Configure OpenAI for AI-powered memory consolidation:
+
+```bash
+# Set OpenAI API key
+hippo auth openai sk-your-openai-key
+
+# Remove OpenAI API key
+hippo auth openai-remove
+```
+
+### Manual Configuration
+
+You can also edit `.hippocampus/hippo.yaml` directly:
+
+```yaml
+remote:
+  url: http://localhost:3737
+  orgId: your-org
+  repoId: your-repo
+  apiKey: hk_your_api_key_here
+openaiApiKey: sk-your-openai-key
+defaults:
+  visibility: auto
+  memoryType: episodic
+```
+
+### Push & Pull
+
+```bash
+# Push local memories to remote
+hippo push
+
+# Pull remote memories to local
+hippo pull
+
+# Preview changes before pushing
+hippo push --dry-run
+
+# Show differences between local and remote
+hippo diff
+```
+
+### Managing API Keys
+
+```bash
+# Create a new API key (requires existing admin key)
+hippo keys create --name "My Key" --org "my-org"
+
+# List all API keys
+hippo keys list
+
+# Revoke an API key
+hippo keys revoke <key-id>
+```
+
 ## API Server
 
 ### Setup
@@ -121,6 +212,17 @@ pnpm run db:migrate
 pnpm run dev:server
 ```
 
+### Authentication
+
+All API endpoints (except `/health`) require authentication via Bearer token:
+
+```bash
+curl -H "Authorization: Bearer hk_your_api_key" \
+     -H "Content-Type: application/json" \
+     http://localhost:3737/v1/recall \
+     -d '{"orgId":"org","repoId":"repo","query":"test"}'
+```
+
 ### Endpoints
 
 | Method | Path | Description |
@@ -131,7 +233,12 @@ pnpm run dev:server
 | POST | `/v1/memory/:id/supersede` | Mark as superseded |
 | POST | `/v1/memory/:id/pin` | Pin a memory |
 | POST | `/v1/consolidate` | Consolidate memories |
-| GET | `/health` | Health check |
+| DELETE | `/v1/memory/:id` | Delete a memory |
+| POST | `/v1/memory/:id/restore` | Restore a deleted memory |
+| POST | `/v1/api-keys` | Create API key |
+| GET | `/v1/api-keys` | List API keys |
+| DELETE | `/v1/api-keys/:id` | Revoke API key |
+| GET | `/health` | Health check (no auth required) |
 
 ### POST /v1/memory
 

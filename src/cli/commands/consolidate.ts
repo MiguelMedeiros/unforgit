@@ -15,7 +15,7 @@ export const consolidateCommand = new Command("consolidate")
       process.exit(1);
     }
 
-    const client = new RemoteClient(config.remote.url);
+    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     const body: Record<string, unknown> = {
       orgId: config.remote.orgId,

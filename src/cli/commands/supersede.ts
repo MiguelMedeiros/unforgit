@@ -11,7 +11,7 @@ export const supersedeCommand = new Command("supersede")
   .action(async (oldId, opts) => {
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url);
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
       try {
         await client.supersede(oldId, opts.with);

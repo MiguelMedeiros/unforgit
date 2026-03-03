@@ -24,6 +24,9 @@ import { remoteCommand } from "./commands/remote.js";
 import { logCommand } from "./commands/log.js";
 import { branchCommand, checkoutCommand } from "./commands/branch.js";
 import { diffCommand } from "./commands/diff.js";
+import { keysCommand } from "./commands/keys.js";
+import { authCommand } from "./commands/auth.js";
+import { configCommand } from "./commands/config.js";
 
 const program = new Command();
 
@@ -59,5 +62,8 @@ program.addCommand(logCommand);
 program.addCommand(branchCommand);
 program.addCommand(checkoutCommand);
 program.addCommand(diffCommand);
+program.addCommand(keysCommand);
+program.addCommand(authCommand);
+program.addCommand(configCommand);
 
 program.parse();

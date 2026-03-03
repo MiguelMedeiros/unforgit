@@ -11,7 +11,7 @@ export const deprecateCommand = new Command("deprecate")
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url);
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
       try {
         await client.deprecate(id, opts.reason);

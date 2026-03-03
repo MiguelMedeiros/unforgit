@@ -26,7 +26,7 @@ export const pullCommand = new Command("pull")
       process.exit(1);
     }
 
-    const client = new RemoteClient(config.remote.url);
+    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     console.log(`Fetching from ${remote} (${config.remote.url})...`);
 

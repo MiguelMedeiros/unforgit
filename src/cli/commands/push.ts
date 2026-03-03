@@ -27,7 +27,7 @@ export const pushCommand = new Command("push")
       process.exit(1);
     }
 
-    const client = new RemoteClient(config.remote.url);
+    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     const pendingPush = store.getPendingPush();
     const untracked = opts.all ? store.getUntrackedMemories(orgId, repoId) : [];

@@ -69,3 +69,17 @@ model Tombstone {
   @@index([orgId, repoId, syncedAt])
   @@map("tombstones")
 }
+
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  key        String    @unique
+  name       String
+  orgId      String    @map("org_id")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  @@index([key])
+  @@index([orgId])
+  @@map("api_keys")
+}

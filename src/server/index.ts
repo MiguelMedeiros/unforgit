@@ -8,6 +8,8 @@ import { curateRoutes } from "./routes/curate.js";
 import { consolidateRoutes } from "./routes/consolidate.js";
 import { linkRoutes } from "./routes/links.js";
 import { syncRoutes } from "./routes/sync.js";
+import { apiKeyRoutes } from "./routes/api-keys.js";
+import { registerAuthMiddleware } from "./middleware/auth.js";
 
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });
@@ -15,12 +17,15 @@ export async function buildApp(connectionString: string) {
 
   const store = new RemoteStore(connectionString);
 
+  registerAuthMiddleware(app, store);
+
   await memoryRoutes(app, store);
   await recallRoutes(app, store);
   await curateRoutes(app, store);
   await consolidateRoutes(app, store);
   await linkRoutes(app, store);
   await app.register(syncRoutes, { store });
+  await app.register(apiKeyRoutes, { store });
 
   app.get("/health", async () => ({ status: "ok" }));
 

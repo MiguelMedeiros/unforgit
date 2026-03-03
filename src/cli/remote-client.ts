@@ -6,17 +6,41 @@ import type {
 } from "../core/types.js";
 
 export class RemoteClient {
-  constructor(private baseUrl: string) {}
+  private apiKey?: string;
+
+  constructor(private baseUrl: string, apiKey?: string) {
+    this.apiKey = apiKey;
+  }
+
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.apiKey) {
+      headers["Authorization"] = `Bearer ${this.apiKey}`;
+    }
+    return headers;
+  }
+
+  private handleError(res: Response, operation: string, errorText: string): never {
+    if (res.status === 401) {
+      throw new Error(
+        `Authentication failed for ${operation}: Invalid or missing API key. ` +
+        `Configure your API key in .hippocampus/hippo.yaml under remote.apiKey`
+      );
+    }
+    throw new Error(`Remote ${operation} failed (${res.status}): ${errorText}`);
+  }
 
   async store(input: CreateMemoryInput): Promise<{ id: string }> {
     const res = await fetch(`${this.baseUrl}/v1/memory`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify(input),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote store failed (${res.status}): ${err}`);
+      this.handleError(res, "store", err);
     }
     return res.json() as Promise<{ id: string }>;
   }
@@ -26,12 +50,12 @@ export class RemoteClient {
   ): Promise<{ results: RecallResult[] }> {
     const res = await fetch(`${this.baseUrl}/v1/recall`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify(query),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote recall failed (${res.status}): ${err}`);
+      this.handleError(res, "recall", err);
     }
     return res.json() as Promise<{ results: RecallResult[] }>;
   }
@@ -42,12 +66,12 @@ export class RemoteClient {
   ): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${id}/deprecate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ reason }),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote deprecate failed (${res.status}): ${err}`);
+      this.handleError(res, "deprecate", err);
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
@@ -58,12 +82,12 @@ export class RemoteClient {
   ): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${oldId}/supersede`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ newId }),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote supersede failed (${res.status}): ${err}`);
+      this.handleError(res, "supersede", err);
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
@@ -76,12 +100,12 @@ export class RemoteClient {
   ): Promise<{ link: MemoryLink }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${sourceId}/link`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ targetId, linkType, metadata }),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote link failed (${res.status}): ${err}`);
+      this.handleError(res, "link", err);
     }
     return res.json() as Promise<{ link: MemoryLink }>;
   }
@@ -93,12 +117,12 @@ export class RemoteClient {
   ): Promise<{ ok: boolean }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${sourceId}/link`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ targetId, linkType }),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote unlink failed (${res.status}): ${err}`);
+      this.handleError(res, "unlink", err);
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
@@ -112,10 +136,10 @@ export class RemoteClient {
     const qs = params.toString();
     const url = `${this.baseUrl}/v1/memory/${memoryId}/links${qs ? `?${qs}` : ""}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: this.getHeaders() });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote getLinks failed (${res.status}): ${err}`);
+      this.handleError(res, "getLinks", err);
     }
     return res.json() as Promise<{ links: MemoryLink[] }>;
   }
@@ -127,12 +151,12 @@ export class RemoteClient {
   }> {
     const res = await fetch(`${this.baseUrl}/v1/consolidate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify(body),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote consolidate failed (${res.status}): ${err}`);
+      this.handleError(res, "consolidate", err);
     }
     return res.json() as Promise<{
       created: string[];
@@ -148,12 +172,12 @@ export class RemoteClient {
   ): Promise<{ success: boolean; action: string }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${id}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ deletedBy, hardDelete }),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote delete failed (${res.status}): ${err}`);
+      this.handleError(res, "delete", err);
     }
     return res.json() as Promise<{ success: boolean; action: string }>;
   }
@@ -161,11 +185,11 @@ export class RemoteClient {
   async restore(id: string): Promise<{ success: boolean }> {
     const res = await fetch(`${this.baseUrl}/v1/memory/${id}/restore`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
     });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Remote restore failed (${res.status}): ${err}`);
+      this.handleError(res, "restore", err);
     }
     return res.json() as Promise<{ success: boolean }>;
   }

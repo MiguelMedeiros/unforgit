@@ -141,6 +141,7 @@ export interface HippoConfig {
     url: string;
     orgId: string;
     repoId: string;
+    apiKey?: string;
   };
   defaults: {
     visibility: Visibility;
@@ -240,6 +241,7 @@ export interface RemoteConfig {
   url: string;
   orgId: string;
   repoId: string;
+  apiKey?: string;
 }
 
 export interface HippoConfigV2 {

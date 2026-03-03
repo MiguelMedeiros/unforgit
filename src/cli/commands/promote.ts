@@ -30,7 +30,7 @@ export const promoteCommand = new Command("promote")
     if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
     if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
 
-    const client = new RemoteClient(config.remote.url);
+    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     try {
       const result = await client.store({

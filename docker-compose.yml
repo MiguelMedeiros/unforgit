@@ -28,5 +28,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   postgres_data:

@@ -12,7 +12,7 @@ export const deleteCommand = new Command("delete")
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url);
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
       try {
         await client.delete(id, opts.by, opts.hard);
@@ -57,7 +57,7 @@ export const restoreCommand = new Command("restore")
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url);
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
       try {
         await client.restore(id);
