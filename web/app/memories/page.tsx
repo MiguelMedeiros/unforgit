@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, ChevronLeft, ChevronRight, Database } from "lucide-react";
+import { Plus, Search, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterBar } from "@/components/filter-bar";
 import { MemoryCard } from "@/components/memory-card";
 import { MemoryDetailSheet } from "@/components/memory-detail-sheet";
 import { CreateMemoryDialog } from "@/components/create-memory-dialog";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 interface MemoryItem {
   id: string;
@@ -33,23 +34,39 @@ function MemoriesContent() {
   const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   const [search, setSearch] = useState(initialSearch);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [source, setSource] = useState("local");
   const [type, setType] = useState("all");
   const [status, setStatus] = useState("active");
-  const [page, setPage] = useState(0);
 
   const [detailId, setDetailId] = useState<string | null>(initialDetail);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const loadMemories = useCallback(async () => {
-    setLoading(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+
+  const loadMemories = useCallback(async (reset = false) => {
+    const currentOffset = reset ? 0 : offsetRef.current;
+
+    if (reset) {
+      setLoading(true);
+      offsetRef.current = 0;
+    } else {
+      if (loadingMoreRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+    }
+
     const params = new URLSearchParams();
     params.set("source", source);
     params.set("limit", String(PAGE_SIZE));
-    params.set("offset", String(page * PAGE_SIZE));
+    params.set("offset", String(currentOffset));
     params.set("sortBy", "createdAt");
     params.set("sortOrder", "desc");
 
@@ -61,22 +78,58 @@ function MemoriesContent() {
       const res = await fetch(`/api/memories?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setMemories(data.memories);
+        if (reset) {
+          setMemories(data.memories);
+        } else {
+          setMemories((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newMemories = data.memories.filter(
+              (m: MemoryItem) => !existingIds.has(m.id)
+            );
+            return [...prev, ...newMemories];
+          });
+        }
         setTotal(data.total);
+        setHasMore(currentOffset + PAGE_SIZE < data.total);
+        offsetRef.current = currentOffset + PAGE_SIZE;
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
-  }, [source, type, status, page, searchQuery]);
+  }, [source, type, status, searchQuery]);
 
   useEffect(() => {
-    loadMemories();
+    loadMemories(true);
   }, [loadMemories]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    if (!sentinel || !scrollContainer || !hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !loadingMoreRef.current) {
+          loadMemories(false);
+        }
+      },
+      {
+        root: scrollContainer,
+        rootMargin: "400px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadMemories]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setSearchQuery(search);
-    setPage(0);
   }
 
   function openDetail(id: string) {
@@ -94,10 +147,8 @@ function MemoriesContent() {
     router.replace(q ? `/memories?${q}` : "/memories", { scroll: false });
   }
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
   return (
-    <div className="h-full overflow-y-auto">
+    <div ref={scrollContainerRef} className="h-full overflow-y-auto">
       <div className="mx-auto max-w-5xl px-8 py-10">
         <div className="animate-fade-in space-y-6">
           {/* Header */}
@@ -131,9 +182,9 @@ function MemoriesContent() {
               source={source}
               type={type}
               status={status}
-              onSourceChange={(v) => { setSource(v); setPage(0); }}
-              onTypeChange={(v) => { setType(v); setPage(0); }}
-              onStatusChange={(v) => { setStatus(v); setPage(0); }}
+              onSourceChange={setSource}
+              onTypeChange={setType}
+              onStatusChange={setStatus}
             />
           </div>
 
@@ -171,31 +222,27 @@ function MemoriesContent() {
                 ))}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-[12px] text-muted-foreground/60">
-                    {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
-                  </p>
-                  <div className="flex gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === 0}
-                      onClick={() => setPage(page - 1)}
-                      className="h-7 px-2"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= totalPages - 1}
-                      onClick={() => setPage(page + 1)}
-                      className="h-7 px-2"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="h-px" />
+
+              {/* Loading indicator */}
+              {loadingMore && (
+                <div className="flex justify-center py-6">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-apple-blue border-t-transparent" />
+                    <span className="text-[12px] text-muted-foreground">
+                      Loading more...
+                    </span>
                   </div>
+                </div>
+              )}
+
+              {/* End of list */}
+              {!hasMore && memories.length > 0 && (
+                <div className="flex justify-center py-6">
+                  <span className="text-[11px] text-muted-foreground/50">
+                    {total} {total === 1 ? "memory" : "memories"} total
+                  </span>
                 </div>
               )}
             </>
@@ -204,16 +251,18 @@ function MemoriesContent() {
           <MemoryDetailSheet
             memoryId={detailId}
             onClose={closeDetail}
-            onAction={loadMemories}
+            onAction={() => loadMemories(true)}
           />
 
           <CreateMemoryDialog
             open={createOpen}
             onOpenChange={setCreateOpen}
-            onCreated={loadMemories}
+            onCreated={() => loadMemories(true)}
           />
         </div>
       </div>
+
+      <ScrollToTop scrollContainerRef={scrollContainerRef} />
     </div>
   );
 }

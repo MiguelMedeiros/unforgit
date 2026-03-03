@@ -176,12 +176,24 @@ export class WebLocalStore {
       params.push(...query.visibility);
     }
     if (query.search) {
-      const fts = query.search.replace(/[^\w\s]/g, " ").trim();
-      if (fts) {
-        conditions.push(
-          "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
-        );
-        params.push(fts);
+      const searchTerm = query.search.trim();
+      const uuidPattern = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+      const shortIdPattern = /^[0-9a-f]{7,8}$/i;
+      
+      if (uuidPattern.test(searchTerm)) {
+        conditions.push("id = ?");
+        params.push(searchTerm);
+      } else if (shortIdPattern.test(searchTerm)) {
+        conditions.push("id LIKE ?");
+        params.push(`${searchTerm}%`);
+      } else {
+        const fts = searchTerm.replace(/[^\w\s]/g, " ").trim();
+        if (fts) {
+          conditions.push(
+            "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
+          );
+          params.push(fts);
+        }
       }
     }
 
@@ -232,12 +244,24 @@ export class WebLocalStore {
       params.push(...query.visibility);
     }
     if (query.search) {
-      const fts = query.search.replace(/[^\w\s]/g, " ").trim();
-      if (fts) {
-        conditions.push(
-          "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
-        );
-        params.push(fts);
+      const searchTerm = query.search.trim();
+      const uuidPattern = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+      const shortIdPattern = /^[0-9a-f]{7,8}$/i;
+      
+      if (uuidPattern.test(searchTerm)) {
+        conditions.push("id = ?");
+        params.push(searchTerm);
+      } else if (shortIdPattern.test(searchTerm)) {
+        conditions.push("id LIKE ?");
+        params.push(`${searchTerm}%`);
+      } else {
+        const fts = searchTerm.replace(/[^\w\s]/g, " ").trim();
+        if (fts) {
+          conditions.push(
+            "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
+          );
+          params.push(fts);
+        }
       }
     }
 

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Database,
   GitFork,
+  History,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/memories", label: "Memories", icon: Database },
+  { href: "/history", label: "History", icon: History },
   { href: "/graph", label: "Graph", icon: GitFork },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, LayoutDashboard, Database, GitFork, Settings } from "lucide-react";
+import { Brain, LayoutDashboard, Database, History, GitFork, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/memories", label: "Memories", icon: Database },
+  { href: "/history", label: "History", icon: History },
   { href: "/graph", label: "Graph", icon: GitFork },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
