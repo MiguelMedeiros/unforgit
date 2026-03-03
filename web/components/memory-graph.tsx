@@ -20,6 +20,8 @@ import {
   RotateCcw,
   Eye,
   EyeOff,
+  HardDrive,
+  Cloud,
 } from "lucide-react";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
@@ -139,6 +141,7 @@ export function MemoryGraph() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [showOrphans, setShowOrphans] = useState(true);
+  const [source, setSource] = useState<"local" | "remote">("local");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
 
@@ -146,7 +149,8 @@ export function MemoryGraph() {
   const initialFitDone = useRef(false);
 
   useEffect(() => {
-    fetch("/api/graph")
+    setLoading(true);
+    fetch(`/api/graph?source=${source}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to fetch graph data");
         return r.json();
@@ -201,7 +205,7 @@ export function MemoryGraph() {
         console.error("Failed to load graph:", err);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [source]);
 
   const graphData = useMemo(() => {
     const linkedIds = new Set<string>();
@@ -577,6 +581,24 @@ export function MemoryGraph() {
               )}
             </button>
           </div>
+
+          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
+            <button
+              onClick={() => setSource(source === "local" ? "remote" : "local")}
+              className={`rounded-lg p-2 transition-colors ${
+                source === "local"
+                  ? "bg-dracula-green/20 text-dracula-green"
+                  : "bg-dracula-pink/20 text-dracula-pink"
+              }`}
+              title={source === "local" ? "Showing local data - Click to show remote" : "Showing remote data - Click to show local"}
+            >
+              {source === "local" ? (
+                <HardDrive className="h-4 w-4" />
+              ) : (
+                <Cloud className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Legend */}
@@ -615,7 +637,19 @@ export function MemoryGraph() {
 
         {/* Stats */}
         <div className="absolute top-4 right-4 rounded-xl border border-border/30 bg-[rgba(28,28,30,0.85)] glass px-3 py-2 z-10">
-          <div className="flex gap-4 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+            <span className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md ${
+              source === "local"
+                ? "bg-dracula-green/10 text-dracula-green"
+                : "bg-dracula-pink/10 text-dracula-pink"
+            }`}>
+              {source === "local" ? (
+                <HardDrive className="h-3 w-3" />
+              ) : (
+                <Cloud className="h-3 w-3" />
+              )}
+              {source}
+            </span>
             <span>
               <strong className="text-foreground font-semibold">{linkedNodeCount}</strong>{" "}
               linked

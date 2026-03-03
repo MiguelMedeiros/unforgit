@@ -295,6 +295,7 @@ function HistoryContent() {
             memoryId={detailId}
             onClose={closeDetail}
             onAction={() => loadTimeline(true)}
+            onNavigate={setDetailId}
           />
         </div>
       </div>

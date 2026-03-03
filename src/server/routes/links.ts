@@ -7,6 +7,20 @@ export async function linkRoutes(
   app: FastifyInstance,
   store: RemoteStore,
 ): Promise<void> {
+  app.get<{ Querystring: { orgId?: string; repoId?: string } }>(
+    "/v1/links",
+    async (request, reply) => {
+      const { orgId, repoId } = request.query;
+
+      if (!orgId || !repoId) {
+        return reply.status(400).send({ error: "orgId and repoId are required" });
+      }
+
+      const links = await store.getAllLinks(orgId, repoId);
+      return reply.send({ links });
+    },
+  );
+
   app.post<{ Params: { id: string } }>(
     "/v1/memory/:id/link",
     async (request, reply) => {

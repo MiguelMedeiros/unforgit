@@ -223,7 +223,9 @@ export class LocalStore {
     const whereClause = conditions.join(" AND ");
     const k = query.k ?? 10;
 
-    const ftsQuery = query.query.replace(/[^\w\s]/g, " ").trim();
+    const rawQuery = query.query.replace(/[^\w\s]/g, " ").trim();
+    const words = rawQuery.split(/\s+/).filter((w) => w.length > 0);
+    const ftsQuery = words.length > 0 ? words.map((w) => `"${w}"*`).join(" OR ") : "";
 
     let sql: string;
     let finalParams: unknown[];
@@ -334,12 +336,14 @@ export class LocalStore {
     }
 
     if (query.search) {
-      const ftsQuery = query.search.replace(/[^\w\s]/g, " ").trim();
-      if (ftsQuery) {
+      const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
+      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length > 0);
+      const ftsSearch = searchWords.length > 0 ? searchWords.map((w) => `"${w}"*`).join(" OR ") : "";
+      if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
         );
-        params.push(ftsQuery);
+        params.push(ftsSearch);
       }
     }
 
@@ -393,12 +397,14 @@ export class LocalStore {
     }
 
     if (query.search) {
-      const ftsQuery = query.search.replace(/[^\w\s]/g, " ").trim();
-      if (ftsQuery) {
+      const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
+      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length > 0);
+      const ftsSearch = searchWords.length > 0 ? searchWords.map((w) => `"${w}"*`).join(" OR ") : "";
+      if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
         );
-        params.push(ftsQuery);
+        params.push(ftsSearch);
       }
     }
 

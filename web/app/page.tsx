@@ -6,7 +6,7 @@ import { Brain, ArrowRight } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
 import { MemoryCard } from "@/components/memory-card";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
-import { MemoryTypeChart, DailyMemoriesChart } from "@/components/dashboard-charts";
+import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, SourceDistributionChart } from "@/components/dashboard-charts";
 
 interface StoreStats {
   total: number;
@@ -30,6 +30,11 @@ interface ActivityData {
   weeklyTrend: Array<{ week: string; count: number }>;
 }
 
+interface TagData {
+  tag: string;
+  count: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<{
@@ -39,14 +44,16 @@ export default function DashboardPage() {
   } | null>(null);
   const [recentMemories, setRecentMemories] = useState<MemoryItem[]>([]);
   const [activity, setActivity] = useState<ActivityData | null>(null);
+  const [topTags, setTopTags] = useState<TagData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsRes, memoriesRes, activityRes] = await Promise.all([
+      const [statsRes, memoriesRes, activityRes, tagsRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/memories?source=local&limit=3&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/stats/activity"),
+        fetch("/api/stats/tags?limit=6"),
       ]);
 
       if (statsRes.ok) {
@@ -60,6 +67,11 @@ export default function DashboardPage() {
 
       if (activityRes.ok) {
         setActivity(await activityRes.json());
+      }
+
+      if (tagsRes.ok) {
+        const data = await tagsRes.json();
+        setTopTags(data.tags);
       }
     } finally {
       setLoading(false);
@@ -112,6 +124,12 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <MemoryTypeChart stats={stats.local} />
               <DailyMemoriesChart dailyCounts={activity.dailyCounts} />
+              <TopTagsChart tags={topTags} />
+              <SourceDistributionChart
+                localCount={stats.local.total}
+                remoteCount={stats.remote.total}
+                remoteAvailable={stats.remoteAvailable}
+              />
             </div>
           )}
 

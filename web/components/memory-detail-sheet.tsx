@@ -459,7 +459,7 @@ export function MemoryDetailSheet({
                         <button
                           key={link.id}
                           onClick={() => onNavigate?.(linked.id)}
-                          className="w-full rounded-xl border border-border/20 bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-border/40"
+                          className="group w-full rounded-xl border border-border/20 bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-dracula-purple/40 cursor-pointer"
                         >
                           <div className="mb-1.5 flex items-center gap-1.5">
                             <Badge
@@ -474,8 +474,9 @@ export function MemoryDetailSheet({
                             >
                               {linked.memoryType}
                             </Badge>
+                            <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/30 transition-all group-hover:text-dracula-purple group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                           </div>
-                          <p className="line-clamp-2 text-[12px] leading-relaxed text-foreground/70">
+                          <p className="line-clamp-2 text-[12px] leading-relaxed text-foreground/70 group-hover:text-foreground/90 transition-colors">
                             {linked.text}
                           </p>
                         </button>

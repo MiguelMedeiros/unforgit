@@ -48,19 +48,43 @@ export class RemoteStore {
         ? "repo"
         : input.visibility;
 
+    const data: Record<string, unknown> = {
+      orgId: input.orgId,
+      repoId: input.repoId,
+      memoryType: input.memoryType,
+      visibility,
+      text: input.text,
+      summary: input.summary,
+      tags: input.tags ?? [],
+      sourceRefs: (input.sourceRefs as Record<string, string>) ?? undefined,
+      confidence: input.confidence,
+      ttlSeconds: input.ttlSeconds,
+    };
+
+    if (input.id) {
+      const row = await this.prisma.memory.upsert({
+        where: { id: input.id },
+        create: {
+          id: input.id,
+          ...data,
+        } as Parameters<typeof this.prisma.memory.create>[0]["data"],
+        update: {
+          memoryType: input.memoryType,
+          visibility,
+          text: input.text,
+          summary: input.summary,
+          tags: input.tags ?? [],
+          sourceRefs: (input.sourceRefs as Record<string, string>) ?? undefined,
+          confidence: input.confidence,
+          ttlSeconds: input.ttlSeconds,
+        },
+      });
+
+      return prismaRowToMemory(row as unknown as Record<string, unknown>);
+    }
+
     const row = await this.prisma.memory.create({
-      data: {
-        orgId: input.orgId,
-        repoId: input.repoId,
-        memoryType: input.memoryType,
-        visibility,
-        text: input.text,
-        summary: input.summary,
-        tags: input.tags ?? [],
-        sourceRefs: (input.sourceRefs as Record<string, string>) ?? undefined,
-        confidence: input.confidence,
-        ttlSeconds: input.ttlSeconds,
-      },
+      data: data as Parameters<typeof this.prisma.memory.create>[0]["data"],
     });
 
     return prismaRowToMemory(row as unknown as Record<string, unknown>);
@@ -330,11 +354,21 @@ export class RemoteStore {
   }
 
   async link(input: CreateLinkInput): Promise<MemoryLink> {
-    const row = await this.prisma.memoryLink.create({
-      data: {
+    const row = await this.prisma.memoryLink.upsert({
+      where: {
+        sourceId_targetId_linkType: {
+          sourceId: input.sourceId,
+          targetId: input.targetId,
+          linkType: input.linkType,
+        },
+      },
+      create: {
         sourceId: input.sourceId,
         targetId: input.targetId,
         linkType: input.linkType,
+        metadata: input.metadata as Record<string, string> | undefined,
+      },
+      update: {
         metadata: input.metadata as Record<string, string> | undefined,
       },
     });
@@ -380,6 +414,24 @@ export class RemoteStore {
 
     const rows = await this.prisma.memoryLink.findMany({
       where,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      sourceId: row.sourceId,
+      targetId: row.targetId,
+      linkType: row.linkType as MemoryLink["linkType"],
+      metadata: row.metadata as Record<string, unknown> | undefined,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  async getAllLinks(orgId: string, repoId: string): Promise<MemoryLink[]> {
+    const rows = await this.prisma.memoryLink.findMany({
+      where: {
+        source: { orgId, repoId },
+      },
       orderBy: { createdAt: "desc" },
     });
 

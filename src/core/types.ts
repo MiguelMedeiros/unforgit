@@ -27,6 +27,7 @@ export interface Memory {
 }
 
 export interface CreateMemoryInput {
+  id?: string;
   orgId: string;
   repoId: string;
   memoryType: MemoryType;

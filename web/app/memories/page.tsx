@@ -252,6 +252,7 @@ function MemoriesContent() {
             memoryId={detailId}
             onClose={closeDetail}
             onAction={() => loadMemories(true)}
+            onNavigate={setDetailId}
           />
 
           <CreateMemoryDialog

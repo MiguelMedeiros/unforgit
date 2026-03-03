@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     : memories;
 
   const results: { id: string; success: boolean; error?: string }[] = [];
+  const syncedIds: string[] = [];
 
   for (const memory of toSync) {
     try {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: memory.id,
           orgId: memory.orgId,
           repoId: memory.repoId,
           memoryType: memory.memoryType,
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest) {
       if (res.ok) {
         local.updateVisibility(memory.id, "repo");
         results.push({ id: memory.id, success: true });
+        syncedIds.push(memory.id);
       } else {
         const errorText = await res.text().catch(() => "Unknown error");
         results.push({ id: memory.id, success: false, error: errorText });
@@ -71,6 +74,36 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const allLinks = local.getAllLinks();
+  const linksToSync = allLinks.filter(
+    (l) => syncedIds.includes(l.sourceId) || syncedIds.includes(l.targetId)
+  );
+
+  let linksSynced = 0;
+  let linksFailed = 0;
+
+  for (const link of linksToSync) {
+    try {
+      const res = await fetch(`${config.remote.url}/v1/memory/${link.sourceId}/link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetId: link.targetId,
+          linkType: link.linkType,
+          metadata: link.metadata,
+        }),
+      });
+
+      if (res.ok || res.status === 409) {
+        linksSynced++;
+      } else {
+        linksFailed++;
+      }
+    } catch {
+      linksFailed++;
+    }
+  }
+
   const synced = results.filter((r) => r.success).length;
   const failed = results.filter((r) => !r.success).length;
 
@@ -78,6 +111,8 @@ export async function POST(request: NextRequest) {
     synced,
     failed,
     total: toSync.length,
+    linksSynced,
+    linksFailed,
     results,
   });
 }

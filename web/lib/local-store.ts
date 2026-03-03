@@ -419,4 +419,25 @@ export class WebLocalStore {
 
     return rows;
   }
+
+  topTags(orgId: string, repoId: string, limit: number = 10): Array<{ tag: string; count: number }> {
+    const rows = this.db
+      .prepare(
+        `SELECT tags FROM memories WHERE org_id = ? AND repo_id = ?`
+      )
+      .all(orgId, repoId) as Array<{ tags: string }>;
+
+    const tagCounts = new Map<string, number>();
+    for (const row of rows) {
+      const tags = JSON.parse(row.tags) as string[];
+      for (const tag of tags) {
+        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(tagCounts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
 }

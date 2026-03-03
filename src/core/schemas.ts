@@ -9,6 +9,7 @@ export const statusSchema = z.enum(["active", "deprecated", "superseded"]);
 export const scopeTypeSchema = z.enum(["repo", "org"]);
 
 export const createMemorySchema = z.object({
+  id: z.string().uuid().optional(),
   orgId: z.string().min(1),
   repoId: z.string().min(1),
   memoryType: memoryTypeSchema,
