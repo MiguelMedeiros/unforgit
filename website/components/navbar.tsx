@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Github, Menu, X } from "lucide-react";
+import { Brain, Github, Menu, X, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -38,11 +38,7 @@ export function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const heroSection = document.querySelector("section");
-      if (heroSection) {
-        const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-        setIsVisible(window.scrollY > heroBottom - 100);
-      }
+      setIsVisible(window.scrollY > 200);
       updateActiveSection();
     };
 
@@ -135,15 +131,30 @@ export function Navbar() {
                 })}
               </div>
 
-              <div className="hidden md:flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2">
                 <a
-                  href="https://github.com/hippocampus-dev/hippocampus"
+                  href="/docs"
+                  className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
+                    "text-sm font-medium text-dracula-foreground/90",
+                    "border border-dracula-current/60",
+                    "hover:border-dracula-purple/50 hover:text-dracula-purple",
+                    "hover:bg-dracula-purple/5 transition-all duration-200"
+                  )}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Docs
+                </a>
+                <a
+                  href="https://github.com/miguelmedeiros/hippocampus"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
                     "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
-                    "text-sm text-dracula-foreground/80",
-                    "hover:bg-dracula-current/50 transition-colors"
+                    "text-sm font-medium text-dracula-foreground/90",
+                    "border border-dracula-current/60",
+                    "hover:border-dracula-purple/50 hover:text-dracula-purple",
+                    "hover:bg-dracula-purple/5 transition-all duration-200"
                   )}
                 >
                   <Github className="w-4 h-4" />
@@ -153,9 +164,12 @@ export function Navbar() {
                   href="#install"
                   onClick={(e) => handleSmoothScroll(e, "#install")}
                   className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
+                    "inline-flex items-center gap-2 px-5 py-2 rounded-lg",
                     "bg-dracula-purple text-dracula-background text-sm font-semibold",
-                    "hover:bg-dracula-purple/90 transition-colors"
+                    "shadow-lg shadow-dracula-purple/25",
+                    "hover:bg-dracula-purple/90 hover:shadow-dracula-purple/40",
+                    "hover:scale-[1.02] active:scale-[0.98]",
+                    "transition-all duration-200"
                   )}
                 >
                   Get Started
@@ -206,7 +220,14 @@ export function Navbar() {
                     })}
                     <hr className="border-dracula-current/50 my-2" />
                     <a
-                      href="https://github.com/hippocampus-dev/hippocampus"
+                      href="/docs"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dracula-foreground/80 hover:bg-dracula-current/30 rounded-lg transition-colors"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Documentation
+                    </a>
+                    <a
+                      href="https://github.com/miguelmedeiros/hippocampus"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dracula-foreground/80 hover:bg-dracula-current/30 rounded-lg transition-colors"

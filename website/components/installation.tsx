@@ -1,6 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { BookOpen, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { StepsList, Step } from "./steps-list";
 
 const installSteps: Step[] = [
@@ -62,48 +65,43 @@ export function Installation() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          whileHover={{ scale: 1.01 }}
-          className="mt-12 p-6 rounded-xl bg-card border border-border"
+          className="mt-12"
         >
-          <h3 className="text-lg font-semibold mb-4">CLI Commands</h3>
-          <div className="space-y-3 font-mono text-sm">
+          <Link href="/docs">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-              className="flex items-start gap-2"
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className={cn(
+                "p-6 rounded-xl",
+                "bg-linear-to-r from-dracula-purple/10 via-dracula-pink/10 to-dracula-cyan/10",
+                "border border-dracula-purple/30",
+                "flex items-center justify-between gap-4",
+                "cursor-pointer group",
+                "transition-all duration-300"
+              )}
             >
-              <span className="text-dracula-green">hippo config list</span>
-              <span className="text-dracula-comment ml-2">
-                # view all settings
-              </span>
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-dracula-purple/20 group-hover:bg-dracula-purple/30 transition-colors">
+                  <BookOpen className="w-6 h-6 text-dracula-purple" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-dracula-foreground group-hover:text-dracula-purple transition-colors">
+                    Explore the Documentation
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    CLI commands, MCP setup, API reference, and more
+                  </p>
+                </div>
+              </div>
+              <motion.div
+                className="text-dracula-purple"
+                initial={{ x: 0 }}
+                whileHover={{ x: 5 }}
+              >
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </motion.div>
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.45 }}
-              className="flex items-start gap-2"
-            >
-              <span className="text-dracula-green">hippo auth status</span>
-              <span className="text-dracula-comment ml-2">
-                # check auth status
-              </span>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.5 }}
-              className="flex items-start gap-2"
-            >
-              <span className="text-dracula-green">hippo push</span>
-              <span className="text-dracula-comment ml-2">
-                # sync to remote
-              </span>
-            </motion.div>
-          </div>
+          </Link>
         </motion.div>
       </div>
     </section>

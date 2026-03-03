@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, ArrowRight, Terminal, Copy, Check } from "lucide-react";
+import { Brain, ArrowRight, Terminal, Copy, Check, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -145,6 +145,13 @@ export function Hero() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             href="#install"
+            onClick={(e) => {
+              e.preventDefault();
+              const element = document.getElementById("install");
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             className={cn(
               "inline-flex items-center gap-2 px-6 py-3 rounded-lg",
               "bg-dracula-purple text-dracula-background font-semibold",
@@ -159,6 +166,13 @@ export function Hero() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             href="#features"
+            onClick={(e) => {
+              e.preventDefault();
+              const element = document.getElementById("features");
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             className={cn(
               "inline-flex items-center gap-2 px-6 py-3 rounded-lg",
               "bg-secondary border border-border font-semibold",
@@ -214,6 +228,33 @@ export function Hero() {
           )}
         </motion.div>
       </div>
+
+      <motion.a
+        href="#features"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-dracula-foreground/50 hover:text-dracula-purple transition-colors cursor-pointer z-10"
+        onClick={(e) => {
+          e.preventDefault();
+          const element = document.getElementById("features");
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+          }
+        }}
+      >
+        <span className="text-xs uppercase tracking-widest">Scroll</span>
+        <motion.div
+          animate={{ y: [0, 6, 0] }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <ChevronDown className="w-5 h-5" />
+        </motion.div>
+      </motion.a>
     </section>
   );
 }

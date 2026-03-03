@@ -131,7 +131,7 @@ export function CTASection() {
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            href="https://github.com/cognithor/hippocampus"
+            href="https://github.com/miguelmedeiros/hippocampus"
             target="_blank"
             rel="noopener noreferrer"
             className={cn(

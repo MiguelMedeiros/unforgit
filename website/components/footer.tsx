@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Github, BookOpen, LayoutDashboard } from "lucide-react";
+import { Brain, Github, BookOpen, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -15,13 +15,13 @@ const links = [
     title: "Documentation",
     href: "/docs",
     icon: BookOpen,
-    description: "Learn the CLI",
+    description: "Technical docs",
   },
   {
-    title: "Dashboard",
-    href: "http://localhost:3838",
-    icon: LayoutDashboard,
-    description: "Web interface",
+    title: "NPM Package",
+    href: "https://www.npmjs.com/package/hippocampus",
+    icon: Package,
+    description: "NPM registry",
   },
 ];
 
@@ -115,7 +115,16 @@ export function Footer() {
           className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4"
         >
           <p className="text-sm text-muted-foreground">
-            MIT License. Built for AI-powered development.
+            MIT License. Built by{" "}
+            <motion.a
+              href="https://miguelmedeiros.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-dracula-purple hover:text-dracula-pink transition-colors font-medium"
+              whileHover={{ scale: 1.05 }}
+            >
+              Miguel Medeiros
+            </motion.a>
           </p>
           <div className="flex items-center gap-4">
             <motion.a
