@@ -79,6 +79,17 @@ CREATE TABLE IF NOT EXISTS memory_links (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(source_id, target_id, link_type)
 );
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  memory_id TEXT PRIMARY KEY,
+  local_version INTEGER NOT NULL,
+  remote_version INTEGER,
+  last_pushed_at TEXT,
+  last_pulled_at TEXT,
+  sync_status TEXT NOT NULL DEFAULT 'pending_push' CHECK(sync_status IN ('synced','pending_push','pending_pull','conflict'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_state_status ON sync_state(sync_status);
 `;
 
 function rowToLink(row: Record<string, unknown>): MemoryLink {
@@ -112,6 +123,10 @@ function rowToMemory(row: Record<string, unknown>): Memory {
     confidence: (row.confidence as number) ?? undefined,
     ttlSeconds: (row.ttl_seconds as number) ?? undefined,
     supersedesId: (row.supersedes_id as string) ?? undefined,
+    isConsolidation: row.is_consolidation === 1,
+    consolidationVersion: (row.consolidation_version as number) ?? undefined,
+    authorId: (row.author_id as string) ?? undefined,
+    authorName: (row.author_name as string) ?? undefined,
     version: (row.version as number) ?? 1,
     deletedAt: row.deleted_at ? new Date(row.deleted_at as string) : undefined,
     deletedBy: (row.deleted_by as string) ?? undefined,
@@ -161,6 +176,18 @@ export class WebLocalStore {
     }
     if (!columnNames.includes("deleted_by")) {
       this.db.exec("ALTER TABLE memories ADD COLUMN deleted_by TEXT");
+    }
+    if (!columnNames.includes("is_consolidation")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN is_consolidation INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!columnNames.includes("consolidation_version")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN consolidation_version INTEGER");
+    }
+    if (!columnNames.includes("author_id")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN author_id TEXT");
+    }
+    if (!columnNames.includes("author_name")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN author_name TEXT");
     }
 
     const tables = this.db
@@ -340,14 +367,22 @@ export class WebLocalStore {
     return row.cnt;
   }
 
-  stats(orgId: string, repoId: string): StoreStats {
+  stats(orgId: string, repoId: string, sinceDate?: Date): StoreStats {
+    const conditions = ["org_id = ?", "repo_id = ?"];
+    const params: unknown[] = [orgId, repoId];
+
+    if (sinceDate) {
+      conditions.push("created_at >= ?");
+      params.push(sinceDate.toISOString());
+    }
+
     const rows = this.db
       .prepare(
         `SELECT memory_type, status, visibility, COUNT(*) as cnt
-         FROM memories WHERE org_id = ? AND repo_id = ?
+         FROM memories WHERE ${conditions.join(" AND ")}
          GROUP BY memory_type, status, visibility`,
       )
-      .all(orgId, repoId) as Array<{
+      .all(...params) as Array<{
       memory_type: string;
       status: string;
       visibility: string;
@@ -454,9 +489,14 @@ export class WebLocalStore {
     return result;
   }
 
-  dailyCounts(orgId: string, repoId: string, days: number = 365): Array<{ date: string; count: number }> {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+  dailyCounts(orgId: string, repoId: string, days: number = 365, sinceDate?: Date): Array<{ date: string; count: number }> {
+    let since: Date;
+    if (sinceDate) {
+      since = sinceDate;
+    } else {
+      since = new Date();
+      since.setDate(since.getDate() - days);
+    }
     const sinceStr = since.toISOString().split("T")[0];
 
     const rows = this.db
@@ -468,6 +508,24 @@ export class WebLocalStore {
          ORDER BY date ASC`
       )
       .all(orgId, repoId, sinceStr) as Array<{ date: string; count: number }>;
+
+    return rows;
+  }
+
+  hourlyCounts(orgId: string, repoId: string): Array<{ hour: string; count: number }> {
+    const now = new Date();
+    const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sinceStr = since.toISOString();
+
+    const rows = this.db
+      .prepare(
+        `SELECT strftime('%Y-%m-%d %H:00', created_at) as hour, COUNT(*) as count
+         FROM memories
+         WHERE org_id = ? AND repo_id = ? AND created_at >= ?
+         GROUP BY strftime('%Y-%m-%d %H:00', created_at)
+         ORDER BY hour ASC`
+      )
+      .all(orgId, repoId, sinceStr) as Array<{ hour: string; count: number }>;
 
     return rows;
   }
@@ -490,12 +548,20 @@ export class WebLocalStore {
     return rows;
   }
 
-  topTags(orgId: string, repoId: string, limit: number = 10): Array<{ tag: string; count: number }> {
+  topTags(orgId: string, repoId: string, limit: number = 10, sinceDate?: Date): Array<{ tag: string; count: number }> {
+    const conditions = ["org_id = ?", "repo_id = ?"];
+    const params: unknown[] = [orgId, repoId];
+
+    if (sinceDate) {
+      conditions.push("created_at >= ?");
+      params.push(sinceDate.toISOString());
+    }
+
     const rows = this.db
       .prepare(
-        `SELECT tags FROM memories WHERE org_id = ? AND repo_id = ?`
+        `SELECT tags FROM memories WHERE ${conditions.join(" AND ")}`
       )
-      .all(orgId, repoId) as Array<{ tags: string }>;
+      .all(...params) as Array<{ tags: string }>;
 
     const tagCounts = new Map<string, number>();
     for (const row of rows) {
@@ -781,5 +847,365 @@ export class WebLocalStore {
       );
 
     return { action: "created" };
+  }
+
+  recall(query: {
+    orgId: string;
+    repoId: string;
+    query: string;
+    types?: string[];
+    k?: number;
+  }): Array<Memory & { score: number }> {
+    const conditions: string[] = ["m.org_id = ?", "m.repo_id = ?", "m.status = 'active'"];
+    const params: unknown[] = [query.orgId, query.repoId];
+
+    if (query.types && query.types.length > 0) {
+      conditions.push(`m.memory_type IN (${query.types.map(() => "?").join(",")})`);
+      params.push(...query.types);
+    }
+
+    const rawQuery = query.query.replace(/[^\w\s]/g, " ").trim();
+    const words = rawQuery.split(/\s+/).filter((w) => w.length >= 2);
+    const ftsQuery = words.length > 0 ? `(${words.map((w) => `${w}*`).join(" OR ")})` : "";
+
+    const k = query.k ?? 10;
+
+    if (!ftsQuery) {
+      const sql = `SELECT * FROM memories m WHERE ${conditions.join(" AND ")} ORDER BY m.created_at DESC LIMIT ?`;
+      params.push(k);
+      const rows = this.db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
+      return rows.map((row) => ({ ...rowToMemory(row), score: 0.5 }));
+    }
+
+    const sql = `
+      SELECT m.*, fts.rank as fts_rank
+      FROM memories m
+      JOIN memories_fts fts ON m.rowid = fts.rowid
+      WHERE ${conditions.join(" AND ")}
+        AND fts.memories_fts MATCH ?
+      ORDER BY fts.rank
+      LIMIT ?
+    `;
+    params.push(ftsQuery, k);
+
+    const rows = this.db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => {
+      const memory = rowToMemory(row);
+      const textScore = Math.min(1, Math.abs(row.fts_rank as number) / 10);
+      const ageDays = (Date.now() - memory.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+      const recency = Math.max(0, 1 - ageDays / 365);
+      const conf = memory.confidence ?? 0.5;
+      const score = textScore * 0.6 + recency * 0.2 + conf * 0.2;
+      return { ...memory, score };
+    }).sort((a, b) => b.score - a.score);
+  }
+
+  findSimilar(query: {
+    orgId: string;
+    repoId: string;
+    memoryId: string;
+    threshold?: number;
+    k?: number;
+  }): Array<Memory & { score: number }> {
+    const { orgId, repoId, memoryId, threshold = 0.3, k = 10 } = query;
+
+    const memory = this.getById(memoryId);
+    if (!memory) {
+      throw new Error(`Memory not found: ${memoryId}`);
+    }
+
+    const results = this.recall({
+      orgId,
+      repoId,
+      query: memory.text,
+      k: k + 1,
+    });
+
+    return results
+      .filter((r) => r.id !== memoryId && r.score >= threshold)
+      .slice(0, k);
+  }
+
+  link(input: {
+    sourceId: string;
+    targetId: string;
+    linkType: LinkType;
+    metadata?: Record<string, unknown>;
+  }): void {
+    const id = uuid();
+    const now = new Date().toISOString();
+
+    this.db
+      .prepare(
+        `INSERT INTO memory_links (id, source_id, target_id, link_type, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.sourceId,
+        input.targetId,
+        input.linkType,
+        input.metadata ? JSON.stringify(input.metadata) : null,
+        now,
+      );
+  }
+
+  consolidateMemories(input: {
+    orgId: string;
+    repoId: string;
+    sourceIds: string[];
+    consolidatedText: string;
+    memoryType?: string;
+    tags?: string[];
+    preserveOriginals?: boolean;
+  }): { consolidatedId: string; version: number; sourcesPreserved: number; sourceIds: string[] } {
+    const { orgId, repoId, sourceIds, consolidatedText, preserveOriginals = true } = input;
+
+    if (sourceIds.length < 2) {
+      throw new Error("At least 2 source memories are required for consolidation");
+    }
+
+    const sourceMemories = sourceIds
+      .map((id) => this.getById(id))
+      .filter((m): m is Memory => m !== undefined);
+
+    if (sourceMemories.length !== sourceIds.length) {
+      const foundIds = sourceMemories.map((m) => m.id);
+      const missingIds = sourceIds.filter((id) => !foundIds.includes(id));
+      throw new Error(`Source memories not found: ${missingIds.join(", ")}`);
+    }
+
+    const inferredType = input.memoryType ?? this.inferMemoryType(sourceMemories);
+    const mergedTags = input.tags ?? this.mergeTags(sourceMemories);
+
+    const id = uuid();
+    const now = new Date().toISOString();
+    const version = 1;
+
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
+          VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          orgId,
+          repoId,
+          inferredType,
+          consolidatedText,
+          null,
+          JSON.stringify(mergedTags),
+          JSON.stringify({ consolidated_from: sourceIds }),
+          null,
+          version,
+          now,
+          now,
+        );
+    } catch {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, created_at, updated_at)
+          VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          orgId,
+          repoId,
+          inferredType,
+          consolidatedText,
+          null,
+          JSON.stringify(mergedTags),
+          JSON.stringify({ consolidated_from: sourceIds }),
+          null,
+          now,
+          now,
+        );
+    }
+
+    for (const sourceId of sourceIds) {
+      this.link({
+        sourceId: id,
+        targetId: sourceId,
+        linkType: "derived_from",
+        metadata: { consolidation: true },
+      });
+    }
+
+    if (preserveOriginals) {
+      for (const sourceId of sourceIds) {
+        this.supersede(sourceId, id);
+      }
+    }
+
+    return {
+      consolidatedId: id,
+      version,
+      sourcesPreserved: sourceIds.length,
+      sourceIds,
+    };
+  }
+
+  private inferMemoryType(memories: Memory[]): string {
+    const hasProcedural = memories.some((m) => m.memoryType === "procedural");
+    const hasSemantic = memories.some((m) => m.memoryType === "semantic");
+    if (hasProcedural) return "procedural";
+    if (hasSemantic) return "semantic";
+    return "episodic";
+  }
+
+  private mergeTags(memories: Memory[]): string[] {
+    const tagSet = new Set<string>();
+    for (const m of memories) {
+      for (const tag of m.tags) {
+        tagSet.add(tag);
+      }
+    }
+    return Array.from(tagSet);
+  }
+
+  unconsolidate(consolidationId: string): {
+    restoredIds: string[];
+    consolidationDeleted: boolean;
+    linksRemoved: number;
+  } {
+    const memory = this.getById(consolidationId);
+    if (!memory) {
+      throw new Error(`Memory not found: ${consolidationId}`);
+    }
+    if (!memory.isConsolidation) {
+      throw new Error(`Memory ${consolidationId} is not a consolidation`);
+    }
+
+    const sourceLinks = this.getLinks(consolidationId, "derived_from");
+    const sourceIds = sourceLinks
+      .filter((l) => l.sourceId === consolidationId)
+      .map((l) => l.targetId);
+
+    const now = new Date().toISOString();
+    const restoredIds: string[] = [];
+    let linksRemoved = 0;
+
+    this.db.transaction(() => {
+      for (const sourceId of sourceIds) {
+        const source = this.getById(sourceId);
+        if (source && source.status === "superseded" && source.supersedesId === consolidationId) {
+          this.db
+            .prepare(
+              `UPDATE memories 
+               SET status = 'active', supersedes_id = NULL, version = version + 1, updated_at = ?
+               WHERE id = ?`,
+            )
+            .run(now, sourceId);
+          restoredIds.push(sourceId);
+        }
+      }
+
+      // Remove derived_from links from the consolidation to source memories
+      const deleteLinksResult = this.db
+        .prepare(
+          `DELETE FROM memory_links 
+           WHERE source_id = ? AND link_type = 'derived_from'`,
+        )
+        .run(consolidationId);
+      linksRemoved = deleteLinksResult.changes;
+
+      // Also remove any links where the consolidation is the target
+      const deleteTargetLinksResult = this.db
+        .prepare(
+          `DELETE FROM memory_links 
+           WHERE target_id = ?`,
+        )
+        .run(consolidationId);
+      linksRemoved += deleteTargetLinksResult.changes;
+
+      this.softDelete({
+        id: consolidationId,
+        deletedBy: "unconsolidate",
+      });
+    })();
+
+    return {
+      restoredIds,
+      consolidationDeleted: true,
+      linksRemoved,
+    };
+  }
+
+  cleanupOrphanLinks(): number {
+    // Remove links where either source or target memory is deleted or doesn't exist
+    const result = this.db
+      .prepare(
+        `DELETE FROM memory_links
+         WHERE id IN (
+           SELECT ml.id FROM memory_links ml
+           LEFT JOIN memories ms ON ms.id = ml.source_id
+           LEFT JOIN memories mt ON mt.id = ml.target_id
+           WHERE ms.id IS NULL 
+              OR mt.id IS NULL
+              OR ms.status = 'deleted'
+              OR mt.status = 'deleted'
+         )`,
+      )
+      .run();
+
+    return result.changes;
+  }
+
+  getSyncSummary(orgId: string, repoId: string): {
+    synced: number;
+    pendingPush: number;
+    pendingPull: number;
+    conflicts: number;
+    notTracked: number;
+  } {
+    const syncTables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sync_state'")
+      .all() as Array<{ name: string }>;
+
+    if (syncTables.length === 0) {
+      const total = this.db
+        .prepare("SELECT COUNT(*) as count FROM memories WHERE org_id = ? AND repo_id = ? AND status != 'deleted'")
+        .get(orgId, repoId) as { count: number };
+      return {
+        synced: 0,
+        pendingPush: 0,
+        pendingPull: 0,
+        conflicts: 0,
+        notTracked: total.count,
+      };
+    }
+
+    const row = this.db
+      .prepare(`
+        SELECT
+          SUM(CASE WHEN s.sync_status = 'synced' THEN 1 ELSE 0 END) as synced,
+          SUM(CASE WHEN s.sync_status = 'pending_push' THEN 1 ELSE 0 END) as pending_push,
+          SUM(CASE WHEN s.sync_status = 'pending_pull' THEN 1 ELSE 0 END) as pending_pull,
+          SUM(CASE WHEN s.sync_status = 'conflict' THEN 1 ELSE 0 END) as conflicts
+        FROM sync_state s
+        JOIN memories m ON s.memory_id = m.id
+        WHERE m.org_id = ? AND m.repo_id = ?
+      `)
+      .get(orgId, repoId) as Record<string, number>;
+
+    const notTracked = this.db
+      .prepare(`
+        SELECT COUNT(*) as count FROM memories m
+        LEFT JOIN sync_state s ON m.id = s.memory_id
+        WHERE m.org_id = ? AND m.repo_id = ? AND m.status != 'deleted' AND s.memory_id IS NULL
+      `)
+      .get(orgId, repoId) as { count: number };
+
+    return {
+      synced: row.synced ?? 0,
+      pendingPush: row.pending_push ?? 0,
+      pendingPull: row.pending_pull ?? 0,
+      conflicts: row.conflicts ?? 0,
+      notTracked: notTracked.count,
+    };
   }
 }

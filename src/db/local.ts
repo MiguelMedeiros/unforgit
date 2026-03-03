@@ -18,6 +18,8 @@ import type {
   FindSimilarQuery,
   Tombstone,
   DeleteMemoryInput,
+  SyncState,
+  SyncStatus,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -90,6 +92,22 @@ CREATE TABLE IF NOT EXISTS memory_links (
   metadata TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(source_id, target_id, link_type)
+);
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  memory_id TEXT PRIMARY KEY,
+  local_version INTEGER NOT NULL,
+  remote_version INTEGER,
+  last_pushed_at TEXT,
+  last_pulled_at TEXT,
+  sync_status TEXT NOT NULL DEFAULT 'pending_push' CHECK(sync_status IN ('synced','pending_push','pending_pull','conflict'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_state_status ON sync_state(sync_status);
+
+CREATE TABLE IF NOT EXISTS synced_links (
+  link_id TEXT PRIMARY KEY,
+  synced_at TEXT NOT NULL
 );
 `;
 
@@ -213,6 +231,23 @@ export class LocalStore {
         CREATE INDEX IF NOT EXISTS idx_tombstones_sync ON tombstones(org_id, repo_id, synced_at);
       `);
     }
+
+    const syncTables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sync_state'")
+      .all() as Array<{ name: string }>;
+    if (syncTables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS sync_state (
+          memory_id TEXT PRIMARY KEY,
+          local_version INTEGER NOT NULL,
+          remote_version INTEGER,
+          last_pushed_at TEXT,
+          last_pulled_at TEXT,
+          sync_status TEXT NOT NULL DEFAULT 'pending_push' CHECK(sync_status IN ('synced','pending_push','pending_pull','conflict'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_sync_state_status ON sync_state(sync_status);
+      `);
+    }
   }
 
   store(input: CreateMemoryInput): Memory {
@@ -246,6 +281,12 @@ export class LocalStore {
         now,
         now,
       );
+
+    this.setSyncState({
+      memoryId: id,
+      localVersion: 1,
+      syncStatus: "pending_push",
+    });
 
     return this.getById(id)!;
   }
@@ -370,6 +411,8 @@ export class LocalStore {
           memory.confidence,
         ),
         source: "local" as const,
+        status: memory.status,
+        supersedesId: memory.supersedesId,
         isConsolidation: memory.isConsolidation,
         consolidationVersion: memory.consolidationVersion,
       };
@@ -700,6 +743,7 @@ export class LocalStore {
 
     const inferredType = memoryType ?? this.inferMemoryType(sourceMemories);
     const mergedTags = tags ?? this.mergeTags(sourceMemories);
+    const inheritedVisibility = sourceMemories.some((m) => m.visibility === "repo") ? "repo" : "private";
 
     const id = uuid();
     const now = new Date().toISOString();
@@ -709,13 +753,14 @@ export class LocalStore {
       .prepare(
         `INSERT INTO memories
         (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
-        VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       )
       .run(
         id,
         orgId,
         repoId,
         inferredType,
+        inheritedVisibility,
         consolidatedText,
         null,
         JSON.stringify(mergedTags),
@@ -739,6 +784,14 @@ export class LocalStore {
       for (const sourceId of sourceIds) {
         this.supersede(sourceId, id);
       }
+    }
+
+    if (inheritedVisibility === "repo") {
+      this.setSyncState({
+        memoryId: id,
+        localVersion: version,
+        syncStatus: "pending_push",
+      });
     }
 
     return {
@@ -776,6 +829,7 @@ export class LocalStore {
 
     const newVersion = (existing.consolidationVersion ?? 1) + 1;
     const mergedTags = tags ?? existing.tags;
+    const inheritedVisibility = existing.visibility;
 
     const id = uuid();
     const now = new Date().toISOString();
@@ -784,13 +838,14 @@ export class LocalStore {
       .prepare(
         `INSERT INTO memories
         (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
-        VALUES (?, ?, ?, 'repo', ?, 'private', 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       )
       .run(
         id,
         orgId,
         repoId,
         existing.memoryType,
+        inheritedVisibility,
         newText,
         null,
         JSON.stringify(mergedTags),
@@ -822,6 +877,14 @@ export class LocalStore {
     }
 
     this.supersede(existingConsolidationId, id);
+
+    if (inheritedVisibility === "repo") {
+      this.setSyncState({
+        memoryId: id,
+        localVersion: newVersion,
+        syncStatus: "pending_push",
+      });
+    }
 
     return {
       consolidatedId: id,
@@ -1150,6 +1213,359 @@ export class LocalStore {
       );
 
     return { action: "updated", conflict: hasConflict };
+  }
+
+  getSyncState(memoryId: string): SyncState | undefined {
+    const row = this.db
+      .prepare("SELECT * FROM sync_state WHERE memory_id = ?")
+      .get(memoryId) as Record<string, unknown> | undefined;
+    return row ? this.rowToSyncState(row) : undefined;
+  }
+
+  getAllSyncStates(): SyncState[] {
+    const rows = this.db
+      .prepare("SELECT * FROM sync_state")
+      .all() as Array<Record<string, unknown>>;
+    return rows.map((row) => this.rowToSyncState(row));
+  }
+
+  getSyncStatesByStatus(status: SyncStatus): SyncState[] {
+    const rows = this.db
+      .prepare("SELECT * FROM sync_state WHERE sync_status = ?")
+      .all(status) as Array<Record<string, unknown>>;
+    return rows.map((row) => this.rowToSyncState(row));
+  }
+
+  getPendingPush(): Array<{ memory: Memory; syncState: SyncState }> {
+    const rows = this.db
+      .prepare(`
+        SELECT m.*, s.local_version as sync_local_version, s.remote_version as sync_remote_version,
+               s.last_pushed_at, s.last_pulled_at, s.sync_status
+        FROM memories m
+        JOIN sync_state s ON m.id = s.memory_id
+        WHERE s.sync_status = 'pending_push'
+        ORDER BY m.updated_at ASC
+      `)
+      .all() as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      memory: rowToMemory(row),
+      syncState: {
+        memoryId: row.id as string,
+        localVersion: row.sync_local_version as number,
+        remoteVersion: row.sync_remote_version as number | undefined,
+        lastPushedAt: row.last_pushed_at ? new Date(row.last_pushed_at as string) : undefined,
+        lastPulledAt: row.last_pulled_at ? new Date(row.last_pulled_at as string) : undefined,
+        syncStatus: row.sync_status as SyncStatus,
+      },
+    }));
+  }
+
+  getConflicts(): Array<{ memory: Memory; syncState: SyncState }> {
+    const rows = this.db
+      .prepare(`
+        SELECT m.*, s.local_version as sync_local_version, s.remote_version as sync_remote_version,
+               s.last_pushed_at, s.last_pulled_at, s.sync_status
+        FROM memories m
+        JOIN sync_state s ON m.id = s.memory_id
+        WHERE s.sync_status = 'conflict'
+        ORDER BY m.updated_at ASC
+      `)
+      .all() as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      memory: rowToMemory(row),
+      syncState: {
+        memoryId: row.id as string,
+        localVersion: row.sync_local_version as number,
+        remoteVersion: row.sync_remote_version as number | undefined,
+        lastPushedAt: row.last_pushed_at ? new Date(row.last_pushed_at as string) : undefined,
+        lastPulledAt: row.last_pulled_at ? new Date(row.last_pulled_at as string) : undefined,
+        syncStatus: row.sync_status as SyncStatus,
+      },
+    }));
+  }
+
+  setSyncState(state: SyncState): void {
+    this.db
+      .prepare(`
+        INSERT OR REPLACE INTO sync_state (memory_id, local_version, remote_version, last_pushed_at, last_pulled_at, sync_status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        state.memoryId,
+        state.localVersion,
+        state.remoteVersion ?? null,
+        state.lastPushedAt?.toISOString() ?? null,
+        state.lastPulledAt?.toISOString() ?? null,
+        state.syncStatus,
+      );
+  }
+
+  markAsPushed(memoryId: string, remoteVersion: number): void {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(`
+        UPDATE sync_state 
+        SET sync_status = 'synced', remote_version = ?, last_pushed_at = ?
+        WHERE memory_id = ?
+      `)
+      .run(remoteVersion, now, memoryId);
+  }
+
+  markAsPulled(memoryId: string, localVersion: number): void {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(`
+        UPDATE sync_state 
+        SET sync_status = 'synced', local_version = ?, last_pulled_at = ?
+        WHERE memory_id = ?
+      `)
+      .run(localVersion, now, memoryId);
+  }
+
+  markAsConflict(memoryId: string, remoteVersion: number): void {
+    this.db
+      .prepare(`
+        UPDATE sync_state 
+        SET sync_status = 'conflict', remote_version = ?
+        WHERE memory_id = ?
+      `)
+      .run(remoteVersion, memoryId);
+  }
+
+  getUntrackedMemories(orgId: string, repoId: string): Memory[] {
+    const rows = this.db
+      .prepare(`
+        SELECT m.* FROM memories m
+        LEFT JOIN sync_state s ON m.id = s.memory_id
+        WHERE m.org_id = ? AND m.repo_id = ? AND s.memory_id IS NULL
+        ORDER BY m.created_at ASC
+      `)
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+    return rows.map(rowToMemory);
+  }
+
+  initSyncStateForMemory(memoryId: string): void {
+    const memory = this.getById(memoryId);
+    if (!memory) return;
+
+    const existing = this.getSyncState(memoryId);
+    if (existing) return;
+
+    this.setSyncState({
+      memoryId,
+      localVersion: memory.version,
+      syncStatus: "pending_push",
+    });
+  }
+
+  getSyncSummary(orgId: string, repoId: string): {
+    synced: number;
+    pendingPush: number;
+    pendingPull: number;
+    conflicts: number;
+  } {
+    const row = this.db
+      .prepare(`
+        SELECT
+          SUM(CASE WHEN s.sync_status = 'synced' THEN 1 ELSE 0 END) as synced,
+          SUM(CASE WHEN s.sync_status = 'pending_push' THEN 1 ELSE 0 END) as pending_push,
+          SUM(CASE WHEN s.sync_status = 'pending_pull' THEN 1 ELSE 0 END) as pending_pull,
+          SUM(CASE WHEN s.sync_status = 'conflict' THEN 1 ELSE 0 END) as conflicts
+        FROM sync_state s
+        JOIN memories m ON s.memory_id = m.id
+        WHERE m.org_id = ? AND m.repo_id = ?
+      `)
+      .get(orgId, repoId) as Record<string, number>;
+
+    return {
+      synced: row.synced ?? 0,
+      pendingPush: row.pending_push ?? 0,
+      pendingPull: row.pending_pull ?? 0,
+      conflicts: row.conflicts ?? 0,
+    };
+  }
+
+  private rowToSyncState(row: Record<string, unknown>): SyncState {
+    return {
+      memoryId: row.memory_id as string,
+      localVersion: row.local_version as number,
+      remoteVersion: row.remote_version as number | undefined,
+      lastPushedAt: row.last_pushed_at ? new Date(row.last_pushed_at as string) : undefined,
+      lastPulledAt: row.last_pulled_at ? new Date(row.last_pulled_at as string) : undefined,
+      syncStatus: row.sync_status as SyncStatus,
+    };
+  }
+
+  getSupersededMemoriesToSync(orgId: string, repoId: string): Array<{ memory: Memory; newId: string }> {
+    const rows = this.db
+      .prepare(`
+        SELECT m.*
+        FROM memories m
+        LEFT JOIN sync_state s ON s.memory_id = m.id
+        WHERE m.org_id = ?
+          AND m.repo_id = ?
+          AND m.status = 'superseded'
+          AND m.supersedes_id IS NOT NULL
+          AND (
+            s.memory_id IS NULL
+            OR s.sync_status = 'pending_push'
+            OR (s.sync_status = 'synced' AND (s.last_pushed_at IS NULL OR s.last_pushed_at < m.updated_at))
+          )
+      `)
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      memory: rowToMemory(row),
+      newId: row.supersedes_id as string,
+    }));
+  }
+
+  getLinksToSync(orgId: string, repoId: string): Array<{ link: MemoryLink; sourceMemoryId: string; targetMemoryId: string }> {
+    const rows = this.db
+      .prepare(`
+        SELECT l.*, ms.id as source_mem_id, mt.id as target_mem_id
+        FROM memory_links l
+        JOIN memories ms ON ms.id = l.source_id
+        JOIN memories mt ON mt.id = l.target_id
+        WHERE ms.org_id = ?
+          AND ms.repo_id = ?
+          AND l.id NOT IN (SELECT link_id FROM synced_links)
+      `)
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      link: rowToLink(row),
+      sourceMemoryId: row.source_mem_id as string,
+      targetMemoryId: row.target_mem_id as string,
+    }));
+  }
+
+  markLinkSynced(linkId: string): void {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(`INSERT OR IGNORE INTO synced_links (link_id, synced_at) VALUES (?, ?)`)
+      .run(linkId, now);
+  }
+
+  markStatusSynced(memoryId: string): void {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(`UPDATE sync_state SET last_pushed_at = ? WHERE memory_id = ?`)
+      .run(now, memoryId);
+  }
+
+  unconsolidate(consolidationId: string): {
+    restoredIds: string[];
+    consolidationDeleted: boolean;
+    linksRemoved: number;
+  } {
+    const memory = this.getById(consolidationId);
+    if (!memory) {
+      throw new Error(`Memory not found: ${consolidationId}`);
+    }
+    if (!memory.isConsolidation) {
+      throw new Error(`Memory ${consolidationId} is not a consolidation`);
+    }
+
+    const sourceLinks = this.getLinks({ memoryId: consolidationId, linkType: "derived_from" });
+    const sourceIds = sourceLinks
+      .filter((l) => l.sourceId === consolidationId)
+      .map((l) => l.targetId);
+
+    const now = new Date().toISOString();
+    const restoredIds: string[] = [];
+    let linksRemoved = 0;
+
+    this.db.transaction(() => {
+      for (const sourceId of sourceIds) {
+        const source = this.getById(sourceId);
+        if (source && source.status === "superseded" && source.supersedesId === consolidationId) {
+          this.db
+            .prepare(
+              `UPDATE memories
+               SET status = 'active', supersedes_id = NULL, version = version + 1, updated_at = ?
+               WHERE id = ?`,
+            )
+            .run(now, sourceId);
+          restoredIds.push(sourceId);
+
+          this.setSyncState({
+            memoryId: sourceId,
+            localVersion: (source.version ?? 1) + 1,
+            syncStatus: "pending_push",
+          });
+        }
+      }
+
+      // Remove derived_from links from the consolidation to source memories
+      const deleteLinksResult = this.db
+        .prepare(
+          `DELETE FROM memory_links 
+           WHERE source_id = ? AND link_type = 'derived_from'`,
+        )
+        .run(consolidationId);
+      linksRemoved = deleteLinksResult.changes;
+
+      // Also remove any links where the consolidation is the target
+      const deleteTargetLinksResult = this.db
+        .prepare(
+          `DELETE FROM memory_links 
+           WHERE target_id = ?`,
+        )
+        .run(consolidationId);
+      linksRemoved += deleteTargetLinksResult.changes;
+
+      // Remove from synced_links table if exists
+      this.db
+        .prepare(
+          `DELETE FROM synced_links 
+           WHERE link_id IN (
+             SELECT id FROM memory_links WHERE source_id = ? OR target_id = ?
+           )`,
+        )
+        .run(consolidationId, consolidationId);
+
+      this.softDelete({
+        id: consolidationId,
+        deletedBy: "unconsolidate",
+      });
+    })();
+
+    return {
+      restoredIds,
+      consolidationDeleted: true,
+      linksRemoved,
+    };
+  }
+
+  cleanupOrphanLinks(): number {
+    // Remove links where either source or target memory is deleted or doesn't exist
+    const result = this.db
+      .prepare(
+        `DELETE FROM memory_links
+         WHERE id IN (
+           SELECT ml.id FROM memory_links ml
+           LEFT JOIN memories ms ON ms.id = ml.source_id
+           LEFT JOIN memories mt ON mt.id = ml.target_id
+           WHERE ms.id IS NULL 
+              OR mt.id IS NULL
+              OR ms.status = 'deleted'
+              OR mt.status = 'deleted'
+         )`,
+      )
+      .run();
+
+    // Also clean up synced_links for removed links
+    this.db
+      .prepare(
+        `DELETE FROM synced_links
+         WHERE link_id NOT IN (SELECT id FROM memory_links)`,
+      )
+      .run();
+
+    return result.changes;
   }
 
   close(): void {

@@ -29,6 +29,8 @@ import {
   Trash2,
   RotateCcw,
   AlertTriangle,
+  Undo2,
+  Layers,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -61,6 +63,8 @@ interface MemoryDetail {
   deletedBy?: string;
   createdAt: string;
   updatedAt: string;
+  isConsolidation?: boolean;
+  consolidationVersion?: number;
 }
 
 interface LinkedMemoryItem {
@@ -108,6 +112,7 @@ const sourceRefIcons: Record<string, React.ReactNode> = {
   commit_sha: <GitCommit className="h-3.5 w-3.5" />,
   file: <FileText className="h-3.5 w-3.5" />,
   file_path: <FileText className="h-3.5 w-3.5" />,
+  consolidated_from: <Link2 className="h-3.5 w-3.5" />,
 };
 
 const sourceRefLabels: Record<string, string> = {
@@ -122,6 +127,7 @@ const sourceRefLabels: Record<string, string> = {
   branch: "Branch",
   repo: "Repository",
   author: "Author",
+  consolidated_from: "Consolidated From",
 };
 
 function isUrl(value: unknown): value is string {
@@ -157,7 +163,25 @@ function extractLinkDisplay(url: string): string {
   }
 }
 
-function SourceRefItem({ refKey, value }: { refKey: string; value: unknown }) {
+function isUuidArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return value.length > 0 && value.every((item) => typeof item === "string" && uuidRegex.test(item));
+}
+
+function truncateUuid(uuid: string): string {
+  return uuid.slice(0, 8);
+}
+
+function SourceRefItem({
+  refKey,
+  value,
+  onNavigate,
+}: {
+  refKey: string;
+  value: unknown;
+  onNavigate?: (id: string) => void;
+}) {
   const icon = sourceRefIcons[refKey] ?? <ExternalLink className="h-3.5 w-3.5" />;
   const label = formatRefLabel(refKey);
 
@@ -179,13 +203,40 @@ function SourceRefItem({ refKey, value }: { refKey: string; value: unknown }) {
     );
   }
 
+  if (isUuidArray(value)) {
+    return (
+      <div className="rounded-lg bg-white/[0.03] px-3 py-2.5 text-[12px]">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-dracula-cyan shrink-0">{icon}</span>
+          <span className="text-muted-foreground shrink-0">{label}</span>
+          <span className="text-muted-foreground/50 text-[11px]">({value.length})</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((uuid) => (
+            <button
+              key={uuid}
+              onClick={() => onNavigate?.(uuid)}
+              className="inline-flex items-center gap-1 rounded-md bg-dracula-purple/10 px-2 py-1 text-[11px] font-mono text-dracula-purple hover:bg-dracula-purple/20 transition-colors cursor-pointer"
+              title={uuid}
+            >
+              <span>{truncateUuid(uuid)}</span>
+              <ArrowUpRight className="h-2.5 w-2.5 opacity-60" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const displayValue = typeof value === "object" ? JSON.stringify(value) : String(value);
 
   return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.03] px-3 py-2 text-[12px]">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="text-foreground/80 truncate font-mono">{displayValue}</span>
+    <div className="rounded-lg bg-white/[0.03] px-3 py-2 text-[12px] overflow-hidden">
+      <div className="flex items-center gap-2.5 mb-1">
+        <span className="text-muted-foreground shrink-0">{icon}</span>
+        <span className="text-muted-foreground shrink-0">{label}:</span>
+      </div>
+      <p className="text-foreground/80 font-mono text-[11px] break-all">{displayValue}</p>
     </div>
   );
 }
@@ -312,6 +363,30 @@ export function MemoryDetailSheet({
     }
   }
 
+  async function handleUnconsolidate() {
+    if (!memory) return;
+    try {
+      const res = await fetch("/api/consolidation/revert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consolidationId: memory.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Unconsolidation complete`, {
+          description: `Restored ${data.restoredIds?.length || 0} memories`,
+        });
+        onAction();
+        onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to revert consolidation");
+      }
+    } catch {
+      toast.error("Could not connect to server");
+    }
+  }
+
   function handleCopyId() {
     if (!memory) return;
     navigator.clipboard.writeText(memory.id);
@@ -330,7 +405,7 @@ export function MemoryDetailSheet({
 
   return (
     <Dialog open={!!memoryId} onOpenChange={() => onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg overflow-x-hidden">
         {loading && (
           <>
             <DialogTitle className="sr-only">Loading memory details</DialogTitle>
@@ -386,7 +461,7 @@ export function MemoryDetailSheet({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-5">
+            <div className="space-y-5 overflow-hidden">
               {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 {(() => {
@@ -399,21 +474,27 @@ export function MemoryDetailSheet({
                 })()}
                 <Badge variant="outline">{memory.status}</Badge>
                 <Badge variant="outline">{memory.visibility}</Badge>
+                {memory.isConsolidation && (
+                  <Badge className="bg-dracula-cyan/10 text-dracula-cyan border-0 gap-1" variant="secondary">
+                    <Layers className="h-3 w-3" />
+                    Consolidated v{memory.consolidationVersion ?? 1}
+                  </Badge>
+                )}
               </div>
 
               {/* Text */}
-              <div className="rounded-xl bg-white/[0.03] p-4">
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed">
+              <div className="rounded-xl bg-white/[0.03] p-4 overflow-hidden">
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed break-words">
                   {memory.text}
                 </p>
               </div>
 
               {memory.summary && (
-                <div>
+                <div className="overflow-hidden">
                   <h4 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
                     Summary
                   </h4>
-                  <p className="text-[13px] text-foreground/80">{memory.summary}</p>
+                  <p className="text-[13px] text-foreground/80 break-words">{memory.summary}</p>
                 </div>
               )}
 
@@ -462,7 +543,7 @@ export function MemoryDetailSheet({
                     </h4>
                     <div className="space-y-1.5">
                       {Object.entries(memory.sourceRefs).map(([key, value]) => (
-                        <SourceRefItem key={key} refKey={key} value={value} />
+                        <SourceRefItem key={key} refKey={key} value={value} onNavigate={onNavigate} />
                       ))}
                     </div>
                   </div>
@@ -572,6 +653,49 @@ export function MemoryDetailSheet({
               <div className="flex flex-wrap gap-2 pt-1">
                 {memory.status === "active" && (
                   <>
+                    {memory.isConsolidation && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-dracula-cyan/30 text-dracula-cyan hover:bg-dracula-cyan/10"
+                          >
+                            <Undo2 className="mr-1 h-3.5 w-3.5" />
+                            Revert Consolidation
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Revert Consolidation</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will restore the original memories to active status and soft-delete this consolidated memory.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <div className="py-4 space-y-2">
+                            <p className="text-[13px] text-foreground/80">
+                              The following will happen:
+                            </p>
+                            <ul className="text-[13px] text-muted-foreground space-y-1 list-disc list-inside">
+                              <li>Original memories will be restored to &quot;active&quot; status</li>
+                              <li>This consolidated memory will be soft-deleted</li>
+                              <li>You can restore this consolidation later if needed</li>
+                            </ul>
+                          </div>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleUnconsolidate}
+                              className="bg-dracula-cyan hover:bg-dracula-cyan/80"
+                            >
+                              <Undo2 className="mr-1 h-3.5 w-3.5" />
+                              Revert
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"

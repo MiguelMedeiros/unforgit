@@ -18,6 +18,10 @@ export interface Memory {
   confidence?: number;
   ttlSeconds?: number;
   supersedesId?: string;
+  isConsolidation?: boolean;
+  consolidationVersion?: number;
+  authorId?: string;
+  authorName?: string;
   version: number;
   deletedAt?: Date;
   deletedBy?: string;

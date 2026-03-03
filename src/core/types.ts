@@ -68,6 +68,8 @@ export interface RecallResult {
   sourceRefs?: Record<string, unknown>;
   score: number;
   source: "local" | "remote";
+  status?: Status;
+  supersedesId?: string;
   isConsolidation?: boolean;
   consolidationVersion?: number;
   sourceMemories?: RecallResult[];
@@ -221,4 +223,41 @@ export interface Tombstone {
   deletedAt: Date;
   deletedBy?: string;
   syncedAt?: Date;
+}
+
+export type SyncStatus = "synced" | "pending_push" | "pending_pull" | "conflict";
+
+export interface SyncState {
+  memoryId: string;
+  localVersion: number;
+  remoteVersion?: number;
+  lastPushedAt?: Date;
+  lastPulledAt?: Date;
+  syncStatus: SyncStatus;
+}
+
+export interface RemoteConfig {
+  url: string;
+  orgId: string;
+  repoId: string;
+}
+
+export interface HippoConfigV2 {
+  remotes: Record<string, RemoteConfig>;
+  currentBranch: string;
+  defaults: {
+    visibility: Visibility;
+    memoryType: MemoryType;
+  };
+}
+
+export interface StatusSummary {
+  branch: string;
+  remote?: {
+    name: string;
+    url: string;
+  };
+  toPush: Array<{ id: string; text: string; action: "new" | "modified" }>;
+  toPull: Array<{ id: string; text: string; action: "new" | "modified" }>;
+  conflicts: Array<{ id: string; text: string; localVersion: number; remoteVersion: number }>;
 }

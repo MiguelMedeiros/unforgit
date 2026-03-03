@@ -5,6 +5,11 @@ import { LocalStore } from "../db/local.js";
 import { resolveVisibility } from "../core/policy.js";
 import { loadConfig, getDbPath, isInitialized } from "../cli/config.js";
 import type { MemoryType, LinkType } from "../core/types.js";
+import {
+  findConsolidationCandidates,
+  executeConsolidation,
+  formatCandidatePreview,
+} from "../core/auto-consolidate.js";
 
 const cwd = process.cwd();
 
@@ -741,6 +746,257 @@ server.tool(
           `- ${t.memoryId.slice(0, 8)} (deleted at ${t.deletedAt.toISOString()}, ${syncStatus})`,
         );
       }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_unconsolidate",
+  "Revert a consolidation, restoring original memories to active status. The consolidated memory is soft-deleted and can be restored later. Use this to undo a consolidation if the merged result is not satisfactory.",
+  {
+    consolidationId: z
+      .string()
+      .min(1)
+      .describe("ID of the consolidated memory to revert"),
+    dryRun: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("If true, show what would be restored without making changes"),
+  },
+  async ({ consolidationId, dryRun }) => {
+    const { store } = getStore();
+
+    try {
+      const memory = store.getById(consolidationId);
+      if (!memory) {
+        return {
+          content: [{ type: "text", text: "Memory not found." }],
+        };
+      }
+
+      if (!memory.isConsolidation) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Memory ${consolidationId.slice(0, 8)} is not a consolidation.\nOnly consolidated memories can be unconsolidated.`,
+            },
+          ],
+        };
+      }
+
+      const sourceLinks = store.getLinks({ memoryId: consolidationId, linkType: "derived_from" });
+      const sourceIds = sourceLinks
+        .filter((l) => l.sourceId === consolidationId)
+        .map((l) => l.targetId);
+
+      const parts: string[] = [
+        `Consolidation: ${consolidationId.slice(0, 8)}`,
+        `Version: ${memory.consolidationVersion ?? 1}`,
+        `Source memories: ${sourceIds.length}`,
+        "",
+      ];
+
+      if (sourceIds.length === 0) {
+        parts.push("No source memories found for this consolidation.");
+        return {
+          content: [{ type: "text", text: parts.join("\n") }],
+        };
+      }
+
+      parts.push("Source memories:");
+      for (const sourceId of sourceIds) {
+        const source = store.getById(sourceId);
+        if (source) {
+          const willRestore = source.status === "superseded" && source.supersedesId === consolidationId;
+          const status = willRestore ? "will restore" : `${source.status} (no change)`;
+          const preview = source.text.slice(0, 50) + (source.text.length > 50 ? "..." : "");
+          parts.push(`  - ${sourceId.slice(0, 8)} [${source.memoryType}] (${status})`);
+          parts.push(`    ${preview}`);
+        }
+      }
+      parts.push("");
+
+      if (dryRun) {
+        parts.push("[Dry run - no changes made]");
+        parts.push("Set dryRun=false to execute the unconsolidation.");
+        return {
+          content: [{ type: "text", text: parts.join("\n") }],
+        };
+      }
+
+      const result = store.unconsolidate(consolidationId);
+
+      parts.push("Unconsolidation complete:");
+      parts.push(`  Restored: ${result.restoredIds.length} memories`);
+      parts.push(`  Links removed: ${result.linksRemoved}`);
+      parts.push(`  Consolidation deleted: ${result.consolidationDeleted ? "Yes" : "No"}`);
+
+      if (result.restoredIds.length > 0) {
+        parts.push("");
+        parts.push("Restored memories:");
+        for (const id of result.restoredIds) {
+          parts.push(`  - ${id.slice(0, 8)}`);
+        }
+      }
+
+      parts.push("");
+      parts.push("The consolidated memory has been soft-deleted.");
+      parts.push("Use hippo_restore to restore it if needed.");
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_auto_consolidate",
+  "Automatically find and consolidate similar memories using AI. In dry-run mode (default), returns consolidation candidates without making changes. With execute=true, generates consolidated text via OpenAI and creates new consolidated memories.",
+  {
+    threshold: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .default(0.4)
+      .describe("Minimum similarity score for grouping (0-1, default: 0.4)"),
+    minGroupSize: z
+      .number()
+      .int()
+      .min(2)
+      .optional()
+      .default(2)
+      .describe("Minimum number of memories in a group (default: 2)"),
+    maxGroups: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .optional()
+      .default(5)
+      .describe("Maximum number of groups to process (default: 5)"),
+    types: z
+      .array(z.enum(["episodic", "semantic", "procedural"]))
+      .optional()
+      .describe("Filter by memory types"),
+    dryRun: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("If true (default), only show candidates without consolidating"),
+    execute: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("If true, execute consolidation using AI (requires OPENAI_API_KEY)"),
+    model: z
+      .string()
+      .optional()
+      .default("gpt-4o-mini")
+      .describe("OpenAI model to use for text generation"),
+  },
+  async ({ threshold, minGroupSize, maxGroups, types, dryRun, execute, model }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const result = findConsolidationCandidates(store, orgId, repoId, {
+        threshold,
+        minGroupSize,
+        maxGroups,
+        types: types as MemoryType[] | undefined,
+        excludeConsolidations: true,
+      });
+
+      const parts: string[] = [
+        `Scanned ${result.totalMemoriesScanned} active memories`,
+        `Found ${result.totalCandidateGroups} potential groups`,
+        `Showing top ${result.candidates.length} candidates`,
+        "",
+      ];
+
+      if (result.candidates.length === 0) {
+        parts.push("No consolidation candidates found.");
+        parts.push("Try lowering the threshold or minGroupSize.");
+        return {
+          content: [{ type: "text", text: parts.join("\n") }],
+        };
+      }
+
+      for (let i = 0; i < result.candidates.length; i++) {
+        const candidate = result.candidates[i];
+        parts.push(`--- Candidate ${i + 1} ---`);
+        parts.push(formatCandidatePreview(candidate));
+        parts.push("");
+      }
+
+      if (dryRun && !execute) {
+        parts.push("[Dry run mode - no changes made]");
+        parts.push("Set execute=true to consolidate these memories using AI.");
+        return {
+          content: [{ type: "text", text: parts.join("\n") }],
+        };
+      }
+
+      if (!process.env.OPENAI_API_KEY) {
+        parts.push("[Error] OPENAI_API_KEY not set.");
+        parts.push("Set this environment variable to enable AI consolidation.");
+        return {
+          content: [{ type: "text", text: parts.join("\n") }],
+        };
+      }
+
+      parts.push("Executing consolidation...");
+      parts.push("");
+
+      const executed: string[] = [];
+      const errors: string[] = [];
+
+      for (let i = 0; i < result.candidates.length; i++) {
+        const candidate = result.candidates[i];
+        try {
+          const execResult = await executeConsolidation(
+            store,
+            candidate,
+            orgId,
+            repoId,
+            { model, preserveOriginals: true },
+          );
+
+          executed.push(
+            `[${i + 1}] Created ${execResult.consolidatedId.slice(0, 8)} from ${execResult.sourceIds.length} memories`,
+          );
+        } catch (err) {
+          errors.push(
+            `[${i + 1}] Failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      if (executed.length > 0) {
+        parts.push("Successful consolidations:");
+        parts.push(...executed.map((e) => `  ${e}`));
+        parts.push("");
+      }
+
+      if (errors.length > 0) {
+        parts.push("Errors:");
+        parts.push(...errors.map((e) => `  ${e}`));
+        parts.push("");
+      }
+
+      parts.push(`Summary: ${executed.length} consolidated, ${errors.length} failed`);
+      parts.push("Original memories are preserved with status 'superseded'.");
 
       return {
         content: [{ type: "text", text: parts.join("\n") }],

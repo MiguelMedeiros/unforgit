@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, ArrowRight } from "lucide-react";
+import { Brain, ArrowRight, Sparkles, GitMerge } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
 import { MemoryCard } from "@/components/memory-card";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
-import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, SourceDistributionChart } from "@/components/dashboard-charts";
+import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, MemoryLifecycleChart } from "@/components/dashboard-charts";
+import { TimeframeSelector, type Timeframe, getTimeframeDays } from "@/components/timeframe-selector";
 
 interface StoreStats {
   total: number;
@@ -28,6 +29,7 @@ interface MemoryItem {
 interface ActivityData {
   dailyCounts: Array<{ date: string; count: number }>;
   weeklyTrend: Array<{ week: string; count: number }>;
+  hourlyCounts: Array<{ hour: string; count: number }>;
 }
 
 interface TagData {
@@ -37,6 +39,7 @@ interface TagData {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [timeframe, setTimeframe] = useState<Timeframe>("all");
   const [stats, setStats] = useState<{
     local: StoreStats;
     remote: StoreStats;
@@ -45,15 +48,21 @@ export default function DashboardPage() {
   const [recentMemories, setRecentMemories] = useState<MemoryItem[]>([]);
   const [activity, setActivity] = useState<ActivityData | null>(null);
   const [topTags, setTopTags] = useState<TagData[]>([]);
+  const [consolidationInfo, setConsolidationInfo] = useState<{
+    candidateGroups: number;
+    totalMemoriesInGroups: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsRes, memoriesRes, activityRes, tagsRes] = await Promise.all([
-        fetch("/api/stats"),
+      const timeframeParam = timeframe !== "all" ? `timeframe=${timeframe}` : "";
+      const [statsRes, memoriesRes, activityRes, tagsRes, consolidationRes] = await Promise.all([
+        fetch(`/api/stats${timeframeParam ? `?${timeframeParam}` : ""}`),
         fetch("/api/memories?source=local&limit=3&sortBy=createdAt&sortOrder=desc"),
-        fetch("/api/stats/activity"),
-        fetch("/api/stats/tags?limit=6"),
+        fetch(`/api/stats/activity${timeframeParam ? `?${timeframeParam}` : ""}`),
+        fetch(`/api/stats/tags?limit=6${timeframeParam ? `&${timeframeParam}` : ""}`),
+        fetch("/api/consolidation/candidates?maxGroups=100&threshold=0.4"),
       ]);
 
       if (statsRes.ok) {
@@ -73,12 +82,25 @@ export default function DashboardPage() {
         const data = await tagsRes.json();
         setTopTags(data.tags);
       }
+
+      if (consolidationRes.ok) {
+        const data = await consolidationRes.json();
+        const totalMemoriesInGroups = data.candidates?.reduce(
+          (sum: number, c: { memories: unknown[] }) => sum + c.memories.length,
+          0
+        ) ?? 0;
+        setConsolidationInfo({
+          candidateGroups: data.totalCandidateGroups ?? 0,
+          totalMemoriesInGroups,
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeframe]);
 
   useEffect(() => {
+    setLoading(true);
     loadData();
   }, [loadData]);
 
@@ -98,13 +120,16 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-5xl px-8 py-10">
         <div className="animate-fade-in space-y-10">
           {/* Hero */}
-          <div>
-            <h1 className="text-[28px] font-bold tracking-tight">
-              Dashboard
-            </h1>
-            <p className="text-[13px] text-muted-foreground">
-              Your repository memory at a glance
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-[28px] font-bold tracking-tight">
+                Dashboard
+              </h1>
+              <p className="text-[13px] text-muted-foreground">
+                Your repository memory at a glance
+              </p>
+            </div>
+            <TimeframeSelector value={timeframe} onChange={setTimeframe} />
           </div>
 
           {/* Stats */}
@@ -116,20 +141,64 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Activity Heatmap */}
-          {activity && <ActivityHeatmap dailyCounts={activity.dailyCounts} />}
+          {/* Activity Heatmap - only show when viewing all time */}
+          {activity && timeframe === "all" && (
+            <ActivityHeatmap dailyCounts={activity.dailyCounts} />
+          )}
+
+          {/* Consolidation Card */}
+          {consolidationInfo && stats && (
+            <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-dracula-purple/20">
+                    <GitMerge className="h-6 w-6 text-dracula-purple" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold">Memory Consolidation</h3>
+                    <p className="text-[13px] text-muted-foreground">
+                      {consolidationInfo.candidateGroups > 0 ? (
+                        <>
+                          <span className="font-medium text-dracula-orange">{consolidationInfo.candidateGroups} groups</span>
+                          {" "}with{" "}
+                          <span className="font-medium text-dracula-cyan">{consolidationInfo.totalMemoriesInGroups} memories</span>
+                          {" "}can be consolidated
+                        </>
+                      ) : stats.local.byStatus.superseded > 0 ? (
+                        <>
+                          <span className="font-medium text-dracula-green">{stats.local.byStatus.superseded} memories</span>
+                          {" "}already consolidated
+                        </>
+                      ) : (
+                        "No similar memories found to consolidate"
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/consolidation")}
+                  className="flex items-center gap-2 rounded-lg bg-dracula-purple/20 px-4 py-2 text-[13px] font-medium text-dracula-purple hover:bg-dracula-purple/30 transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {consolidationInfo.candidateGroups > 0 ? "Review & Merge" : "View"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Charts Grid */}
           {stats && activity && (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <MemoryTypeChart stats={stats.local} />
-              <DailyMemoriesChart dailyCounts={activity.dailyCounts} />
-              <TopTagsChart tags={topTags} />
-              <SourceDistributionChart
-                localCount={stats.local.total}
-                remoteCount={stats.remote.total}
-                remoteAvailable={stats.remoteAvailable}
+              <MemoryLifecycleChart stats={stats.local} />
+              <DailyMemoriesChart 
+                dailyCounts={activity.dailyCounts} 
+                hourlyCounts={activity.hourlyCounts}
+                days={getTimeframeDays(timeframe) ?? 365}
+                title={timeframe === "all" ? "All Time" : undefined}
+                isIntraday={timeframe === "1d"}
               />
+              <TopTagsChart tags={topTags} />
+              <MemoryTypeChart stats={stats.local} />
             </div>
           )}
 

@@ -183,6 +183,8 @@ export class RemoteStore {
             row.confidence as number | undefined,
           ),
           source: "remote" as const,
+          status: row.status as Memory["status"],
+          supersedesId: (row.supersedes_id as string) ?? undefined,
         };
       });
     }
@@ -206,6 +208,8 @@ export class RemoteStore {
         row.confidence ?? undefined,
       ),
       source: "remote" as const,
+      status: row.status as Memory["status"],
+      supersedesId: row.supersedesId ?? undefined,
     }));
   }
 

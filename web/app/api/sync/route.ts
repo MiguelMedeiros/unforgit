@@ -325,11 +325,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // PHASE 7: Cleanup orphan links
+  const orphanLinksRemoved = local.cleanupOrphanLinks();
+
   return NextResponse.json({
     ...result,
     linksPulled,
     linksSynced,
     linksFailed,
+    orphanLinksRemoved,
     syncedAt: new Date().toISOString(),
   });
 }

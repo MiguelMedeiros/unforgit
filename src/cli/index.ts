@@ -15,6 +15,15 @@ import {
   similarCommand,
   historyCommand,
 } from "./commands/merge.js";
+import { autoConsolidateCommand } from "./commands/auto-consolidate.js";
+import { unconsolidateCommand } from "./commands/unconsolidate.js";
+import { statusCommand } from "./commands/status.js";
+import { pushCommand } from "./commands/push.js";
+import { pullCommand } from "./commands/pull.js";
+import { remoteCommand } from "./commands/remote.js";
+import { logCommand } from "./commands/log.js";
+import { branchCommand, checkoutCommand } from "./commands/branch.js";
+import { diffCommand } from "./commands/diff.js";
 
 const program = new Command();
 
@@ -40,5 +49,15 @@ program.addCommand(similarCommand);
 program.addCommand(historyCommand);
 program.addCommand(deleteCommand);
 program.addCommand(restoreCommand);
+program.addCommand(autoConsolidateCommand);
+program.addCommand(unconsolidateCommand);
+program.addCommand(statusCommand);
+program.addCommand(pushCommand);
+program.addCommand(pullCommand);
+program.addCommand(remoteCommand);
+program.addCommand(logCommand);
+program.addCommand(branchCommand);
+program.addCommand(checkoutCommand);
+program.addCommand(diffCommand);
 
 program.parse();

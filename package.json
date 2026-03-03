@@ -39,6 +39,7 @@
     "dotenv": "^17.3.1",
     "fastify": "^5.7.4",
     "fastify-type-provider-zod": "^6.1.0",
+    "openai": "^6.25.0",
     "pg": "^8.19.0",
     "prisma": "^7.4.2",
     "uuid": "^13.0.0",

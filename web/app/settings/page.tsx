@@ -15,6 +15,7 @@ import {
   ArrowDown,
   Trash2,
   Link2,
+  Key,
 } from "lucide-react";
 import { useSyncContext } from "@/components/sync-provider";
 
@@ -29,6 +30,7 @@ interface ConfigData {
   dbSize: number | null;
   remoteConnected: boolean;
   hasRemoteUrl: boolean;
+  openaiStatus: "not_configured" | "configured" | "valid" | "invalid";
 }
 
 function formatBytes(bytes: number): string {
@@ -351,6 +353,50 @@ export default function SettingsPage() {
 
           {/* Sync */}
           <SyncSettings />
+
+          {/* OpenAI API */}
+          <SettingsGroup
+            title="OpenAI API"
+            icon={Key}
+            description="API key for embeddings and AI features"
+          >
+            <SettingsRow label="API Key Status">
+              {config.openaiStatus === "valid" ? (
+                <Badge className="bg-dracula-green/15 text-dracula-green border-0">
+                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                  Connected
+                </Badge>
+              ) : config.openaiStatus === "invalid" ? (
+                <Badge className="bg-dracula-red/15 text-dracula-red border-0">
+                  <XCircle className="mr-1 h-3 w-3" />
+                  Invalid Key
+                </Badge>
+              ) : config.openaiStatus === "configured" ? (
+                <Badge className="bg-dracula-orange/15 text-dracula-orange border-0">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
+                  Configured (unverified)
+                </Badge>
+              ) : (
+                <Badge className="bg-white/10 text-muted-foreground border-0">
+                  Not configured
+                </Badge>
+              )}
+            </SettingsRow>
+            <SettingsRow label="Usage">
+              <span className="text-muted-foreground text-[12px]">
+                Semantic search, auto-linking, consolidation
+              </span>
+            </SettingsRow>
+            {config.openaiStatus === "not_configured" && (
+              <div className="py-3">
+                <div className="rounded-xl bg-dracula-orange/10 border border-dracula-orange/20 p-3">
+                  <p className="text-[12px] text-muted-foreground">
+                    Set the <code className="font-mono text-dracula-cyan">OPENAI_API_KEY</code> environment variable to enable AI features.
+                  </p>
+                </div>
+              </div>
+            )}
+          </SettingsGroup>
 
           {/* Configuration */}
           {config.config && (

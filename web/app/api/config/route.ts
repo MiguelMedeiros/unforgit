@@ -24,6 +24,25 @@ export async function GET() {
     }
   }
 
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  let openaiStatus: "not_configured" | "configured" | "valid" | "invalid" =
+    "not_configured";
+
+  if (openaiApiKey) {
+    openaiStatus = "configured";
+    try {
+      const res = await fetch("https://api.openai.com/v1/models", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${openaiApiKey}`,
+        },
+      });
+      openaiStatus = res.ok ? "valid" : "invalid";
+    } catch {
+      openaiStatus = "invalid";
+    }
+  }
+
   return NextResponse.json({
     initialized,
     workspace,
@@ -32,5 +51,6 @@ export async function GET() {
     dbSize,
     remoteConnected,
     hasRemoteUrl: !!process.env.DATABASE_URL,
+    openaiStatus,
   });
 }

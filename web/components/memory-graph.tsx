@@ -98,6 +98,20 @@ const linkTypeColorClasses: Record<string, string> = {
   depends_on: "bg-dracula-orange/10 text-dracula-orange",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  active: "#50fa7b",
+  superseded: "#8be9fd",
+  deprecated: "#ffb86c",
+  deleted: "#ff5555",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  superseded: "Superseded",
+  deprecated: "Deprecated",
+  deleted: "Deleted",
+};
+
 function truncateText(text: string, max: number) {
   if (text.length <= max) return text;
   return text.slice(0, max) + "...";
@@ -144,6 +158,18 @@ export function MemoryGraph() {
   const [showOrphans, setShowOrphans] = useState(true);
   const [source, setSource] = useState<"local" | "remote">("local");
   const [detailMemoryId, setDetailMemoryId] = useState<string | null>(null);
+  
+  // Filter states for node types, link types, and status
+  const [visibleNodeTypes, setVisibleNodeTypes] = useState<Set<string>>(
+    new Set(["episodic", "semantic", "procedural"])
+  );
+  const [visibleLinkTypes, setVisibleLinkTypes] = useState<Set<string>>(
+    new Set(["related_to", "derived_from", "contradicts", "depends_on"])
+  );
+  const [visibleStatuses, setVisibleStatuses] = useState<Set<string>>(
+    new Set(["active", "superseded", "deprecated", "deleted"])
+  );
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
 
@@ -210,21 +236,35 @@ export function MemoryGraph() {
   }, [source]);
 
   const graphData = useMemo(() => {
+    // Filter nodes by visible types and status
+    const typeFilteredNodes = nodes.filter(
+      (n) => visibleNodeTypes.has(n.memoryType) && visibleStatuses.has(n.status)
+    );
+    const typeFilteredNodeIds = new Set(typeFilteredNodes.map((n) => n.id));
+    
+    // Filter edges by visible link types and ensure both source/target are visible nodes
+    const filteredEdges = edges.filter(
+      (e) =>
+        visibleLinkTypes.has(e.linkType) &&
+        typeFilteredNodeIds.has(e.source) &&
+        typeFilteredNodeIds.has(e.target)
+    );
+    
     const linkedIds = new Set<string>();
-    for (const e of edges) {
+    for (const e of filteredEdges) {
       linkedIds.add(e.source);
       linkedIds.add(e.target);
     }
 
     const filteredNodes = showOrphans
-      ? nodes
-      : nodes.filter((n) => linkedIds.has(n.id));
+      ? typeFilteredNodes
+      : typeFilteredNodes.filter((n) => linkedIds.has(n.id));
 
     return {
       nodes: filteredNodes.map((n) => ({ ...n })),
-      links: edges.map((e) => ({ ...e })),
+      links: filteredEdges.map((e) => ({ ...e })),
     };
-  }, [nodes, edges, showOrphans]);
+  }, [nodes, edges, showOrphans, visibleNodeTypes, visibleLinkTypes, visibleStatuses]);
 
   const neighborMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -370,6 +410,42 @@ export function MemoryGraph() {
     setSelectedNode(null);
     const fg = graphRef.current;
     if (fg) fg.zoomToFit(400, 60);
+  }, []);
+
+  const toggleNodeType = useCallback((type: string) => {
+    setVisibleNodeTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        if (next.size > 1) next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleLinkType = useCallback((type: string) => {
+    setVisibleLinkTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleStatus = useCallback((status: string) => {
+    setVisibleStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) {
+        if (next.size > 1) next.delete(status);
+      } else {
+        next.add(status);
+      }
+      return next;
+    });
   }, []);
 
   const navigateToNode = useCallback(
@@ -539,14 +615,18 @@ export function MemoryGraph() {
     return `${diffYear}y ago`;
   };
 
-  const linkedNodeCount = useMemo(() => {
-    const ids = new Set<string>();
-    for (const e of edges) {
-      ids.add(e.source);
-      ids.add(e.target);
+  const filteredStats = useMemo(() => {
+    const linkedIds = new Set<string>();
+    for (const link of graphData.links) {
+      const sourceId = typeof link.source === "string" ? link.source : link.source.id;
+      const targetId = typeof link.target === "string" ? link.target : link.target.id;
+      linkedIds.add(sourceId);
+      linkedIds.add(targetId);
     }
-    return ids.size;
-  }, [edges]);
+    const linkedCount = linkedIds.size;
+    const orphanCount = graphData.nodes.length - linkedCount;
+    return { linkedCount, orphanCount, linkCount: graphData.links.length };
+  }, [graphData]);
 
   if (loading) {
     return (
@@ -608,6 +688,7 @@ export function MemoryGraph() {
             enableNodeDrag={true}
             backgroundColor="transparent"
             dagMode={undefined}
+            // @ts-expect-error d3Force is a valid prop but types are incomplete
             d3Force={(name, force) => {
               if (name === "charge" && force) {
                 force.strength(-120).distanceMax(250);
@@ -679,37 +760,109 @@ export function MemoryGraph() {
           </button>
         </div>
 
-        {/* Legend */}
+        {/* Filters */}
         <div className="absolute bottom-4 left-4 rounded-xl border border-border/30 bg-[rgba(28,28,30,0.85)] glass p-3 z-10">
           <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
             Nodes
           </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5 mb-3">
-            {Object.entries(TYPE_COLORS).map(([type, color]) => (
-              <div key={type} className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-[11px] capitalize text-foreground/70">{type}</span>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5 mb-3">
+            {Object.entries(TYPE_COLORS).map(([type, color]) => {
+              const isActive = visibleNodeTypes.has(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleNodeType(type)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
+                    isActive
+                      ? "bg-white/[0.08] hover:bg-white/[0.12]"
+                      : "opacity-40 hover:opacity-70"
+                  }`}
+                  title={isActive ? `Hide ${type} nodes` : `Show ${type} nodes`}
+                >
+                  <span
+                    className={`inline-block h-2.5 w-2.5 rounded-full transition-all ${
+                      isActive ? "ring-2 ring-offset-1 ring-offset-transparent" : ""
+                    }`}
+                    style={{ 
+                      backgroundColor: isActive ? color : "transparent",
+                      borderColor: color,
+                      borderWidth: 2,
+                      borderStyle: "solid",
+                      ringColor: color,
+                    }}
+                  />
+                  <span className={`text-[11px] capitalize ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                    {type}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+            Status
+          </p>
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5 mb-3">
+            {Object.entries(STATUS_COLORS).map(([status, color]) => {
+              const isActive = visibleStatuses.has(status);
+              return (
+                <button
+                  key={status}
+                  onClick={() => toggleStatus(status)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
+                    isActive
+                      ? "bg-white/[0.08] hover:bg-white/[0.12]"
+                      : "opacity-40 hover:opacity-70"
+                  }`}
+                  title={isActive ? `Hide ${STATUS_LABELS[status]} memories` : `Show ${STATUS_LABELS[status]} memories`}
+                >
+                  <span
+                    className={`inline-block h-2 w-2 rounded-sm transition-all`}
+                    style={{ 
+                      backgroundColor: isActive ? color : "transparent",
+                      borderColor: color,
+                      borderWidth: 1.5,
+                      borderStyle: "solid",
+                    }}
+                  />
+                  <span className={`text-[11px] capitalize ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                    {STATUS_LABELS[status]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
             Links
           </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-            {Object.entries(LINK_TYPE_COLORS).map(([type, color]) => (
-              <div key={type} className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-[2px] w-3.5 rounded"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-[11px] text-foreground/70">
-                  {TYPE_LABELS[type] ?? type}
-                </span>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5">
+            {Object.entries(LINK_TYPE_COLORS).map(([type, color]) => {
+              const isActive = visibleLinkTypes.has(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleLinkType(type)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
+                    isActive
+                      ? "bg-white/[0.08] hover:bg-white/[0.12]"
+                      : "opacity-40 hover:opacity-70"
+                  }`}
+                  title={isActive ? `Hide ${TYPE_LABELS[type]} links` : `Show ${TYPE_LABELS[type]} links`}
+                >
+                  <span
+                    className={`inline-block h-[3px] w-4 rounded transition-all`}
+                    style={{ 
+                      backgroundColor: isActive ? color : "transparent",
+                      borderColor: color,
+                      borderWidth: 1,
+                      borderStyle: "solid",
+                    }}
+                  />
+                  <span className={`text-[11px] ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                    {TYPE_LABELS[type] ?? type}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -729,17 +882,17 @@ export function MemoryGraph() {
               {source}
             </span>
             <span>
-              <strong className="text-foreground font-semibold">{linkedNodeCount}</strong>{" "}
+              <strong className="text-foreground font-semibold">{filteredStats.linkedCount}</strong>{" "}
               linked
             </span>
             <span>
               <strong className="text-foreground font-semibold">
-                {nodes.length - linkedNodeCount}
+                {filteredStats.orphanCount}
               </strong>{" "}
               orphan
             </span>
             <span>
-              <strong className="text-foreground font-semibold">{edges.length}</strong>{" "}
+              <strong className="text-foreground font-semibold">{filteredStats.linkCount}</strong>{" "}
               links
             </span>
           </div>

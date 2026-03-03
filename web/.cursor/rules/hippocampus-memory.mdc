@@ -1,0 +1,41 @@
+---
+description: Auto-manage repository memory with Hippocampus via MCP tools
+alwaysApply: true
+---
+
+# Hippocampus Memory Integration
+
+You have access to `hippo_recall` and `hippo_add` MCP tools for persistent repository memory across sessions.
+
+## 1. Recall at the Start
+
+At the **beginning of every conversation**, use the `hippo_recall` tool with a query based on the user's first message to retrieve relevant context from past sessions.
+
+Use recalled memories to avoid repeating past mistakes, follow known conventions, and apply previous decisions.
+
+## 2. Save During the Conversation
+
+Save memories **as soon as something noteworthy happens** — don't wait until the end.
+
+Trigger a save with the `hippo_add` tool immediately after:
+- A bug is found and fixed
+- An architectural or design decision is made
+- A non-obvious gotcha or workaround is discovered
+- A new convention or pattern is established
+- A deployment/setup procedure is figured out
+
+### Memory types
+
+| Type | When | Example |
+|------|------|---------|
+| `semantic` | Decisions, conventions, architecture facts | "We use UTC timestamps everywhere" |
+| `procedural` | Workflows, how-tos, playbooks | "To deploy: run make release, then kubectl apply" |
+| `episodic` | Bugs found, gotchas, observations | "Found race condition in queue worker" |
+
+### Rules
+
+- Keep text concise but self-contained — a future reader should understand it without extra context
+- Use meaningful tags for discoverability (e.g. `["auth", "bug"]`, `["deploy", "playbook"]`)
+- Prefer `semantic` for stable facts, `procedural` for how-tos, `episodic` for transient observations
+- Do NOT save trivial changes, obvious things, or info already in the codebase docs
+- Quality over quantity — only save what's genuinely useful for future sessions
