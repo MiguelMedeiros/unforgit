@@ -24,15 +24,15 @@ interface DashboardChartsProps {
 }
 
 const TYPE_COLORS = {
-  episodic: "#ff9f0a",
-  semantic: "#0a84ff",
-  procedural: "#30d158",
+  episodic: "#ffb86c",
+  semantic: "#bd93f9",
+  procedural: "#50fa7b",
 };
 
 const STATUS_COLORS = {
-  active: "#30d158",
-  deprecated: "#ff453a",
-  superseded: "#ff9f0a",
+  active: "#50fa7b",
+  deprecated: "#ff5555",
+  superseded: "#ffb86c",
 };
 
 export function MemoryTypeChart({ stats }: DashboardChartsProps) {
@@ -53,8 +53,8 @@ export function MemoryTypeChart({ stats }: DashboardChartsProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[15px] font-semibold">By Type</h3>
-      <div className="rounded-xl border border-border/40 bg-white/[0.02] p-4">
-        <div className="flex items-center gap-6">
+      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px] flex items-center">
+        <div className="flex items-center gap-6 w-full">
           <ResponsiveContainer width={120} height={120}>
             <PieChart>
               <Pie
@@ -133,13 +133,13 @@ export function DailyMemoriesChart({ dailyCounts }: DailyChartProps) {
         <h3 className="text-[15px] font-semibold">Last 30 Days</h3>
         <p className="text-[12px] text-muted-foreground">{total} memories</p>
       </div>
-      <div className="rounded-xl border border-border/40 bg-white/[0.02] p-4">
-        <ResponsiveContainer width="100%" height={140}>
+      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px]">
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0a84ff" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#0a84ff" stopOpacity={0} />
+                <stop offset="5%" stopColor="#bd93f9" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#bd93f9" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -165,7 +165,7 @@ export function DailyMemoriesChart({ dailyCounts }: DailyChartProps) {
             <Area
               type="monotone"
               dataKey="count"
-              stroke="#0a84ff"
+              stroke="#bd93f9"
               strokeWidth={2}
               fill="url(#colorCount)"
             />

@@ -62,11 +62,11 @@ function SyncIndicator() {
       className={cn(
         "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all cursor-pointer hover:opacity-80",
         isSyncing
-          ? "bg-apple-blue/10 text-apple-blue"
+          ? "bg-dracula-cyan/10 text-dracula-cyan"
           : pendingCount > 0
-            ? "bg-apple-orange/10 text-apple-orange"
+            ? "bg-dracula-orange/10 text-dracula-orange"
             : isConnected
-              ? "bg-apple-green/10 text-apple-green"
+              ? "bg-dracula-green/10 text-dracula-green"
               : "bg-white/5 text-muted-foreground"
       )}
       title={
@@ -107,7 +107,7 @@ export function Header() {
     <header className="flex h-14 items-center justify-between border-b border-border/50 bg-[rgba(18,18,18,0.8)] px-6 glass-subtle">
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-b from-apple-blue/90 to-apple-blue shadow-[0_2px_8px_rgba(10,132,255,0.3)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-b from-dracula-purple/90 to-dracula-purple shadow-[0_2px_8px_rgba(189,147,249,0.3)]">
             <Brain className="h-4.5 w-4.5 text-white" />
           </div>
           <span className="text-[15px] font-semibold tracking-tight text-foreground">
@@ -135,7 +135,7 @@ export function Header() {
                 <item.icon
                   className={cn(
                     "h-4 w-4",
-                    active ? "text-apple-blue" : ""
+                    active ? "text-dracula-purple" : ""
                   )}
                 />
                 {item.label}

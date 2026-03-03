@@ -33,32 +33,32 @@ interface TimelineEventProps {
 }
 
 const typeConfig: Record<string, { bg: string; text: string }> = {
-  episodic: { bg: "bg-apple-orange/10", text: "text-apple-orange" },
-  semantic: { bg: "bg-apple-purple/10", text: "text-apple-purple" },
-  procedural: { bg: "bg-apple-green/10", text: "text-apple-green" },
+  episodic: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
+  semantic: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
+  procedural: { bg: "bg-dracula-green/10", text: "text-dracula-green" },
 };
 
 const eventConfig = {
   created: {
     icon: Plus,
     label: "Created",
-    color: "bg-apple-green",
-    iconColor: "text-apple-green",
-    borderColor: "border-apple-green/30",
+    color: "bg-dracula-green",
+    iconColor: "text-dracula-green",
+    borderColor: "border-dracula-green/30",
   },
   deprecated: {
     icon: Archive,
     label: "Deprecated",
-    color: "bg-apple-yellow",
-    iconColor: "text-apple-yellow",
-    borderColor: "border-apple-yellow/30",
+    color: "bg-dracula-yellow",
+    iconColor: "text-dracula-yellow",
+    borderColor: "border-dracula-yellow/30",
   },
   superseded: {
     icon: GitMerge,
     label: "Superseded",
-    color: "bg-apple-purple",
-    iconColor: "text-apple-purple",
-    borderColor: "border-apple-purple/30",
+    color: "bg-dracula-purple",
+    iconColor: "text-dracula-purple",
+    borderColor: "border-dracula-purple/30",
   },
 };
 
@@ -112,8 +112,8 @@ export function TimelineEvent({
       <div className="flex-1 pb-6">
         <div
           className={cn(
-            "group cursor-pointer rounded-xl border border-border/50 bg-white/[0.04] p-4 transition-all duration-200",
-            "hover:bg-white/[0.08] hover:border-border/70 active:scale-[0.995]"
+            "group cursor-pointer rounded-xl border border-border/30 bg-dracula-current/20 p-4 transition-colors duration-150",
+            "hover:bg-dracula-current/35 active:scale-[0.995]"
           )}
           onClick={onClick}
         >
@@ -145,7 +145,7 @@ export function TimelineEvent({
                     memory.source === "remote"
                       ? "bg-white/[0.06] text-muted-foreground"
                       : memory.visibility === "repo"
-                        ? "bg-apple-green/10 text-apple-green"
+                        ? "bg-dracula-green/10 text-dracula-green"
                         : "bg-white/[0.06] text-muted-foreground"
                   )}
                 >
@@ -170,8 +170,8 @@ export function TimelineEvent({
                   onClick={copyId}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
-                    "bg-white/[0.06] hover:bg-white/[0.12] text-apple-blue",
-                    copied && "bg-apple-green/20 text-apple-green"
+                    "bg-white/[0.06] hover:bg-white/[0.12] text-dracula-cyan",
+                    copied && "bg-dracula-green/20 text-dracula-green"
                   )}
                   title="Copy memory ID"
                 >

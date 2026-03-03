@@ -74,7 +74,7 @@ export default function DashboardPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-apple-blue border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">Loading...</span>
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function DashboardPage() {
               {recentMemories.length > 0 && (
                 <button
                   onClick={() => router.push("/memories")}
-                  className="flex items-center gap-1.5 rounded-lg bg-apple-blue/15 px-3 py-1.5 text-[13px] font-medium text-apple-blue hover:bg-apple-blue/25 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg bg-dracula-purple/15 px-3 py-1.5 text-[13px] font-medium text-dracula-purple hover:bg-dracula-purple/25 transition-colors"
                 >
                   View All
                   <ArrowRight className="h-3.5 w-3.5" />

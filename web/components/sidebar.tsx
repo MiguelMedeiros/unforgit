@@ -26,7 +26,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-[220px] flex-col border-r border-border/50 bg-[rgba(18,18,18,0.8)] glass-subtle">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-b from-apple-blue/90 to-apple-blue shadow-[0_2px_8px_rgba(10,132,255,0.3)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-b from-dracula-purple/90 to-dracula-purple shadow-[0_2px_8px_rgba(189,147,249,0.3)]">
           <Brain className="h-4.5 w-4.5 text-white" />
         </div>
         <span className="text-[15px] font-semibold tracking-tight text-foreground">
@@ -54,7 +54,7 @@ export function Sidebar() {
               <item.icon
                 className={cn(
                   "h-[18px] w-[18px]",
-                  active ? "text-apple-blue" : "",
+                  active ? "text-dracula-purple" : "",
                 )}
               />
               {item.label}

@@ -101,7 +101,7 @@ function SyncSettings() {
         <button
           onClick={() => updateSettings({ autoSyncEnabled: !settings.autoSyncEnabled })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            settings.autoSyncEnabled ? "bg-apple-blue" : "bg-white/10"
+            settings.autoSyncEnabled ? "bg-dracula-purple" : "bg-white/10"
           }`}
         >
           <span
@@ -129,8 +129,8 @@ function SyncSettings() {
         {status ? (
           <Badge className={`border-0 ${
             status.pendingSync > 0 
-              ? "bg-apple-orange/15 text-apple-orange" 
-              : "bg-apple-green/15 text-apple-green"
+              ? "bg-dracula-orange/15 text-dracula-orange" 
+              : "bg-dracula-green/15 text-dracula-green"
           }`}>
             {status.pendingSync} {status.pendingSync === 1 ? "memory" : "memories"}
           </Badge>
@@ -141,12 +141,12 @@ function SyncSettings() {
       <SettingsRow label="Remote Status">
         {status?.remoteConfigured ? (
           status.remoteConnected ? (
-            <Badge className="bg-apple-green/15 text-apple-green border-0">
+            <Badge className="bg-dracula-green/15 text-dracula-green border-0">
               <CheckCircle2 className="mr-1 h-3 w-3" />
               Connected
             </Badge>
           ) : (
-            <Badge className="bg-apple-red/15 text-apple-red border-0">
+            <Badge className="bg-dracula-red/15 text-dracula-red border-0">
               <XCircle className="mr-1 h-3 w-3" />
               Disconnected
             </Badge>
@@ -173,7 +173,7 @@ function SyncSettings() {
         <button
           onClick={() => syncNow()}
           disabled={isSyncing || !status?.remoteConnected || status?.pendingSync === 0}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-apple-blue px-4 py-2.5 text-[13px] font-medium text-white transition-all hover:bg-apple-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-dracula-purple px-4 py-2.5 text-[13px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSyncing ? (
             <>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-apple-blue border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">Loading...</span>
         </div>
       </div>
@@ -244,12 +244,12 @@ export default function SettingsPage() {
           >
             <SettingsRow label="Status">
               {config.initialized ? (
-                <Badge className="bg-apple-green/15 text-apple-green border-0">
+                <Badge className="bg-dracula-green/15 text-dracula-green border-0">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Initialized
                 </Badge>
               ) : (
-                <Badge className="bg-apple-red/15 text-apple-red border-0">
+                <Badge className="bg-dracula-red/15 text-dracula-red border-0">
                   <XCircle className="mr-1 h-3 w-3" />
                   Not initialized
                 </Badge>

@@ -54,10 +54,10 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
   function getColorClass(count: number): string {
     if (count === 0) return "bg-white/[0.04]";
     const intensity = count / maxCount;
-    if (intensity <= 0.25) return "bg-apple-green/30";
-    if (intensity <= 0.5) return "bg-apple-green/50";
-    if (intensity <= 0.75) return "bg-apple-green/70";
-    return "bg-apple-green";
+    if (intensity <= 0.25) return "bg-dracula-green/30";
+    if (intensity <= 0.5) return "bg-dracula-green/50";
+    if (intensity <= 0.75) return "bg-dracula-green/70";
+    return "bg-dracula-green";
   }
 
   function formatDate(dateStr: string): string {
@@ -106,7 +106,7 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-border/40 bg-white/[0.02] p-4 overflow-x-auto">
+      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 overflow-x-auto">
         <div className="relative" style={{ minWidth: `${labelWidth + weeks.length * cellTotal}px` }}>
           <div 
             className="relative h-4 mb-1"
@@ -150,12 +150,12 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
                         </TooltipTrigger>
                         <TooltipContent
                           side="top"
-                          className="bg-[rgba(28,28,30,0.95)] border-border/50 text-[12px]"
+                          className="bg-dracula-current border border-dracula-comment/30 px-3 py-2 shadow-lg"
                         >
-                          <p className="font-medium">
+                          <p className="text-[13px] font-semibold text-dracula-foreground">
                             {day.count} {day.count === 1 ? "memory" : "memories"}
                           </p>
-                          <p className="text-muted-foreground">{formatDate(day.date)}</p>
+                          <p className="text-[12px] text-dracula-comment">{formatDate(day.date)}</p>
                         </TooltipContent>
                       </Tooltip>
                     ))}
@@ -169,10 +169,10 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
             <span>Less</span>
             <div className="flex gap-[2px]">
               <div className="h-[10px] w-[10px] rounded-[2px] bg-white/[0.04]" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-apple-green/30" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-apple-green/50" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-apple-green/70" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-apple-green" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/30" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/50" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/70" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green" />
             </div>
             <span>More</span>
           </div>

@@ -69,17 +69,18 @@ interface MemoryDetailSheetProps {
 }
 
 const typeConfig: Record<string, { bg: string; text: string }> = {
-  episodic: { bg: "bg-apple-orange/10", text: "text-apple-orange" },
-  semantic: { bg: "bg-apple-purple/10", text: "text-apple-purple" },
-  procedural: { bg: "bg-apple-green/10", text: "text-apple-green" },
+  episodic: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
+  semantic: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
+  procedural: { bg: "bg-dracula-green/10", text: "text-dracula-green" },
 };
 
 const linkTypeConfig: Record<string, { bg: string; text: string }> = {
-  related_to: { bg: "bg-apple-purple/10", text: "text-apple-purple" },
-  derived_from: { bg: "bg-apple-cyan/10", text: "text-apple-cyan" },
-  contradicts: { bg: "bg-apple-red/10", text: "text-apple-red" },
-  depends_on: { bg: "bg-apple-orange/10", text: "text-apple-orange" },
+  related_to: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
+  derived_from: { bg: "bg-dracula-cyan/10", text: "text-dracula-cyan" },
+  contradicts: { bg: "bg-dracula-red/10", text: "text-dracula-red" },
+  depends_on: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
 };
+
 
 const sourceRefIcons: Record<string, React.ReactNode> = {
   pr_url: <GitPullRequest className="h-3.5 w-3.5" />,
@@ -151,9 +152,9 @@ function SourceRefItem({ refKey, value }: { refKey: string; value: unknown }) {
         rel="noopener noreferrer"
         className="flex items-center gap-2.5 rounded-lg bg-white/[0.03] px-3 py-2 text-[12px] transition-colors hover:bg-white/[0.06] group"
       >
-        <span className="text-apple-blue">{icon}</span>
+        <span className="text-dracula-cyan">{icon}</span>
         <span className="text-muted-foreground">{label}:</span>
-        <span className="text-foreground/80 group-hover:text-apple-blue transition-colors truncate">
+        <span className="text-foreground/80 group-hover:text-dracula-cyan transition-colors truncate">
           {extractLinkDisplay(value)}
         </span>
         <ExternalLink className="h-3 w-3 text-muted-foreground/50 ml-auto shrink-0" />
@@ -277,7 +278,7 @@ export function MemoryDetailSheet({
           <>
             <DialogTitle className="sr-only">Loading memory details</DialogTitle>
             <div className="flex h-32 items-center justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-apple-blue border-t-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
             </div>
           </>
         )}
@@ -307,7 +308,7 @@ export function MemoryDetailSheet({
                   {source === "remote" ? (
                     <Cloud className="h-3 w-3 text-muted-foreground" />
                   ) : memory.visibility === "repo" ? (
-                    <CloudCheck className="h-3 w-3 text-apple-green" />
+                    <CloudCheck className="h-3 w-3 text-dracula-green" />
                   ) : (
                     <HardDrive className="h-3 w-3 text-muted-foreground" />
                   )}
@@ -320,7 +321,7 @@ export function MemoryDetailSheet({
                 >
                   {memory.id.slice(0, 12)}...
                   {copied ? (
-                    <Check className="h-3 w-3 text-apple-green" />
+                    <Check className="h-3 w-3 text-dracula-green" />
                   ) : (
                     <Copy className="h-3 w-3" />
                   )}
@@ -385,7 +386,7 @@ export function MemoryDetailSheet({
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 flex-1 rounded-full bg-white/[0.06]">
                       <div
-                        className="h-1.5 rounded-full bg-apple-blue"
+                        className="h-1.5 rounded-full bg-dracula-purple"
                         style={{ width: `${memory.confidence * 100}%` }}
                       />
                     </div>
@@ -414,8 +415,8 @@ export function MemoryDetailSheet({
               <div className="rounded-xl bg-white/[0.02] p-3 space-y-3">
                 {(memory.authorName || memory.authorId) && (
                   <div className="flex items-center gap-2.5 pb-3 border-b border-border/10">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-apple-blue/10">
-                      <User className="h-3.5 w-3.5 text-apple-blue" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-dracula-purple/10">
+                      <User className="h-3.5 w-3.5 text-dracula-purple" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium text-foreground/90 truncate">
@@ -508,7 +509,7 @@ export function MemoryDetailSheet({
                   </Button>
                 )}
                 {source === "local" && memory.visibility === "repo" && (
-                  <div className="flex items-center gap-1.5 text-[12px] text-apple-green">
+                  <div className="flex items-center gap-1.5 text-[12px] text-dracula-green">
                     <CloudCheck className="h-3.5 w-3.5" />
                     Synced to remote
                   </div>

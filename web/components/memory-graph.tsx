@@ -63,16 +63,16 @@ interface GraphLink {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  episodic: "#ff9f0a",
-  semantic: "#bf5af2",
-  procedural: "#30d158",
+  episodic: "#ffb86c",
+  semantic: "#bd93f9",
+  procedural: "#50fa7b",
 };
 
 const LINK_TYPE_COLORS: Record<string, string> = {
-  related_to: "#bf5af2",
-  derived_from: "#64d2ff",
-  contradicts: "#ff453a",
-  depends_on: "#ff9f0a",
+  related_to: "#bd93f9",
+  derived_from: "#8be9fd",
+  contradicts: "#ff5555",
+  depends_on: "#ffb86c",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -83,16 +83,16 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const typeColorClasses: Record<string, string> = {
-  episodic: "bg-apple-orange/10 text-apple-orange",
-  semantic: "bg-apple-purple/10 text-apple-purple",
-  procedural: "bg-apple-green/10 text-apple-green",
+  episodic: "bg-dracula-orange/10 text-dracula-orange",
+  semantic: "bg-dracula-purple/10 text-dracula-purple",
+  procedural: "bg-dracula-green/10 text-dracula-green",
 };
 
 const linkTypeColorClasses: Record<string, string> = {
-  related_to: "bg-apple-purple/10 text-apple-purple",
-  derived_from: "bg-apple-cyan/10 text-apple-cyan",
-  contradicts: "bg-apple-red/10 text-apple-red",
-  depends_on: "bg-apple-orange/10 text-apple-orange",
+  related_to: "bg-dracula-purple/10 text-dracula-purple",
+  derived_from: "bg-dracula-cyan/10 text-dracula-cyan",
+  contradicts: "bg-dracula-red/10 text-dracula-red",
+  depends_on: "bg-dracula-orange/10 text-dracula-orange",
 };
 
 function truncateText(text: string, max: number) {
@@ -472,7 +472,7 @@ export function MemoryGraph() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-apple-blue border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">
             Loading graph...
           </span>
@@ -565,7 +565,7 @@ export function MemoryGraph() {
               onClick={() => setShowOrphans(!showOrphans)}
               className={`rounded-lg p-2 transition-colors ${
                 showOrphans
-                  ? "bg-apple-blue/20 text-apple-blue"
+                  ? "bg-dracula-purple/20 text-dracula-purple"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"
               }`}
               title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}

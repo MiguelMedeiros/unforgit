@@ -19,26 +19,26 @@ interface MemoryCardProps {
 
 const typeConfig: Record<string, { bg: string; text: string; dot: string }> = {
   episodic: {
-    bg: "bg-apple-orange/10",
-    text: "text-apple-orange",
-    dot: "bg-apple-orange",
+    bg: "bg-dracula-orange/10",
+    text: "text-dracula-orange",
+    dot: "bg-dracula-orange",
   },
   semantic: {
-    bg: "bg-apple-purple/10",
-    text: "text-apple-purple",
-    dot: "bg-apple-purple",
+    bg: "bg-dracula-purple/10",
+    text: "text-dracula-purple",
+    dot: "bg-dracula-purple",
   },
   procedural: {
-    bg: "bg-apple-green/10",
-    text: "text-apple-green",
-    dot: "bg-apple-green",
+    bg: "bg-dracula-green/10",
+    text: "text-dracula-green",
+    dot: "bg-dracula-green",
   },
 };
 
 const statusConfig: Record<string, { dot: string }> = {
-  active: { dot: "bg-apple-green" },
-  deprecated: { dot: "bg-apple-yellow" },
-  superseded: { dot: "bg-[#98989d]" },
+  active: { dot: "bg-dracula-green" },
+  deprecated: { dot: "bg-dracula-yellow" },
+  superseded: { dot: "bg-dracula-comment" },
 };
 
 export function MemoryCard({
@@ -70,7 +70,7 @@ export function MemoryCard({
 
   return (
     <div
-      className="group cursor-pointer rounded-xl border border-border/50 bg-white/[0.04] p-4 transition-all duration-200 hover:bg-white/[0.08] hover:border-border/70 active:scale-[0.995]"
+      className="group cursor-pointer rounded-xl border border-border/30 bg-dracula-current/20 p-4 transition-colors duration-150 hover:bg-dracula-current/35 active:scale-[0.995]"
       onClick={onClick}
     >
       <div className="flex flex-col gap-3">
@@ -92,7 +92,7 @@ export function MemoryCard({
                 source === "remote"
                   ? "bg-white/[0.06] text-muted-foreground"
                   : visibility === "repo"
-                    ? "bg-apple-green/10 text-apple-green"
+                    ? "bg-dracula-green/10 text-dracula-green"
                     : "bg-white/[0.06] text-muted-foreground"
               )}
             >
@@ -117,8 +117,8 @@ export function MemoryCard({
               onClick={copyId}
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
-                "bg-white/[0.06] hover:bg-white/[0.12] text-apple-blue",
-                copied && "bg-apple-green/20 text-apple-green"
+                "bg-white/[0.06] hover:bg-white/[0.12] text-dracula-cyan",
+                copied && "bg-dracula-green/20 text-dracula-green"
               )}
               title="Copy memory ID"
             >
