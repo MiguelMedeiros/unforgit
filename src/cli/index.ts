@@ -6,6 +6,7 @@ import { promoteCommand } from "./commands/promote.js";
 import { consolidateCommand } from "./commands/consolidate.js";
 import { deprecateCommand } from "./commands/deprecate.js";
 import { supersedeCommand } from "./commands/supersede.js";
+import { deleteCommand, restoreCommand } from "./commands/delete.js";
 import { webCommand } from "./commands/web.js";
 import { linkCommand, unlinkCommand, linksCommand } from "./commands/link.js";
 import {
@@ -37,5 +38,7 @@ program.addCommand(mergeCommand);
 program.addCommand(remergeCommand);
 program.addCommand(similarCommand);
 program.addCommand(historyCommand);
+program.addCommand(deleteCommand);
+program.addCommand(restoreCommand);
 
 program.parse();

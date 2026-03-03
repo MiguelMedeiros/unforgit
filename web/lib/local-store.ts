@@ -9,6 +9,8 @@ import type {
   CreateMemoryInput,
   ListQuery,
   StoreStats,
+  Tombstone,
+  DeleteMemoryInput,
 } from "./types";
 
 const SCHEMA_SQL = `
@@ -19,7 +21,7 @@ CREATE TABLE IF NOT EXISTS memories (
   scope_type TEXT NOT NULL DEFAULT 'repo',
   memory_type TEXT NOT NULL CHECK(memory_type IN ('episodic','semantic','procedural')),
   visibility TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('private','repo')),
-  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','deprecated','superseded')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','deprecated','superseded','deleted')),
   text TEXT NOT NULL,
   summary TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
@@ -27,9 +29,25 @@ CREATE TABLE IF NOT EXISTS memories (
   confidence REAL,
   ttl_seconds INTEGER,
   supersedes_id TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  deleted_at TEXT,
+  deleted_by TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS tombstones (
+  id TEXT PRIMARY KEY,
+  memory_id TEXT NOT NULL UNIQUE,
+  org_id TEXT NOT NULL,
+  repo_id TEXT NOT NULL,
+  deleted_at TEXT NOT NULL,
+  deleted_by TEXT,
+  synced_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tombstones_sync ON tombstones(org_id, repo_id, synced_at);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
   text, summary, content=memories, content_rowid=rowid
@@ -94,8 +112,23 @@ function rowToMemory(row: Record<string, unknown>): Memory {
     confidence: (row.confidence as number) ?? undefined,
     ttlSeconds: (row.ttl_seconds as number) ?? undefined,
     supersedesId: (row.supersedes_id as string) ?? undefined,
+    version: (row.version as number) ?? 1,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at as string) : undefined,
+    deletedBy: (row.deleted_by as string) ?? undefined,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+  };
+}
+
+function rowToTombstone(row: Record<string, unknown>): Tombstone {
+  return {
+    id: row.id as string,
+    memoryId: row.memory_id as string,
+    orgId: row.org_id as string,
+    repoId: row.repo_id as string,
+    deletedAt: new Date(row.deleted_at as string),
+    deletedBy: (row.deleted_by as string) ?? undefined,
+    syncedAt: row.synced_at ? new Date(row.synced_at as string) : undefined,
   };
 }
 
@@ -111,6 +144,43 @@ export class WebLocalStore {
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     this.db.exec(SCHEMA_SQL);
+    this.migrateSchema();
+  }
+
+  private migrateSchema(): void {
+    const columns = this.db
+      .prepare("PRAGMA table_info(memories)")
+      .all() as Array<{ name: string }>;
+    const columnNames = columns.map((c) => c.name);
+
+    if (!columnNames.includes("version")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+    }
+    if (!columnNames.includes("deleted_at")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN deleted_at TEXT");
+    }
+    if (!columnNames.includes("deleted_by")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN deleted_by TEXT");
+    }
+
+    const tables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tombstones'")
+      .all() as Array<{ name: string }>;
+    if (tables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS tombstones (
+          id TEXT PRIMARY KEY,
+          memory_id TEXT NOT NULL UNIQUE,
+          org_id TEXT NOT NULL,
+          repo_id TEXT NOT NULL,
+          deleted_at TEXT NOT NULL,
+          deleted_by TEXT,
+          synced_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tombstones_sync ON tombstones(org_id, repo_id, synced_at);
+      `);
+    }
   }
 
   store(input: CreateMemoryInput): Memory {
@@ -287,7 +357,7 @@ export class WebLocalStore {
     const stats: StoreStats = {
       total: 0,
       byType: { episodic: 0, semantic: 0, procedural: 0 },
-      byStatus: { active: 0, deprecated: 0, superseded: 0 },
+      byStatus: { active: 0, deprecated: 0, superseded: 0, deleted: 0 },
       byVisibility: { private: 0, repo: 0 },
     };
 
@@ -439,5 +509,277 @@ export class WebLocalStore {
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, limit);
+  }
+
+  softDelete(input: DeleteMemoryInput): boolean {
+    const memory = this.getById(input.id);
+    if (!memory) return false;
+
+    const now = new Date().toISOString();
+    const newVersion = (memory.version ?? 1) + 1;
+
+    const result = this.db.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE memories 
+           SET status = 'deleted', deleted_at = ?, deleted_by = ?, version = ?, updated_at = ?
+           WHERE id = ?`,
+        )
+        .run(now, input.deletedBy ?? null, newVersion, now, input.id);
+
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO tombstones (id, memory_id, org_id, repo_id, deleted_at, deleted_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          uuid(),
+          input.id,
+          memory.orgId,
+          memory.repoId,
+          now,
+          input.deletedBy ?? null,
+          now,
+        );
+
+      return true;
+    })();
+
+    return result;
+  }
+
+  hardDelete(id: string): boolean {
+    const result = this.db
+      .prepare("DELETE FROM memories WHERE id = ?")
+      .run(id);
+    return result.changes > 0;
+  }
+
+  restore(id: string): boolean {
+    const now = new Date().toISOString();
+    const result = this.db.transaction(() => {
+      const updateResult = this.db
+        .prepare(
+          `UPDATE memories 
+           SET status = 'active', deleted_at = NULL, deleted_by = NULL, version = version + 1, updated_at = ?
+           WHERE id = ? AND status = 'deleted'`,
+        )
+        .run(now, id);
+
+      if (updateResult.changes > 0) {
+        this.db
+          .prepare("DELETE FROM tombstones WHERE memory_id = ?")
+          .run(id);
+      }
+
+      return updateResult.changes > 0;
+    })();
+
+    return result;
+  }
+
+  getTombstones(orgId: string, repoId: string, sinceSyncedAt?: Date): Tombstone[] {
+    let sql = "SELECT * FROM tombstones WHERE org_id = ? AND repo_id = ?";
+    const params: unknown[] = [orgId, repoId];
+
+    if (sinceSyncedAt) {
+      sql += " AND (synced_at IS NULL OR synced_at > ?)";
+      params.push(sinceSyncedAt.toISOString());
+    } else {
+      sql += " AND synced_at IS NULL";
+    }
+
+    sql += " ORDER BY deleted_at ASC";
+
+    const rows = this.db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
+    return rows.map(rowToTombstone);
+  }
+
+  getUnsyncedTombstones(orgId: string, repoId: string): Tombstone[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM tombstones WHERE org_id = ? AND repo_id = ? AND synced_at IS NULL ORDER BY deleted_at ASC",
+      )
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+    return rows.map(rowToTombstone);
+  }
+
+  markTombstoneSynced(memoryId: string): boolean {
+    const now = new Date().toISOString();
+    const result = this.db
+      .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
+      .run(now, memoryId);
+    return result.changes > 0;
+  }
+
+  applyTombstone(tombstone: Tombstone): boolean {
+    const memory = this.getById(tombstone.memoryId);
+    if (!memory) {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO tombstones (id, memory_id, org_id, repo_id, deleted_at, deleted_by, synced_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          tombstone.id,
+          tombstone.memoryId,
+          tombstone.orgId,
+          tombstone.repoId,
+          tombstone.deletedAt.toISOString(),
+          tombstone.deletedBy ?? null,
+          new Date().toISOString(),
+          new Date().toISOString(),
+        );
+      return true;
+    }
+
+    return this.softDelete({
+      id: tombstone.memoryId,
+      deletedBy: tombstone.deletedBy,
+    });
+  }
+
+  getModifiedSince(orgId: string, repoId: string, since: Date): Memory[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM memories 
+         WHERE org_id = ? AND repo_id = ? AND updated_at > ?
+         ORDER BY updated_at ASC`,
+      )
+      .all(orgId, repoId, since.toISOString()) as Array<Record<string, unknown>>;
+    return rows.map(rowToMemory);
+  }
+
+  upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
+    const existing = this.getById(memory.id);
+    const now = new Date().toISOString();
+
+    if (!existing) {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, ttl_seconds, supersedes_id, version, deleted_at, deleted_by, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          memory.id,
+          memory.orgId,
+          memory.repoId,
+          memory.scopeType ?? "repo",
+          memory.memoryType,
+          memory.visibility,
+          memory.status,
+          memory.text,
+          memory.summary ?? null,
+          JSON.stringify(memory.tags ?? []),
+          memory.sourceRefs ? JSON.stringify(memory.sourceRefs) : null,
+          memory.confidence ?? null,
+          memory.ttlSeconds ?? null,
+          memory.supersedesId ?? null,
+          memory.version ?? 1,
+          memory.deletedAt?.toISOString() ?? null,
+          memory.deletedBy ?? null,
+          memory.createdAt.toISOString(),
+          now,
+        );
+      return { action: "created", conflict: false };
+    }
+
+    const remoteVersion = memory.version ?? 1;
+    const localVersion = existing.version ?? 1;
+
+    const contentChanged =
+      existing.text !== memory.text ||
+      existing.status !== memory.status ||
+      JSON.stringify(existing.tags) !== JSON.stringify(memory.tags) ||
+      existing.memoryType !== memory.memoryType;
+
+    if (!contentChanged) {
+      if (existing.visibility !== memory.visibility && memory.visibility === "repo") {
+        this.db
+          .prepare("UPDATE memories SET visibility = ?, version = ? WHERE id = ?")
+          .run(memory.visibility, remoteVersion, memory.id);
+        return { action: "updated", conflict: false };
+      }
+      return { action: "skipped", conflict: false };
+    }
+
+    if (remoteVersion <= localVersion && memory.updatedAt <= existing.updatedAt) {
+      return { action: "skipped", conflict: false };
+    }
+
+    const hasConflict =
+      contentChanged &&
+      localVersion > 1 &&
+      remoteVersion > 1 &&
+      localVersion !== remoteVersion &&
+      existing.visibility === "repo" &&
+      Math.abs(existing.updatedAt.getTime() - memory.updatedAt.getTime()) < 60000;
+
+    this.db
+      .prepare(
+        `UPDATE memories SET
+          memory_type = ?, visibility = ?, status = ?, text = ?, summary = ?, tags = ?,
+          source_refs = ?, confidence = ?, ttl_seconds = ?, supersedes_id = ?,
+          version = ?, deleted_at = ?, deleted_by = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        memory.memoryType,
+        memory.visibility,
+        memory.status,
+        memory.text,
+        memory.summary ?? null,
+        JSON.stringify(memory.tags ?? []),
+        memory.sourceRefs ? JSON.stringify(memory.sourceRefs) : null,
+        memory.confidence ?? null,
+        memory.ttlSeconds ?? null,
+        memory.supersedesId ?? null,
+        remoteVersion,
+        memory.deletedAt?.toISOString() ?? null,
+        memory.deletedBy ?? null,
+        now,
+        memory.id,
+      );
+
+    return { action: "updated", conflict: hasConflict };
+  }
+
+  upsertLink(link: {
+    id: string;
+    sourceId: string;
+    targetId: string;
+    linkType: LinkType;
+    metadata?: Record<string, unknown>;
+    createdAt?: Date;
+  }): { action: "created" | "exists" } {
+    const existing = this.db
+      .prepare(
+        "SELECT id FROM memory_links WHERE source_id = ? AND target_id = ? AND link_type = ?",
+      )
+      .get(link.sourceId, link.targetId, link.linkType) as { id: string } | undefined;
+
+    if (existing) {
+      return { action: "exists" };
+    }
+
+    const id = link.id || uuid();
+    const createdAt = link.createdAt?.toISOString() ?? new Date().toISOString();
+
+    this.db
+      .prepare(
+        `INSERT INTO memory_links (id, source_id, target_id, link_type, metadata, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        link.sourceId,
+        link.targetId,
+        link.linkType,
+        link.metadata ? JSON.stringify(link.metadata) : null,
+        createdAt,
+      );
+
+    return { action: "created" };
   }
 }

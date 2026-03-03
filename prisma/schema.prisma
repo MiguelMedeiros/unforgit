@@ -8,22 +8,25 @@ generator client {
 }
 
 model Memory {
-  id           String   @id @default(uuid()) @db.Uuid
-  orgId        String   @map("org_id")
-  repoId       String   @map("repo_id")
-  scopeType    String   @default("repo") @map("scope_type")
-  memoryType   String   @map("memory_type")
-  visibility   String   @default("repo")
-  status       String   @default("active")
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @map("org_id")
+  repoId       String    @map("repo_id")
+  scopeType    String    @default("repo") @map("scope_type")
+  memoryType   String    @map("memory_type")
+  visibility   String    @default("repo")
+  status       String    @default("active")
   text         String
   summary      String?
   tags         String[]
-  sourceRefs   Json?    @map("source_refs")
+  sourceRefs   Json?     @map("source_refs")
   confidence   Float?
-  ttlSeconds   Int?     @map("ttl_seconds")
-  supersedesId String?  @map("supersedes_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  ttlSeconds   Int?      @map("ttl_seconds")
+  supersedesId String?   @map("supersedes_id") @db.Uuid
+  version      Int       @default(1)
+  deletedAt    DateTime? @map("deleted_at")
+  deletedBy    String?   @map("deleted_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   supersedes   Memory?  @relation("Supersedes", fields: [supersedesId], references: [id])
   supersededBy Memory[] @relation("Supersedes")
@@ -32,6 +35,8 @@ model Memory {
   targetLinks  MemoryLink[] @relation("TargetLinks")
 
   @@index([orgId, repoId, memoryType, status])
+  @@index([orgId, repoId, updatedAt])
+  @@index([deletedAt])
   @@map("memories")
 }
 
@@ -48,4 +53,19 @@ model MemoryLink {
 
   @@unique([sourceId, targetId, linkType])
   @@map("memory_links")
+}
+
+model Tombstone {
+  id        String    @id @default(uuid()) @db.Uuid
+  memoryId  String    @map("memory_id") @db.Uuid
+  orgId     String    @map("org_id")
+  repoId    String    @map("repo_id")
+  deletedAt DateTime  @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+  syncedAt  DateTime? @map("synced_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([memoryId])
+  @@index([orgId, repoId, syncedAt])
+  @@map("tombstones")
 }

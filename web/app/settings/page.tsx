@@ -10,6 +10,11 @@ import {
   RefreshCw,
   Cloud,
   Loader2,
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Link2,
 } from "lucide-react";
 import { useSyncContext } from "@/components/sync-provider";
 
@@ -48,7 +53,7 @@ function SettingsGroup({ title, icon: Icon, description, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-white/[0.05] overflow-hidden">
+    <div className="rounded-2xl border border-border/50 bg-dracula-current/20 overflow-hidden">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border/20">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06]">
           <Icon className="h-4 w-4 text-muted-foreground" />
@@ -85,17 +90,19 @@ function formatRelativeTime(dateStr: string | null): string {
 }
 
 function SyncSettings() {
-  const { settings, status, isSyncing, lastSyncResult, syncNow, updateSettings, refreshStatus } = useSyncContext();
+  const { settings, status, isSyncing, lastSyncResult, hasConflicts, conflictCount, syncNow, updateSettings, refreshStatus } = useSyncContext();
 
   useEffect(() => {
     refreshStatus();
   }, [refreshStatus]);
 
+  const totalPending = (status?.pendingSync ?? 0) + (status?.pendingDeletions ?? 0);
+
   return (
     <SettingsGroup
       title="Sync"
       icon={Cloud}
-      description="Automatic synchronization with remote server"
+      description="Bidirectional synchronization with remote server"
     >
       <SettingsRow label="Auto Sync">
         <button
@@ -125,7 +132,7 @@ function SyncSettings() {
           <option value={60}>Every hour</option>
         </select>
       </SettingsRow>
-      <SettingsRow label="Pending Sync">
+      <SettingsRow label="Pending Memories">
         {status ? (
           <Badge className={`border-0 ${
             status.pendingSync > 0 
@@ -133,6 +140,20 @@ function SyncSettings() {
               : "bg-dracula-green/15 text-dracula-green"
           }`}>
             {status.pendingSync} {status.pendingSync === 1 ? "memory" : "memories"}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">Loading...</span>
+        )}
+      </SettingsRow>
+      <SettingsRow label="Pending Deletions">
+        {status ? (
+          <Badge className={`border-0 ${
+            (status.pendingDeletions ?? 0) > 0 
+              ? "bg-dracula-orange/15 text-dracula-orange" 
+              : "bg-dracula-green/15 text-dracula-green"
+          }`}>
+            <Trash2 className="mr-1 h-3 w-3" />
+            {status.pendingDeletions ?? 0} {(status.pendingDeletions ?? 0) === 1 ? "deletion" : "deletions"}
           </Badge>
         ) : (
           <span className="text-muted-foreground">Loading...</span>
@@ -162,17 +183,78 @@ function SyncSettings() {
           {formatRelativeTime(settings.lastSyncAt)}
         </span>
       </SettingsRow>
-      {lastSyncResult && (
-        <SettingsRow label="Last Result">
-          <span className="text-muted-foreground">
-            {lastSyncResult.synced} synced, {lastSyncResult.failed} failed
-          </span>
-        </SettingsRow>
+
+      {/* Conflicts warning */}
+      {hasConflicts && (
+        <div className="py-3">
+          <div className="flex items-center gap-3 rounded-xl bg-dracula-red/10 border border-dracula-red/20 p-3">
+            <AlertTriangle className="h-4 w-4 text-dracula-red shrink-0" />
+            <div className="flex-1">
+              <p className="text-[13px] font-medium text-dracula-red">
+                {conflictCount} sync conflict{conflictCount > 1 ? 's' : ''} detected
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Local and remote versions differ. Last write wins strategy applied.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Last sync result details */}
+      {lastSyncResult && (
+        <div className="py-3">
+          <h4 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-2">
+            Last Sync Result
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
+              <ArrowUp className="h-3.5 w-3.5 text-dracula-cyan" />
+              <span className="text-[12px] text-muted-foreground">Pushed:</span>
+              <span className="text-[12px] font-medium">{lastSyncResult.pushed}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
+              <ArrowDown className="h-3.5 w-3.5 text-dracula-green" />
+              <span className="text-[12px] text-muted-foreground">Pulled:</span>
+              <span className="text-[12px] font-medium">{lastSyncResult.pulled}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
+              <Trash2 className="h-3.5 w-3.5 text-dracula-orange" />
+              <span className="text-[12px] text-muted-foreground">Deletions:</span>
+              <span className="text-[12px] font-medium">{lastSyncResult.deletionsPropagated}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
+              <Link2 className="h-3.5 w-3.5 text-dracula-purple" />
+              <span className="text-[12px] text-muted-foreground">Links:</span>
+              <span className="text-[12px] font-medium">{lastSyncResult.linksSynced}</span>
+            </div>
+          </div>
+          {lastSyncResult.errors && lastSyncResult.errors.length > 0 && (
+            <div className="mt-2 rounded-lg bg-dracula-red/10 border border-dracula-red/20 p-2">
+              <p className="text-[11px] font-medium text-dracula-red mb-1">
+                {lastSyncResult.errors.length} error{lastSyncResult.errors.length > 1 ? 's' : ''}:
+              </p>
+              <div className="space-y-1 max-h-20 overflow-y-auto">
+                {lastSyncResult.errors.slice(0, 3).map((err, i) => (
+                  <p key={i} className="text-[10px] text-muted-foreground font-mono truncate">
+                    {err.id.slice(0, 8)}: {err.error}
+                  </p>
+                ))}
+                {lastSyncResult.errors.length > 3 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    ...and {lastSyncResult.errors.length - 3} more
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="py-4">
         <button
           onClick={() => syncNow()}
-          disabled={isSyncing || !status?.remoteConnected || status?.pendingSync === 0}
+          disabled={isSyncing || !status?.remoteConnected}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-dracula-purple px-4 py-2.5 text-[13px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSyncing ? (
@@ -183,7 +265,7 @@ function SyncSettings() {
           ) : (
             <>
               <RefreshCw className="h-4 w-4" />
-              Sync Now
+              Sync Now {totalPending > 0 && `(${totalPending})`}
             </>
           )}
         </button>

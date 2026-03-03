@@ -7,6 +7,7 @@ import { recallRoutes } from "./routes/recall.js";
 import { curateRoutes } from "./routes/curate.js";
 import { consolidateRoutes } from "./routes/consolidate.js";
 import { linkRoutes } from "./routes/links.js";
+import { syncRoutes } from "./routes/sync.js";
 
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });
@@ -19,6 +20,7 @@ export async function buildApp(connectionString: string) {
   await curateRoutes(app, store);
   await consolidateRoutes(app, store);
   await linkRoutes(app, store);
+  await app.register(syncRoutes, { store });
 
   app.get("/health", async () => ({ status: "ok" }));
 

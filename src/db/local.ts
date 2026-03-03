@@ -16,6 +16,8 @@ import type {
   ConsolidateMemoriesResult,
   ReconsolidateInput,
   FindSimilarQuery,
+  Tombstone,
+  DeleteMemoryInput,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -27,7 +29,7 @@ CREATE TABLE IF NOT EXISTS memories (
   scope_type TEXT NOT NULL DEFAULT 'repo',
   memory_type TEXT NOT NULL CHECK(memory_type IN ('episodic','semantic','procedural')),
   visibility TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('private','repo')),
-  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','deprecated','superseded')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','deprecated','superseded','deleted')),
   text TEXT NOT NULL,
   summary TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
@@ -39,9 +41,25 @@ CREATE TABLE IF NOT EXISTS memories (
   consolidation_version INTEGER,
   author_id TEXT,
   author_name TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  deleted_at TEXT,
+  deleted_by TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS tombstones (
+  id TEXT PRIMARY KEY,
+  memory_id TEXT NOT NULL UNIQUE,
+  org_id TEXT NOT NULL,
+  repo_id TEXT NOT NULL,
+  deleted_at TEXT NOT NULL,
+  deleted_by TEXT,
+  synced_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tombstones_sync ON tombstones(org_id, repo_id, synced_at);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
   text, summary, content=memories, content_rowid=rowid
@@ -110,8 +128,23 @@ function rowToMemory(row: Record<string, unknown>): Memory {
     consolidationVersion: (row.consolidation_version as number) ?? undefined,
     authorId: (row.author_id as string) ?? undefined,
     authorName: (row.author_name as string) ?? undefined,
+    version: (row.version as number) ?? 1,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at as string) : undefined,
+    deletedBy: (row.deleted_by as string) ?? undefined,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+  };
+}
+
+function rowToTombstone(row: Record<string, unknown>): Tombstone {
+  return {
+    id: row.id as string,
+    memoryId: row.memory_id as string,
+    orgId: row.org_id as string,
+    repoId: row.repo_id as string,
+    deletedAt: new Date(row.deleted_at as string),
+    deletedBy: (row.deleted_by as string) ?? undefined,
+    syncedAt: row.synced_at ? new Date(row.synced_at as string) : undefined,
   };
 }
 
@@ -151,6 +184,34 @@ export class LocalStore {
     }
     if (!columnNames.includes("author_name")) {
       this.db.exec("ALTER TABLE memories ADD COLUMN author_name TEXT");
+    }
+    if (!columnNames.includes("version")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+    }
+    if (!columnNames.includes("deleted_at")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN deleted_at TEXT");
+    }
+    if (!columnNames.includes("deleted_by")) {
+      this.db.exec("ALTER TABLE memories ADD COLUMN deleted_by TEXT");
+    }
+
+    const tables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tombstones'")
+      .all() as Array<{ name: string }>;
+    if (tables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS tombstones (
+          id TEXT PRIMARY KEY,
+          memory_id TEXT NOT NULL UNIQUE,
+          org_id TEXT NOT NULL,
+          repo_id TEXT NOT NULL,
+          deleted_at TEXT NOT NULL,
+          deleted_by TEXT,
+          synced_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tombstones_sync ON tombstones(org_id, repo_id, synced_at);
+      `);
     }
   }
 
@@ -225,7 +286,13 @@ export class LocalStore {
 
     const rawQuery = query.query.replace(/[^\w\s]/g, " ").trim();
     const words = rawQuery.split(/\s+/).filter((w) => w.length > 0);
-    const ftsQuery = words.length > 0 ? words.map((w) => `"${w}"*`).join(" OR ") : "";
+    
+    // Use prefix matching without quotes for more flexible search
+    // Also filter out very short words that add noise
+    const searchableWords = words.filter((w) => w.length >= 2);
+    const ftsQuery = searchableWords.length > 0 
+      ? `(${searchableWords.map((w) => `${w}*`).join(" OR ")})` 
+      : "";
 
     let sql: string;
     let finalParams: unknown[];
@@ -252,9 +319,35 @@ export class LocalStore {
       finalParams = [...params, k * 2];
     }
 
-    const rows = this.db.prepare(sql).all(...finalParams) as Array<
+    let rows = this.db.prepare(sql).all(...finalParams) as Array<
       Record<string, unknown>
     >;
+
+    // Fallback: if FTS returns no results, try LIKE search as last resort
+    if (rows.length === 0 && searchableWords.length > 0) {
+      const likeConditions = searchableWords
+        .slice(0, 5) // limit to first 5 words
+        .map(() => "(m.text LIKE ? OR m.summary LIKE ?)")
+        .join(" OR ");
+      
+      const likeParams: unknown[] = [];
+      for (const word of searchableWords.slice(0, 5)) {
+        likeParams.push(`%${word}%`, `%${word}%`);
+      }
+
+      const fallbackSql = `
+        SELECT m.*, 0 AS fts_rank
+        FROM memories m
+        WHERE ${whereClause}
+          AND (${likeConditions})
+        ORDER BY m.is_consolidation DESC, m.created_at DESC
+        LIMIT ?
+      `;
+      
+      rows = this.db.prepare(fallbackSql).all(...params, ...likeParams, k * 2) as Array<
+        Record<string, unknown>
+      >;
+    }
 
     let results = rows.map((row) => {
       const memory = rowToMemory(row);
@@ -337,8 +430,8 @@ export class LocalStore {
 
     if (query.search) {
       const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
-      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length > 0);
-      const ftsSearch = searchWords.length > 0 ? searchWords.map((w) => `"${w}"*`).join(" OR ") : "";
+      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length >= 2);
+      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map((w) => `${w}*`).join(" OR ")})` : "";
       if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
@@ -398,8 +491,8 @@ export class LocalStore {
 
     if (query.search) {
       const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
-      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length > 0);
-      const ftsSearch = searchWords.length > 0 ? searchWords.map((w) => `"${w}"*`).join(" OR ") : "";
+      const searchWords = rawSearch.split(/\s+/).filter((w) => w.length >= 2);
+      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map((w) => `${w}*`).join(" OR ")})` : "";
       if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
@@ -430,7 +523,7 @@ export class LocalStore {
     const stats: StoreStats = {
       total: 0,
       byType: { episodic: 0, semantic: 0, procedural: 0 },
-      byStatus: { active: 0, deprecated: 0, superseded: 0 },
+      byStatus: { active: 0, deprecated: 0, superseded: 0, deleted: 0 },
       byVisibility: { private: 0, repo: 0 },
     };
 
@@ -823,6 +916,240 @@ export class LocalStore {
       }
     }
     return Array.from(tagSet);
+  }
+
+  softDelete(input: DeleteMemoryInput): boolean {
+    const memory = this.getById(input.id);
+    if (!memory) return false;
+
+    const now = new Date().toISOString();
+    const newVersion = (memory.version ?? 1) + 1;
+
+    const result = this.db.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE memories 
+           SET status = 'deleted', deleted_at = ?, deleted_by = ?, version = ?, updated_at = ?
+           WHERE id = ?`,
+        )
+        .run(now, input.deletedBy ?? null, newVersion, now, input.id);
+
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO tombstones (id, memory_id, org_id, repo_id, deleted_at, deleted_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          uuid(),
+          input.id,
+          memory.orgId,
+          memory.repoId,
+          now,
+          input.deletedBy ?? null,
+          now,
+        );
+
+      return true;
+    })();
+
+    return result;
+  }
+
+  hardDelete(id: string): boolean {
+    const result = this.db
+      .prepare("DELETE FROM memories WHERE id = ?")
+      .run(id);
+    return result.changes > 0;
+  }
+
+  restore(id: string): boolean {
+    const now = new Date().toISOString();
+    const result = this.db.transaction(() => {
+      const updateResult = this.db
+        .prepare(
+          `UPDATE memories 
+           SET status = 'active', deleted_at = NULL, deleted_by = NULL, version = version + 1, updated_at = ?
+           WHERE id = ? AND status = 'deleted'`,
+        )
+        .run(now, id);
+
+      if (updateResult.changes > 0) {
+        this.db
+          .prepare("DELETE FROM tombstones WHERE memory_id = ?")
+          .run(id);
+      }
+
+      return updateResult.changes > 0;
+    })();
+
+    return result;
+  }
+
+  getTombstones(orgId: string, repoId: string, sinceSyncedAt?: Date): Tombstone[] {
+    let sql = "SELECT * FROM tombstones WHERE org_id = ? AND repo_id = ?";
+    const params: unknown[] = [orgId, repoId];
+
+    if (sinceSyncedAt) {
+      sql += " AND (synced_at IS NULL OR synced_at > ?)";
+      params.push(sinceSyncedAt.toISOString());
+    } else {
+      sql += " AND synced_at IS NULL";
+    }
+
+    sql += " ORDER BY deleted_at ASC";
+
+    const rows = this.db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
+    return rows.map(rowToTombstone);
+  }
+
+  getUnsyncedTombstones(orgId: string, repoId: string): Tombstone[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM tombstones WHERE org_id = ? AND repo_id = ? AND synced_at IS NULL ORDER BY deleted_at ASC",
+      )
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+    return rows.map(rowToTombstone);
+  }
+
+  markTombstoneSynced(memoryId: string): boolean {
+    const now = new Date().toISOString();
+    const result = this.db
+      .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
+      .run(now, memoryId);
+    return result.changes > 0;
+  }
+
+  applyTombstone(tombstone: Tombstone): boolean {
+    const memory = this.getById(tombstone.memoryId);
+    if (!memory) {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO tombstones (id, memory_id, org_id, repo_id, deleted_at, deleted_by, synced_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          tombstone.id,
+          tombstone.memoryId,
+          tombstone.orgId,
+          tombstone.repoId,
+          tombstone.deletedAt.toISOString(),
+          tombstone.deletedBy ?? null,
+          new Date().toISOString(),
+          new Date().toISOString(),
+        );
+      return true;
+    }
+
+    return this.softDelete({
+      id: tombstone.memoryId,
+      deletedBy: tombstone.deletedBy,
+    });
+  }
+
+  incrementVersion(id: string): number {
+    const now = new Date().toISOString();
+    this.db
+      .prepare("UPDATE memories SET version = version + 1, updated_at = ? WHERE id = ?")
+      .run(now, id);
+    const row = this.db
+      .prepare("SELECT version FROM memories WHERE id = ?")
+      .get(id) as { version: number } | undefined;
+    return row?.version ?? 1;
+  }
+
+  getModifiedSince(orgId: string, repoId: string, since: Date): Memory[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM memories 
+         WHERE org_id = ? AND repo_id = ? AND updated_at > ?
+         ORDER BY updated_at ASC`,
+      )
+      .all(orgId, repoId, since.toISOString()) as Array<Record<string, unknown>>;
+    return rows.map(rowToMemory);
+  }
+
+  upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
+    const existing = this.getById(memory.id);
+    const now = new Date().toISOString();
+
+    if (!existing) {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, ttl_seconds, supersedes_id, is_consolidation, consolidation_version, author_id, author_name, version, deleted_at, deleted_by, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          memory.id,
+          memory.orgId,
+          memory.repoId,
+          memory.scopeType ?? "repo",
+          memory.memoryType,
+          memory.visibility,
+          memory.status,
+          memory.text,
+          memory.summary ?? null,
+          JSON.stringify(memory.tags ?? []),
+          memory.sourceRefs ? JSON.stringify(memory.sourceRefs) : null,
+          memory.confidence ?? null,
+          memory.ttlSeconds ?? null,
+          memory.supersedesId ?? null,
+          memory.isConsolidation ? 1 : 0,
+          memory.consolidationVersion ?? null,
+          memory.authorId ?? null,
+          memory.authorName ?? null,
+          memory.version ?? 1,
+          memory.deletedAt?.toISOString() ?? null,
+          memory.deletedBy ?? null,
+          memory.createdAt.toISOString(),
+          now,
+        );
+      return { action: "created", conflict: false };
+    }
+
+    const remoteVersion = memory.version ?? 1;
+    const localVersion = existing.version ?? 1;
+
+    if (remoteVersion <= localVersion) {
+      if (memory.updatedAt <= existing.updatedAt) {
+        return { action: "skipped", conflict: false };
+      }
+    }
+
+    const hasConflict = localVersion !== remoteVersion && existing.updatedAt > memory.updatedAt;
+
+    this.db
+      .prepare(
+        `UPDATE memories SET
+          memory_type = ?, visibility = ?, status = ?, text = ?, summary = ?, tags = ?,
+          source_refs = ?, confidence = ?, ttl_seconds = ?, supersedes_id = ?,
+          is_consolidation = ?, consolidation_version = ?, author_id = ?, author_name = ?,
+          version = ?, deleted_at = ?, deleted_by = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        memory.memoryType,
+        memory.visibility,
+        memory.status,
+        memory.text,
+        memory.summary ?? null,
+        JSON.stringify(memory.tags ?? []),
+        memory.sourceRefs ? JSON.stringify(memory.sourceRefs) : null,
+        memory.confidence ?? null,
+        memory.ttlSeconds ?? null,
+        memory.supersedesId ?? null,
+        memory.isConsolidation ? 1 : 0,
+        memory.consolidationVersion ?? null,
+        memory.authorId ?? null,
+        memory.authorName ?? null,
+        Math.max(remoteVersion, localVersion) + 1,
+        memory.deletedAt?.toISOString() ?? null,
+        memory.deletedBy ?? null,
+        now,
+        memory.id,
+      );
+
+    return { action: "updated", conflict: hasConflict };
   }
 
   close(): void {

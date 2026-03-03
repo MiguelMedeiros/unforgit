@@ -5,7 +5,7 @@ import type { StoreStats } from "@/lib/types";
 const emptyStats: StoreStats = {
   total: 0,
   byType: { episodic: 0, semantic: 0, procedural: 0 },
-  byStatus: { active: 0, deprecated: 0, superseded: 0 },
+  byStatus: { active: 0, deprecated: 0, superseded: 0, deleted: 0 },
   byVisibility: { private: 0, repo: 0 },
 };
 

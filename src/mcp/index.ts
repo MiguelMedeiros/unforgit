@@ -8,15 +8,30 @@ import type { MemoryType, LinkType } from "../core/types.js";
 
 const cwd = process.cwd();
 
+// Debug log to stderr (doesn't affect MCP protocol on stdout)
+const debug = (msg: string) => {
+  if (process.env.HIPPO_DEBUG === "1") {
+    console.error(`[hippo-mcp] ${msg}`);
+  }
+};
+
+debug(`Starting with cwd: ${cwd}`);
+
 function getStore(): { store: LocalStore; orgId: string; repoId: string } {
+  debug(`getStore called, checking initialization at: ${cwd}`);
+  
   if (!isInitialized(cwd)) {
+    debug(`Not initialized at ${cwd}`);
     throw new Error(
-      "Hippocampus not initialized in this directory. Run 'hippo init' first.",
+      `Hippocampus not initialized in this directory (${cwd}). Run 'hippo init' first.`,
     );
   }
 
   const config = loadConfig(cwd);
-  const store = new LocalStore(getDbPath(cwd));
+  const dbPath = getDbPath(cwd);
+  debug(`Loading config - orgId: ${config.remote.orgId}, repoId: ${config.remote.repoId}, dbPath: ${dbPath}`);
+  
+  const store = new LocalStore(dbPath);
 
   return {
     store,
@@ -172,15 +187,19 @@ server.tool(
       const policy = resolveVisibility(input);
       const memory = store.store({
         ...input,
-        visibility: policy.visibility,
+        visibility: "private",
       });
 
       const parts = [
         `Memory stored: ${memory.id}`,
         `Type: ${memory.memoryType}`,
-        `Visibility: ${memory.visibility}`,
+        `Visibility: ${memory.visibility} (will sync to remote on next sync)`,
         `Tags: ${memory.tags.join(", ") || "(none)"}`,
       ];
+      
+      if (policy.visibility === "repo") {
+        parts.push(`Suggested: This memory should be shared with the team`);
+      }
 
       const linkedIds: string[] = [];
       if (autoLink) {
@@ -589,6 +608,138 @@ server.tool(
             }
           }
         }
+      }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_delete",
+  "Soft delete a memory from the local repository. The memory can be restored later. Creates a tombstone for sync propagation.",
+  {
+    memoryId: z.string().min(1).describe("ID of the memory to delete"),
+    reason: z
+      .string()
+      .optional()
+      .describe("Optional reason for deletion"),
+    hardDelete: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("If true, permanently delete (cannot be restored)"),
+  },
+  async ({ memoryId, reason, hardDelete }) => {
+    const { store } = getStore();
+    const author = getGitAuthor();
+
+    try {
+      const memory = store.getById(memoryId);
+      if (!memory) {
+        return {
+          content: [{ type: "text", text: "Memory not found." }],
+        };
+      }
+
+      let ok: boolean;
+      if (hardDelete) {
+        ok = store.hardDelete(memoryId);
+      } else {
+        ok = store.softDelete({
+          id: memoryId,
+          deletedBy: author.authorName ?? author.authorId,
+        });
+      }
+
+      if (!ok) {
+        return {
+          content: [{ type: "text", text: "Failed to delete memory." }],
+        };
+      }
+
+      const action = hardDelete ? "Hard deleted" : "Soft deleted";
+      const parts = [
+        `${action}: ${memoryId.slice(0, 8)}`,
+        `Type: ${memory.memoryType}`,
+      ];
+
+      if (reason) {
+        parts.push(`Reason: ${reason}`);
+      }
+
+      if (!hardDelete) {
+        parts.push("", "This memory can be restored with hippo_restore.");
+        parts.push("Deletion will be synced to remote on next sync.");
+      }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_restore",
+  "Restore a soft-deleted memory. Only works for memories that were soft deleted (not hard deleted).",
+  {
+    memoryId: z.string().min(1).describe("ID of the memory to restore"),
+  },
+  async ({ memoryId }) => {
+    const { store } = getStore();
+
+    try {
+      const ok = store.restore(memoryId);
+
+      if (!ok) {
+        return {
+          content: [{ type: "text", text: "Memory not found or was not soft deleted." }],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Restored memory: ${memoryId.slice(0, 8)}\nMemory is now active and will be synced.`,
+          },
+        ],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_list_deleted",
+  "List all soft-deleted memories that can be restored.",
+  {},
+  async () => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const tombstones = store.getTombstones(orgId, repoId);
+
+      if (tombstones.length === 0) {
+        return {
+          content: [{ type: "text", text: "No deleted memories found." }],
+        };
+      }
+
+      const parts = [`Found ${tombstones.length} deleted memories:`, ""];
+      for (const t of tombstones) {
+        const syncStatus = t.syncedAt ? "synced" : "pending sync";
+        parts.push(
+          `- ${t.memoryId.slice(0, 8)} (deleted at ${t.deletedAt.toISOString()}, ${syncStatus})`,
+        );
       }
 
       return {

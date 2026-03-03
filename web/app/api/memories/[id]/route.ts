@@ -41,3 +41,36 @@ export async function GET(
 
   return NextResponse.json({ error: "Memory not found" }, { status: 404 });
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const hardDelete = body.hardDelete === true;
+  const deletedBy = body.deletedBy as string | undefined;
+
+  const local = getLocalStore();
+  if (!local) {
+    return NextResponse.json(
+      { error: "Local store not available" },
+      { status: 503 }
+    );
+  }
+
+  let success: boolean;
+  if (hardDelete) {
+    success = local.hardDelete(id);
+  } else {
+    success = local.softDelete({ id, deletedBy });
+  }
+
+  if (!success) {
+    return NextResponse.json({ error: "Memory not found" }, { status: 404 });
+  }
+
+  const action = hardDelete ? "hard_deleted" : "soft_deleted";
+  return NextResponse.json({ success: true, action });
+}
+

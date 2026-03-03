@@ -26,7 +26,21 @@ import {
   FileText,
   Bug,
   User,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MemoryDetail {
   id: string;
@@ -42,6 +56,9 @@ interface MemoryDetail {
   confidence?: number;
   authorId?: string;
   authorName?: string;
+  version?: number;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -250,6 +267,46 @@ export function MemoryDetailSheet({
       toast.success("Memory synced to remote");
       onAction();
       onClose();
+    } catch {
+      toast.error("Could not connect to server");
+    }
+  }
+
+  async function handleDelete(hardDelete: boolean = false) {
+    if (!memory) return;
+    try {
+      const res = await fetch(`/api/memories/${memory.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hardDelete }),
+      });
+      if (res.ok) {
+        toast.success(hardDelete ? "Memory permanently deleted" : "Memory deleted (can be restored)");
+        onAction();
+        onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete memory");
+      }
+    } catch {
+      toast.error("Could not connect to server");
+    }
+  }
+
+  async function handleRestore() {
+    if (!memory) return;
+    try {
+      const res = await fetch(`/api/memories/${memory.id}/restore`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        toast.success("Memory restored");
+        onAction();
+        onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to restore memory");
+      }
     } catch {
       toast.error("Could not connect to server");
     }
@@ -486,17 +543,94 @@ export function MemoryDetailSheet({
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {memory.status === "active" && (
+              {/* Deleted banner */}
+              {memory.status === "deleted" && (
+                <div className="flex items-center gap-3 rounded-xl bg-dracula-red/10 border border-dracula-red/20 p-3">
+                  <AlertTriangle className="h-4 w-4 text-dracula-red shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-dracula-red">This memory has been deleted</p>
+                    {memory.deletedAt && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Deleted {formatDate(memory.deletedAt)}
+                        {memory.deletedBy && ` by ${memory.deletedBy}`}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleDeprecate}
+                    onClick={handleRestore}
+                    className="shrink-0 border-dracula-green/30 text-dracula-green hover:bg-dracula-green/10"
                   >
-                    <Archive className="mr-1 h-3.5 w-3.5" />
-                    Deprecate
+                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                    Restore
                   </Button>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {memory.status === "active" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDeprecate}
+                    >
+                      <Archive className="mr-1 h-3.5 w-3.5" />
+                      Deprecate
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-dracula-red/30 text-dracula-red hover:bg-dracula-red/10"
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Memory</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Choose how to delete this memory:
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="space-y-3 py-4">
+                          <button
+                            onClick={() => handleDelete(false)}
+                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-dracula-orange/30"
+                          >
+                            <div className="flex items-center gap-2 text-[14px] font-medium">
+                              <Trash2 className="h-4 w-4 text-dracula-orange" />
+                              Soft Delete
+                            </div>
+                            <p className="mt-1 text-[12px] text-muted-foreground">
+                              Memory can be restored later. Creates a tombstone for sync.
+                            </p>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(true)}
+                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-dracula-red/30"
+                          >
+                            <div className="flex items-center gap-2 text-[14px] font-medium">
+                              <AlertTriangle className="h-4 w-4 text-dracula-red" />
+                              Hard Delete
+                            </div>
+                            <p className="mt-1 text-[12px] text-muted-foreground">
+                              Permanently remove. Cannot be restored.
+                            </p>
+                          </button>
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
                 {source === "local" && memory.status === "active" && memory.visibility !== "repo" && (
                   <Button

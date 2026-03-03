@@ -18,14 +18,31 @@ import {
 
 interface SyncStatus {
   pendingSync: number;
+  pendingDeletions: number;
   remoteConfigured: boolean;
   remoteConnected: boolean;
 }
 
+interface SyncConflict {
+  memoryId: string;
+  localVersion: number;
+  remoteVersion: number;
+  localUpdatedAt: string;
+  remoteUpdatedAt: string;
+}
+
 interface SyncResult {
-  synced: number;
-  failed: number;
-  total: number;
+  synced?: number;
+  failed?: number;
+  total?: number;
+  pushed: number;
+  pulled: number;
+  conflicts: SyncConflict[];
+  deletionsPropagated: number;
+  errors: Array<{ id: string; error: string }>;
+  linksSynced: number;
+  linksFailed: number;
+  syncedAt: string;
 }
 
 interface SyncContextValue {
@@ -33,6 +50,8 @@ interface SyncContextValue {
   status: SyncStatus | null;
   isSyncing: boolean;
   lastSyncResult: SyncResult | null;
+  hasConflicts: boolean;
+  conflictCount: number;
   syncNow: () => Promise<SyncResult | null>;
   updateSettings: (settings: Partial<SyncSettings>) => void;
   refreshStatus: () => Promise<void>;
@@ -149,6 +168,9 @@ export function SyncProvider({ children }: SyncProviderProps) {
     };
   }, [settings.autoSyncEnabled, settings.syncIntervalMinutes, syncNow, status?.pendingSync, status?.remoteConnected]);
 
+  const hasConflicts = (lastSyncResult?.conflicts?.length ?? 0) > 0;
+  const conflictCount = lastSyncResult?.conflicts?.length ?? 0;
+
   return (
     <SyncContext.Provider
       value={{
@@ -156,6 +178,8 @@ export function SyncProvider({ children }: SyncProviderProps) {
         status,
         isSyncing,
         lastSyncResult,
+        hasConflicts,
+        conflictCount,
         syncNow,
         updateSettings: updateSettingsHandler,
         refreshStatus,

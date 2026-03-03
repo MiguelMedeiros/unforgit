@@ -140,4 +140,33 @@ export class RemoteClient {
       processedCount: number;
     }>;
   }
+
+  async delete(
+    id: string,
+    deletedBy?: string,
+    hardDelete?: boolean,
+  ): Promise<{ success: boolean; action: string }> {
+    const res = await fetch(`${this.baseUrl}/v1/memory/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deletedBy, hardDelete }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Remote delete failed (${res.status}): ${err}`);
+    }
+    return res.json() as Promise<{ success: boolean; action: string }>;
+  }
+
+  async restore(id: string): Promise<{ success: boolean }> {
+    const res = await fetch(`${this.baseUrl}/v1/memory/${id}/restore`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Remote restore failed (${res.status}): ${err}`);
+    }
+    return res.json() as Promise<{ success: boolean }>;
+  }
 }

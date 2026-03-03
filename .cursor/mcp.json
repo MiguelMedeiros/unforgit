@@ -3,7 +3,7 @@
     "hippocampus": {
       "command": "hippo-mcp",
       "args": [],
-      "cwd": "${workspaceFolder}"
+      "cwd": "/Users/miguelmedeiros/code/hippocampus"
     }
   }
 }

@@ -1,6 +1,7 @@
 export type MemoryType = "episodic" | "semantic" | "procedural";
 export type Visibility = "private" | "repo" | "auto";
-export type Status = "active" | "deprecated" | "superseded";
+export type Status = "active" | "deprecated" | "superseded" | "deleted";
+export type ConflictResolution = "local_wins" | "remote_wins" | "last_write_wins" | "manual";
 
 export interface Memory {
   id: string;
@@ -17,8 +18,44 @@ export interface Memory {
   confidence?: number;
   ttlSeconds?: number;
   supersedesId?: string;
+  version: number;
+  deletedAt?: Date;
+  deletedBy?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Tombstone {
+  id: string;
+  memoryId: string;
+  orgId: string;
+  repoId: string;
+  deletedAt: Date;
+  deletedBy?: string;
+  syncedAt?: Date;
+}
+
+export interface DeleteMemoryInput {
+  id: string;
+  deletedBy?: string;
+  hardDelete?: boolean;
+}
+
+export interface SyncResult {
+  pushed: number;
+  pulled: number;
+  conflicts: SyncConflict[];
+  deletionsPropagated: number;
+  errors: Array<{ id: string; error: string }>;
+}
+
+export interface SyncConflict {
+  memoryId: string;
+  localVersion: number;
+  remoteVersion: number;
+  localUpdatedAt: Date;
+  remoteUpdatedAt: Date;
+  resolution?: ConflictResolution;
 }
 
 export interface CreateMemoryInput {

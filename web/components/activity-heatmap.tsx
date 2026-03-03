@@ -92,13 +92,10 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
     return result;
   }, [weeks]);
 
-  const cellSize = 10;
-  const cellGap = 3;
-  const cellTotal = cellSize + cellGap;
   const labelWidth = 28;
 
   return (
-    <div className="space-y-3">
+    <div className="w-full space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold">Activity</h3>
         <p className="text-[12px] text-muted-foreground">
@@ -106,46 +103,52 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 overflow-x-auto">
-        <div className="relative" style={{ minWidth: `${labelWidth + weeks.length * cellTotal}px` }}>
+      <div className="w-full rounded-xl border border-border/30 bg-dracula-current/20 p-4">
+        <div className="w-full">
           <div 
-            className="relative h-4 mb-1"
-            style={{ marginLeft: `${labelWidth}px` }}
+            className="relative h-4 mb-1 flex"
+            style={{ paddingLeft: `${labelWidth}px` }}
           >
-            {months.map((m, i) => (
-              <span
-                key={i}
-                className="absolute text-[10px] text-muted-foreground/60"
-                style={{ left: `${m.colStart * cellTotal}px` }}
-              >
-                {m.label}
-              </span>
-            ))}
+            <div className="flex-1 flex justify-between">
+              {months.map((m, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] text-muted-foreground/60"
+                  style={{ 
+                    position: 'absolute',
+                    left: `calc(${labelWidth}px + ${(m.colStart / weeks.length) * 100}% * (1 - ${labelWidth}px / 100%))`,
+                    transform: 'translateX(0)'
+                  }}
+                >
+                  {m.label}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div className="flex">
+          <div className="flex w-full">
             <div 
-              className="flex flex-col justify-between text-[10px] text-muted-foreground/60 pr-1"
-              style={{ width: `${labelWidth}px`, height: `${7 * cellTotal - cellGap}px` }}
+              className="flex flex-col justify-between text-[10px] text-muted-foreground/60 pr-1 shrink-0"
+              style={{ width: `${labelWidth}px` }}
             >
-              <span></span>
-              <span>Mon</span>
-              <span></span>
-              <span>Wed</span>
-              <span></span>
-              <span>Fri</span>
-              <span></span>
+              <span className="h-[10px]"></span>
+              <span className="h-[10px] flex items-center">Mon</span>
+              <span className="h-[10px]"></span>
+              <span className="h-[10px] flex items-center">Wed</span>
+              <span className="h-[10px]"></span>
+              <span className="h-[10px] flex items-center">Fri</span>
+              <span className="h-[10px]"></span>
             </div>
 
             <TooltipProvider delayDuration={100}>
-              <div className="flex gap-[3px]">
+              <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${weeks.length}, 1fr)` }}>
                 {weeks.map((week, weekIndex) => (
                   <div key={weekIndex} className="flex flex-col gap-[3px]">
                     {week.map((day) => (
                       <Tooltip key={day.date}>
                         <TooltipTrigger asChild>
                           <div
-                            className={`h-[10px] w-[10px] rounded-[2px] transition-colors ${getColorClass(day.count)}`}
+                            className={`aspect-square w-full max-w-[14px] rounded-[2px] transition-colors ${getColorClass(day.count)}`}
                           />
                         </TooltipTrigger>
                         <TooltipContent

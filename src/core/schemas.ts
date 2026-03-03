@@ -4,7 +4,9 @@ export const memoryTypeSchema = z.enum(["episodic", "semantic", "procedural"]);
 
 export const visibilitySchema = z.enum(["private", "repo", "auto"]);
 
-export const statusSchema = z.enum(["active", "deprecated", "superseded"]);
+export const statusSchema = z.enum(["active", "deprecated", "superseded", "deleted"]);
+
+export const conflictResolutionSchema = z.enum(["local_wins", "remote_wins", "last_write_wins", "manual"]);
 
 export const scopeTypeSchema = z.enum(["repo", "org"]);
 
@@ -81,4 +83,24 @@ export const createLinkSchema = z.object({
 export const linkQuerySchema = z.object({
   memoryId: z.string().min(1),
   linkType: linkTypeSchema.optional(),
+});
+
+export const deleteMemorySchema = z.object({
+  deletedBy: z.string().optional(),
+  hardDelete: z.boolean().optional().default(false),
+});
+
+export const syncQuerySchema = z.object({
+  ids: z.array(z.string().uuid()).optional(),
+  sinceVersion: z.number().int().optional(),
+  conflictResolution: conflictResolutionSchema.optional().default("last_write_wins"),
+  includeDeleted: z.boolean().optional().default(true),
+});
+
+export const tombstoneSchema = z.object({
+  memoryId: z.string().uuid(),
+  orgId: z.string().min(1),
+  repoId: z.string().min(1),
+  deletedAt: z.coerce.date(),
+  deletedBy: z.string().optional(),
 });

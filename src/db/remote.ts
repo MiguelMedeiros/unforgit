@@ -10,6 +10,8 @@ import type {
   RecallResult,
   ListQuery,
   StoreStats,
+  Tombstone,
+  DeleteMemoryInput,
 } from "../core/types.js";
 import { computeCompositeScore } from "../core/recall.js";
 
@@ -29,8 +31,23 @@ function prismaRowToMemory(row: Record<string, unknown>): Memory {
     confidence: (row.confidence as number) ?? undefined,
     ttlSeconds: (row.ttlSeconds as number) ?? undefined,
     supersedesId: (row.supersedesId as string) ?? undefined,
+    version: (row.version as number) ?? 1,
+    deletedAt: row.deletedAt ? new Date(row.deletedAt as string) : undefined,
+    deletedBy: (row.deletedBy as string) ?? undefined,
     createdAt: new Date(row.createdAt as string),
     updatedAt: new Date(row.updatedAt as string),
+  };
+}
+
+function prismaRowToTombstone(row: Record<string, unknown>): Tombstone {
+  return {
+    id: row.id as string,
+    memoryId: row.memoryId as string,
+    orgId: row.orgId as string,
+    repoId: row.repoId as string,
+    deletedAt: new Date(row.deletedAt as string),
+    deletedBy: (row.deletedBy as string) ?? undefined,
+    syncedAt: row.syncedAt ? new Date(row.syncedAt as string) : undefined,
   };
 }
 
@@ -277,7 +294,7 @@ export class RemoteStore {
     const stats: StoreStats = {
       total: 0,
       byType: { episodic: 0, semantic: 0, procedural: 0 },
-      byStatus: { active: 0, deprecated: 0, superseded: 0 },
+      byStatus: { active: 0, deprecated: 0, superseded: 0, deleted: 0 },
       byVisibility: { private: 0, repo: 0 },
     };
 
@@ -474,6 +491,226 @@ export class RemoteStore {
     }
 
     return memories;
+  }
+
+  async softDelete(input: DeleteMemoryInput): Promise<boolean> {
+    try {
+      const existing = await this.prisma.memory.findUnique({ where: { id: input.id } });
+      if (!existing) return false;
+
+      const newVersion = (existing.version ?? 1) + 1;
+
+      await this.prisma.$transaction([
+        this.prisma.memory.update({
+          where: { id: input.id },
+          data: {
+            status: "deleted",
+            deletedAt: new Date(),
+            deletedBy: input.deletedBy,
+            version: newVersion,
+          },
+        }),
+        this.prisma.tombstone.upsert({
+          where: { memoryId: input.id },
+          create: {
+            memoryId: input.id,
+            orgId: existing.orgId,
+            repoId: existing.repoId,
+            deletedAt: new Date(),
+            deletedBy: input.deletedBy,
+          },
+          update: {
+            deletedAt: new Date(),
+            deletedBy: input.deletedBy,
+            syncedAt: null,
+          },
+        }),
+      ]);
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async hardDelete(id: string): Promise<boolean> {
+    try {
+      await this.prisma.memory.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async restore(id: string): Promise<boolean> {
+    try {
+      const result = await this.prisma.$transaction([
+        this.prisma.memory.update({
+          where: { id, status: "deleted" },
+          data: {
+            status: "active",
+            deletedAt: null,
+            deletedBy: null,
+            version: { increment: 1 },
+          },
+        }),
+        this.prisma.tombstone.delete({
+          where: { memoryId: id },
+        }),
+      ]);
+      return result[0] !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  async getTombstones(orgId: string, repoId: string, sinceSyncedAt?: Date): Promise<Tombstone[]> {
+    const where: Record<string, unknown> = { orgId, repoId };
+
+    if (sinceSyncedAt) {
+      where.OR = [
+        { syncedAt: null },
+        { syncedAt: { gt: sinceSyncedAt } },
+      ];
+    } else {
+      where.syncedAt = null;
+    }
+
+    const rows = await this.prisma.tombstone.findMany({
+      where,
+      orderBy: { deletedAt: "asc" },
+    });
+
+    return rows.map((r) => prismaRowToTombstone(r as unknown as Record<string, unknown>));
+  }
+
+  async getUnsyncedTombstones(orgId: string, repoId: string): Promise<Tombstone[]> {
+    const rows = await this.prisma.tombstone.findMany({
+      where: { orgId, repoId, syncedAt: null },
+      orderBy: { deletedAt: "asc" },
+    });
+
+    return rows.map((r) => prismaRowToTombstone(r as unknown as Record<string, unknown>));
+  }
+
+  async markTombstoneSynced(memoryId: string): Promise<boolean> {
+    try {
+      await this.prisma.tombstone.update({
+        where: { memoryId },
+        data: { syncedAt: new Date() },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async applyTombstone(tombstone: Tombstone): Promise<boolean> {
+    try {
+      const existing = await this.prisma.memory.findUnique({ where: { id: tombstone.memoryId } });
+
+      if (!existing) {
+        await this.prisma.tombstone.upsert({
+          where: { memoryId: tombstone.memoryId },
+          create: {
+            memoryId: tombstone.memoryId,
+            orgId: tombstone.orgId,
+            repoId: tombstone.repoId,
+            deletedAt: tombstone.deletedAt,
+            deletedBy: tombstone.deletedBy,
+            syncedAt: new Date(),
+          },
+          update: {
+            deletedAt: tombstone.deletedAt,
+            deletedBy: tombstone.deletedBy,
+            syncedAt: new Date(),
+          },
+        });
+        return true;
+      }
+
+      return this.softDelete({
+        id: tombstone.memoryId,
+        deletedBy: tombstone.deletedBy,
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  async getModifiedSince(orgId: string, repoId: string, since: Date): Promise<Memory[]> {
+    const rows = await this.prisma.memory.findMany({
+      where: {
+        orgId,
+        repoId,
+        updatedAt: { gt: since },
+      },
+      orderBy: { updatedAt: "asc" },
+    });
+
+    return rows.map((r) => prismaRowToMemory(r as unknown as Record<string, unknown>));
+  }
+
+  async upsertFromLocal(memory: Memory): Promise<{ action: "created" | "updated" | "skipped"; conflict: boolean }> {
+    const existing = await this.prisma.memory.findUnique({ where: { id: memory.id } });
+
+    if (!existing) {
+      await this.prisma.memory.create({
+        data: {
+          id: memory.id,
+          orgId: memory.orgId,
+          repoId: memory.repoId,
+          scopeType: memory.scopeType ?? "repo",
+          memoryType: memory.memoryType,
+          visibility: memory.visibility,
+          status: memory.status,
+          text: memory.text,
+          summary: memory.summary,
+          tags: memory.tags ?? [],
+          sourceRefs: memory.sourceRefs as Record<string, string> | undefined,
+          confidence: memory.confidence,
+          ttlSeconds: memory.ttlSeconds,
+          supersedesId: memory.supersedesId,
+          version: memory.version ?? 1,
+          deletedAt: memory.deletedAt,
+          deletedBy: memory.deletedBy,
+          createdAt: memory.createdAt,
+        },
+      });
+      return { action: "created", conflict: false };
+    }
+
+    const remoteVersion = existing.version ?? 1;
+    const localVersion = memory.version ?? 1;
+
+    if (localVersion <= remoteVersion) {
+      if (memory.updatedAt <= existing.updatedAt) {
+        return { action: "skipped", conflict: false };
+      }
+    }
+
+    const hasConflict = localVersion !== remoteVersion && existing.updatedAt > memory.updatedAt;
+
+    await this.prisma.memory.update({
+      where: { id: memory.id },
+      data: {
+        memoryType: memory.memoryType,
+        visibility: memory.visibility,
+        status: memory.status,
+        text: memory.text,
+        summary: memory.summary,
+        tags: memory.tags ?? [],
+        sourceRefs: memory.sourceRefs as Record<string, string> | undefined,
+        confidence: memory.confidence,
+        ttlSeconds: memory.ttlSeconds,
+        supersedesId: memory.supersedesId,
+        version: Math.max(remoteVersion, localVersion) + 1,
+        deletedAt: memory.deletedAt,
+        deletedBy: memory.deletedBy,
+      },
+    });
+
+    return { action: "updated", conflict: hasConflict };
   }
 
   async disconnect(): Promise<void> {

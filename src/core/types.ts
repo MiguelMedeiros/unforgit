@@ -1,7 +1,8 @@
 export type MemoryType = "episodic" | "semantic" | "procedural";
 export type Visibility = "private" | "repo" | "auto";
-export type Status = "active" | "deprecated" | "superseded";
+export type Status = "active" | "deprecated" | "superseded" | "deleted";
 export type ScopeType = "repo" | "org";
+export type ConflictResolution = "local_wins" | "remote_wins" | "last_write_wins" | "manual";
 
 export interface Memory {
   id: string;
@@ -22,6 +23,9 @@ export interface Memory {
   consolidationVersion?: number;
   authorId?: string;
   authorName?: string;
+  version: number;
+  deletedAt?: Date;
+  deletedBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -174,4 +178,47 @@ export interface FindSimilarQuery {
   memoryId: string;
   threshold?: number;
   k?: number;
+}
+
+export interface DeleteMemoryInput {
+  id: string;
+  deletedBy?: string;
+  hardDelete?: boolean;
+}
+
+export interface SyncOperation {
+  id: string;
+  operationType: "create" | "update" | "delete";
+  memoryId: string;
+  timestamp: Date;
+  authorId?: string;
+  data?: Partial<Memory>;
+}
+
+export interface SyncResult {
+  pushed: number;
+  pulled: number;
+  conflicts: SyncConflict[];
+  deletionsPropagated: number;
+  errors: Array<{ id: string; error: string }>;
+}
+
+export interface SyncConflict {
+  memoryId: string;
+  localVersion: number;
+  remoteVersion: number;
+  localUpdatedAt: Date;
+  remoteUpdatedAt: Date;
+  resolution?: ConflictResolution;
+  resolvedData?: Memory;
+}
+
+export interface Tombstone {
+  id: string;
+  memoryId: string;
+  orgId: string;
+  repoId: string;
+  deletedAt: Date;
+  deletedBy?: string;
+  syncedAt?: Date;
 }

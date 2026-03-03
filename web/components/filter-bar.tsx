@@ -34,7 +34,6 @@ export function FilterBar({
         <SelectContent>
           <SelectItem value="local">Local</SelectItem>
           <SelectItem value="remote">Remote</SelectItem>
-          <SelectItem value="both">Both</SelectItem>
         </SelectContent>
       </Select>
 
@@ -59,6 +58,7 @@ export function FilterBar({
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="deprecated">Deprecated</SelectItem>
           <SelectItem value="superseded">Superseded</SelectItem>
+          <SelectItem value="deleted">Deleted</SelectItem>
         </SelectContent>
       </Select>
     </div>

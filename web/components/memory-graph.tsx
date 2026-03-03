@@ -11,6 +11,7 @@ import {
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MemoryDetailSheet } from "@/components/memory-detail-sheet";
 import {
   X,
   Link2,
@@ -142,6 +143,7 @@ export function MemoryGraph() {
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [showOrphans, setShowOrphans] = useState(true);
   const [source, setSource] = useState<"local" | "remote">("local");
+  const [detailMemoryId, setDetailMemoryId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
 
@@ -271,9 +273,83 @@ export function MemoryGraph() {
     [],
   );
 
+  const handleNodeDoubleClick = useCallback(
+    (node: GraphNode) => {
+      setDetailMemoryId(node.id);
+    },
+    [],
+  );
+
   const handleBackgroundClick = useCallback(() => {
     setSelectedNode(null);
   }, []);
+
+  const handleOpenDetail = useCallback((nodeId: string) => {
+    setDetailMemoryId(nodeId);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailMemoryId(null);
+  }, []);
+
+  const refetchGraph = useCallback(() => {
+    setLoading(true);
+    fetch(`/api/graph?source=${source}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch graph data");
+        return r.json();
+      })
+      .then((data) => {
+        const linkCountMap = new Map<string, number>();
+        const links = data.links ?? [];
+        for (const link of links) {
+          linkCountMap.set(
+            link.sourceId,
+            (linkCountMap.get(link.sourceId) ?? 0) + 1,
+          );
+          linkCountMap.set(
+            link.targetId,
+            (linkCountMap.get(link.targetId) ?? 0) + 1,
+          );
+        }
+
+        const memories = data.memories ?? [];
+        const memNodes: MemoryNode[] = memories.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (m: any) => ({
+            id: m.id,
+            memoryType: m.memoryType,
+            text: m.text,
+            summary: m.summary,
+            tags: m.tags ?? [],
+            status: m.status,
+            confidence: m.confidence,
+            authorId: m.authorId,
+            authorName: m.authorName,
+            createdAt: m.createdAt,
+            linkCount: linkCountMap.get(m.id) ?? 0,
+          }),
+        );
+
+        const memEdges: MemoryEdge[] = links.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (l: any) => ({
+            id: l.id,
+            source: l.sourceId,
+            target: l.targetId,
+            linkType: l.linkType,
+          }),
+        );
+
+        setNodes(memNodes);
+        setEdges(memEdges);
+        setSelectedNode(null);
+      })
+      .catch((err) => {
+        console.error("Failed to load graph:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [source]);
 
   const handleZoomIn = useCallback(() => {
     const fg = graphRef.current;
@@ -519,6 +595,8 @@ export function MemoryGraph() {
             linkCanvasObject={linkCanvasObject as any}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onNodeClick={handleNodeClick as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onNodeRightClick={handleNodeDoubleClick as any}
             onBackgroundClick={handleBackgroundClick}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onNodeHover={(node: any) => setHoveredNode(node as GraphNode | null)}
@@ -545,60 +623,60 @@ export function MemoryGraph() {
         )}
 
         {/* Controls */}
-        <div className="absolute top-4 left-4 flex flex-col items-start gap-2 z-10">
-          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
-            {[
-              { icon: ZoomIn, action: handleZoomIn, title: "Zoom in" },
-              { icon: ZoomOut, action: handleZoomOut, title: "Zoom out" },
-              { icon: Maximize2, action: handleFitView, title: "Fit view" },
-              { icon: RotateCcw, action: handleReset, title: "Reset" },
-            ].map(({ icon: Icon, action, title }) => (
-              <button
-                key={title}
-                onClick={action}
-                className="rounded-lg p-2 transition-colors hover:bg-white/[0.08]"
-                title={title}
-              >
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
+        <div className="absolute top-4 left-4 flex items-center gap-1 z-10 rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
+          {[
+            { icon: ZoomIn, action: handleZoomIn, title: "Zoom in" },
+            { icon: ZoomOut, action: handleZoomOut, title: "Zoom out" },
+            { icon: Maximize2, action: handleFitView, title: "Fit view" },
+            { icon: RotateCcw, action: handleReset, title: "Reset" },
+          ].map(({ icon: Icon, action, title }) => (
             <button
-              onClick={() => setShowOrphans(!showOrphans)}
-              className={`rounded-lg p-2 transition-colors ${
-                showOrphans
-                  ? "bg-dracula-purple/20 text-dracula-purple"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"
-              }`}
-              title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}
+              key={title}
+              onClick={action}
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/[0.08]"
+              title={title}
             >
-              {showOrphans ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              <Icon className="h-4 w-4 text-muted-foreground" />
             </button>
-          </div>
+          ))}
 
-          <div className="flex flex-col rounded-xl border border-border/50 bg-[rgba(28,28,30,0.85)] glass p-1">
-            <button
-              onClick={() => setSource(source === "local" ? "remote" : "local")}
-              className={`rounded-lg p-2 transition-colors ${
-                source === "local"
-                  ? "bg-dracula-green/20 text-dracula-green"
-                  : "bg-dracula-pink/20 text-dracula-pink"
-              }`}
-              title={source === "local" ? "Showing local data - Click to show remote" : "Showing remote data - Click to show local"}
-            >
-              {source === "local" ? (
-                <HardDrive className="h-4 w-4" />
-              ) : (
-                <Cloud className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+          <div className="w-px h-5 bg-border/30 mx-1" />
+
+          <button
+            onClick={() => setShowOrphans(!showOrphans)}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 transition-colors ${
+              showOrphans
+                ? "bg-dracula-purple/20 text-dracula-purple"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"
+            }`}
+            title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}
+          >
+            {showOrphans ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            <span className="text-[11px]">{showOrphans ? "Hide orphans" : "Show orphans"}</span>
+          </button>
+
+          <div className="w-px h-5 bg-border/30 mx-1" />
+
+          <button
+            onClick={() => setSource(source === "local" ? "remote" : "local")}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 transition-colors ${
+              source === "local"
+                ? "bg-dracula-green/20 text-dracula-green"
+                : "bg-dracula-pink/20 text-dracula-pink"
+            }`}
+            title={source === "local" ? "Showing local data - Click to show remote" : "Showing remote data - Click to show local"}
+          >
+            {source === "local" ? (
+              <HardDrive className="h-4 w-4" />
+            ) : (
+              <Cloud className="h-4 w-4" />
+            )}
+            <span className="text-[11px]">{source === "local" ? "Local" : "Remote"}</span>
+          </button>
         </div>
 
         {/* Legend */}
@@ -786,13 +864,30 @@ export function MemoryGraph() {
             )}
           </div>
 
-          <div className="border-t border-border/20 p-4">
+          <div className="border-t border-border/20 p-4 space-y-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => handleOpenDetail(selectedNode.id)}
+            >
+              View Full Details
+            </Button>
             <p className="text-center text-[10px] text-muted-foreground/40 font-mono">
               {selectedNode.id.slice(0, 8)}...{selectedNode.id.slice(-4)}
             </p>
           </div>
         </div>
       )}
+
+      <MemoryDetailSheet
+        memoryId={detailMemoryId}
+        onClose={handleCloseDetail}
+        onAction={refetchGraph}
+        onNavigate={(id) => {
+          setDetailMemoryId(id);
+        }}
+      />
     </div>
   );
 }
