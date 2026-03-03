@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   XCircle,
   HardDrive,
-  Cloud,
   FolderOpen,
 } from "lucide-react";
 
@@ -137,41 +136,6 @@ export default function SettingsPage() {
                 {config.dbSize !== null ? formatBytes(config.dbSize) : "N/A"}
               </span>
             </SettingsRow>
-          </SettingsGroup>
-
-          {/* Remote Store */}
-          <SettingsGroup
-            title="Remote Store"
-            icon={Cloud}
-            description="PostgreSQL shared database"
-          >
-            <SettingsRow label="Status">
-              {config.remoteConnected ? (
-                <Badge className="bg-apple-green/15 text-apple-green border-0">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  Connected
-                </Badge>
-              ) : config.hasRemoteUrl ? (
-                <Badge className="bg-apple-yellow/15 text-apple-yellow border-0">
-                  <XCircle className="mr-1 h-3 w-3" />
-                  Disconnected
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not configured</Badge>
-              )}
-            </SettingsRow>
-            <SettingsRow label="DATABASE_URL">
-              <span className="text-muted-foreground">
-                {config.hasRemoteUrl ? "Set" : "Not set"}
-              </span>
-            </SettingsRow>
-            {config.config?.remote.url && (
-              <SettingsRow label="API URL">
-                <code className="max-w-[240px] truncate text-[11px] text-muted-foreground font-mono block text-right">
-                  {config.config.remote.url}
-                </code>
-              </SettingsRow>
-            )}
           </SettingsGroup>
 
           {/* Configuration */}

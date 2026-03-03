@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Brain, ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Brain, ArrowRight } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
 import { MemoryCard } from "@/components/memory-card";
+import { ActivityHeatmap } from "@/components/activity-heatmap";
+import { MemoryTypeChart, DailyMemoriesChart } from "@/components/dashboard-charts";
 
 interface StoreStats {
   total: number;
@@ -24,6 +25,11 @@ interface MemoryItem {
   createdAt: string;
 }
 
+interface ActivityData {
+  dailyCounts: Array<{ date: string; count: number }>;
+  weeklyTrend: Array<{ week: string; count: number }>;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<{
@@ -32,14 +38,15 @@ export default function DashboardPage() {
     remoteAvailable: boolean;
   } | null>(null);
   const [recentMemories, setRecentMemories] = useState<MemoryItem[]>([]);
-  const [search, setSearch] = useState("");
+  const [activity, setActivity] = useState<ActivityData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsRes, memoriesRes] = await Promise.all([
+      const [statsRes, memoriesRes, activityRes] = await Promise.all([
         fetch("/api/stats"),
-        fetch("/api/memories?source=local&limit=10&sortBy=createdAt&sortOrder=desc"),
+        fetch("/api/memories?source=local&limit=3&sortBy=createdAt&sortOrder=desc"),
+        fetch("/api/stats/activity"),
       ]);
 
       if (statsRes.ok) {
@@ -50,6 +57,10 @@ export default function DashboardPage() {
         const data = await memoriesRes.json();
         setRecentMemories(data.memories);
       }
+
+      if (activityRes.ok) {
+        setActivity(await activityRes.json());
+      }
     } finally {
       setLoading(false);
     }
@@ -58,13 +69,6 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (search.trim()) {
-      router.push(`/memories?search=${encodeURIComponent(search.trim())}`);
-    }
-  }
 
   if (loading) {
     return (
@@ -82,26 +86,13 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-5xl px-8 py-10">
         <div className="animate-fade-in space-y-10">
           {/* Hero */}
-          <div className="space-y-4">
-            <div>
-              <h1 className="text-[28px] font-bold tracking-tight">
-                Dashboard
-              </h1>
-              <p className="text-[13px] text-muted-foreground">
-                Your repository memory at a glance
-              </p>
-            </div>
-
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative max-w-lg">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-              <Input
-                placeholder="Search memories..."
-                className="h-11 pl-10 pr-4 rounded-xl bg-white/[0.04] border-border/40"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </form>
+          <div>
+            <h1 className="text-[28px] font-bold tracking-tight">
+              Dashboard
+            </h1>
+            <p className="text-[13px] text-muted-foreground">
+              Your repository memory at a glance
+            </p>
           </div>
 
           {/* Stats */}
@@ -113,6 +104,17 @@ export default function DashboardPage() {
             />
           )}
 
+          {/* Activity Heatmap */}
+          {activity && <ActivityHeatmap dailyCounts={activity.dailyCounts} />}
+
+          {/* Charts Grid */}
+          {stats && activity && (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <MemoryTypeChart stats={stats.local} />
+              <DailyMemoriesChart dailyCounts={activity.dailyCounts} />
+            </div>
+          )}
+
           {/* Recent */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -120,7 +122,7 @@ export default function DashboardPage() {
               {recentMemories.length > 0 && (
                 <button
                   onClick={() => router.push("/memories")}
-                  className="flex items-center gap-1 text-[13px] font-medium text-apple-blue hover:text-apple-blue/80 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg bg-apple-blue/15 px-3 py-1.5 text-[13px] font-medium text-apple-blue hover:bg-apple-blue/25 transition-colors"
                 >
                   View All
                   <ArrowRight className="h-3.5 w-3.5" />

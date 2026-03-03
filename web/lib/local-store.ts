@@ -359,4 +359,40 @@ export class WebLocalStore {
 
     return result;
   }
+
+  dailyCounts(orgId: string, repoId: string, days: number = 365): Array<{ date: string; count: number }> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().split("T")[0];
+
+    const rows = this.db
+      .prepare(
+        `SELECT date(created_at) as date, COUNT(*) as count
+         FROM memories
+         WHERE org_id = ? AND repo_id = ? AND date(created_at) >= ?
+         GROUP BY date(created_at)
+         ORDER BY date ASC`
+      )
+      .all(orgId, repoId, sinceStr) as Array<{ date: string; count: number }>;
+
+    return rows;
+  }
+
+  weeklyTrend(orgId: string, repoId: string, weeks: number = 12): Array<{ week: string; count: number }> {
+    const since = new Date();
+    since.setDate(since.getDate() - weeks * 7);
+    const sinceStr = since.toISOString().split("T")[0];
+
+    const rows = this.db
+      .prepare(
+        `SELECT strftime('%Y-W%W', created_at) as week, COUNT(*) as count
+         FROM memories
+         WHERE org_id = ? AND repo_id = ? AND date(created_at) >= ?
+         GROUP BY strftime('%Y-W%W', created_at)
+         ORDER BY week ASC`
+      )
+      .all(orgId, repoId, sinceStr) as Array<{ week: string; count: number }>;
+
+    return rows;
+  }
 }
