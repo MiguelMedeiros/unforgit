@@ -178,7 +178,7 @@ function HistoryContent() {
 
   return (
     <div ref={scrollContainerRef} className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl px-8 py-10">
+      <div className="mx-auto max-w-5xl px-8 py-10">
         <div className="animate-fade-in space-y-8">
           {/* Header */}
           <div className="flex items-start justify-between">

@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, LayoutDashboard, Database, History, GitFork, Settings } from "lucide-react";
+import { Brain, LayoutDashboard, Database, History, GitFork, Settings, Cloud, Loader2, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSyncContext } from "./sync-provider";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,6 +14,91 @@ const navItems = [
   { href: "/graph", label: "Graph", icon: GitFork },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+function RepoIndicator() {
+  const [repo, setRepo] = useState<{ orgId: string; repoId: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.config?.remote?.orgId && data.config?.remote?.repoId) {
+          setRepo({
+            orgId: data.config.remote.orgId,
+            repoId: data.config.remote.repoId,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!repo) return null;
+
+  return (
+    <a
+      href={`https://github.com/${repo.orgId}/${repo.repoId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+    >
+      <Github className="h-3.5 w-3.5" />
+      <span>{repo.orgId}/{repo.repoId}</span>
+    </a>
+  );
+}
+
+function SyncIndicator() {
+  const { status, isSyncing, settings } = useSyncContext();
+
+  if (!status?.remoteConfigured) return null;
+
+  const pendingCount = status.pendingSync;
+  const isConnected = status.remoteConnected;
+  const autoSyncOn = settings.autoSyncEnabled;
+
+  return (
+    <Link
+      href="/settings"
+      className={cn(
+        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all cursor-pointer hover:opacity-80",
+        isSyncing
+          ? "bg-apple-blue/10 text-apple-blue"
+          : pendingCount > 0
+            ? "bg-apple-orange/10 text-apple-orange"
+            : isConnected
+              ? "bg-apple-green/10 text-apple-green"
+              : "bg-white/5 text-muted-foreground"
+      )}
+      title={
+        isSyncing
+          ? "Syncing..."
+          : pendingCount > 0
+            ? `${pendingCount} memories pending sync`
+            : isConnected
+              ? "All synced"
+              : "Remote disconnected"
+      }
+    >
+      {isSyncing ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Cloud className="h-3.5 w-3.5" />
+      )}
+      <span>
+        {isSyncing
+          ? "Syncing"
+          : pendingCount > 0
+            ? `${pendingCount} pending`
+            : isConnected
+              ? "Synced"
+              : "Offline"}
+      </span>
+      {autoSyncOn && !isSyncing && (
+        <span className="ml-1 h-1.5 w-1.5 rounded-full bg-current opacity-60" title="Auto-sync enabled" />
+      )}
+    </Link>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -58,7 +145,11 @@ export function Header() {
         </nav>
       </div>
 
-      <p className="text-[11px] text-muted-foreground/60">v0.1.0</p>
+      <div className="flex items-center gap-3">
+        <RepoIndicator />
+        <SyncIndicator />
+        <p className="text-[11px] text-muted-foreground/60">v0.1.0</p>
+      </div>
     </header>
   );
 }

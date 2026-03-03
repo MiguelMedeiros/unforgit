@@ -7,7 +7,11 @@ import {
   XCircle,
   HardDrive,
   FolderOpen,
+  RefreshCw,
+  Cloud,
+  Loader2,
 } from "lucide-react";
+import { useSyncContext } from "@/components/sync-provider";
 
 interface ConfigData {
   initialized: boolean;
@@ -60,6 +64,131 @@ function SettingsGroup({ title, icon: Icon, description, children }: {
         {children}
       </div>
     </div>
+  );
+}
+
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins === 1) return "1 minute ago";
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours === 1) return "1 hour ago";
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "Yesterday";
+  return `${diffDays} days ago`;
+}
+
+function SyncSettings() {
+  const { settings, status, isSyncing, lastSyncResult, syncNow, updateSettings, refreshStatus } = useSyncContext();
+
+  useEffect(() => {
+    refreshStatus();
+  }, [refreshStatus]);
+
+  return (
+    <SettingsGroup
+      title="Sync"
+      icon={Cloud}
+      description="Automatic synchronization with remote server"
+    >
+      <SettingsRow label="Auto Sync">
+        <button
+          onClick={() => updateSettings({ autoSyncEnabled: !settings.autoSyncEnabled })}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            settings.autoSyncEnabled ? "bg-apple-blue" : "bg-white/10"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              settings.autoSyncEnabled ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </SettingsRow>
+      <SettingsRow label="Sync Interval">
+        <select
+          value={settings.syncIntervalMinutes}
+          onChange={(e) => updateSettings({ syncIntervalMinutes: Number(e.target.value) })}
+          disabled={!settings.autoSyncEnabled}
+          className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-[13px] text-foreground border border-border/30 disabled:opacity-50"
+        >
+          <option value={1}>Every 1 minute</option>
+          <option value={5}>Every 5 minutes</option>
+          <option value={15}>Every 15 minutes</option>
+          <option value={30}>Every 30 minutes</option>
+          <option value={60}>Every hour</option>
+        </select>
+      </SettingsRow>
+      <SettingsRow label="Pending Sync">
+        {status ? (
+          <Badge className={`border-0 ${
+            status.pendingSync > 0 
+              ? "bg-apple-orange/15 text-apple-orange" 
+              : "bg-apple-green/15 text-apple-green"
+          }`}>
+            {status.pendingSync} {status.pendingSync === 1 ? "memory" : "memories"}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">Loading...</span>
+        )}
+      </SettingsRow>
+      <SettingsRow label="Remote Status">
+        {status?.remoteConfigured ? (
+          status.remoteConnected ? (
+            <Badge className="bg-apple-green/15 text-apple-green border-0">
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge className="bg-apple-red/15 text-apple-red border-0">
+              <XCircle className="mr-1 h-3 w-3" />
+              Disconnected
+            </Badge>
+          )
+        ) : (
+          <Badge className="bg-white/10 text-muted-foreground border-0">
+            Not configured
+          </Badge>
+        )}
+      </SettingsRow>
+      <SettingsRow label="Last Sync">
+        <span className="text-muted-foreground">
+          {formatRelativeTime(settings.lastSyncAt)}
+        </span>
+      </SettingsRow>
+      {lastSyncResult && (
+        <SettingsRow label="Last Result">
+          <span className="text-muted-foreground">
+            {lastSyncResult.synced} synced, {lastSyncResult.failed} failed
+          </span>
+        </SettingsRow>
+      )}
+      <div className="py-4">
+        <button
+          onClick={() => syncNow()}
+          disabled={isSyncing || !status?.remoteConnected || status?.pendingSync === 0}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-apple-blue px-4 py-2.5 text-[13px] font-medium text-white transition-all hover:bg-apple-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSyncing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4" />
+              Sync Now
+            </>
+          )}
+        </button>
+      </div>
+    </SettingsGroup>
   );
 }
 
@@ -137,6 +266,9 @@ export default function SettingsPage() {
               </span>
             </SettingsRow>
           </SettingsGroup>
+
+          {/* Sync */}
+          <SyncSettings />
 
           {/* Configuration */}
           {config.config && (

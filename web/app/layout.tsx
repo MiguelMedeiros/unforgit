@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { Header } from "@/components/header";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,10 +26,12 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-[family-name:var(--font-inter),-apple-system,BlinkMacSystemFont,system-ui,sans-serif]`}
       >
-        <div className="flex h-screen flex-col overflow-hidden bg-background">
-          <Header />
-          <main className="flex-1 overflow-hidden">{children}</main>
-        </div>
+        <Providers>
+          <div className="flex h-screen flex-col overflow-hidden bg-background">
+            <Header />
+            <main className="flex-1 overflow-hidden">{children}</main>
+          </div>
+        </Providers>
         <Toaster
           theme="dark"
           position="bottom-right"
