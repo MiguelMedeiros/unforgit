@@ -27,6 +27,7 @@ import { diffCommand } from "./commands/diff.js";
 import { keysCommand } from "./commands/keys.js";
 import { authCommand } from "./commands/auth.js";
 import { configCommand } from "./commands/config.js";
+import { embeddingsCommand } from "./commands/embeddings.js";
 
 const program = new Command();
 
@@ -65,5 +66,6 @@ program.addCommand(diffCommand);
 program.addCommand(keysCommand);
 program.addCommand(authCommand);
 program.addCommand(configCommand);
+program.addCommand(embeddingsCommand);
 
 program.parse();

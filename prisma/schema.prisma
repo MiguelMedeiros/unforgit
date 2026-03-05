@@ -33,11 +33,38 @@ model Memory {
 
   sourceLinks  MemoryLink[] @relation("SourceLinks")
   targetLinks  MemoryLink[] @relation("TargetLinks")
+  embedding    MemoryEmbedding?
+  usages       MemoryUsage[]
 
   @@index([orgId, repoId, memoryType, status])
   @@index([orgId, repoId, updatedAt])
   @@index([deletedAt])
   @@map("memories")
+}
+
+model MemoryEmbedding {
+  memoryId  String   @id @map("memory_id") @db.Uuid
+  embedding Bytes
+  model     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@map("memory_embeddings")
+}
+
+model MemoryUsage {
+  id         Int      @id @default(autoincrement())
+  memoryId   String   @map("memory_id") @db.Uuid
+  recalledAt DateTime @default(now()) @map("recalled_at")
+  query      String?
+  sessionId  String?  @map("session_id")
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([memoryId])
+  @@index([recalledAt])
+  @@map("memory_usage")
 }
 
 model MemoryLink {

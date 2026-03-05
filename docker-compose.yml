@@ -23,9 +23,22 @@ services:
       DATABASE_URL: postgresql://hippocampus:hippocampus@postgres:5432/hippocampus
       PORT: "3737"
       HOST: "0.0.0.0"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-change-me}"
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "3939:3939"
+    environment:
+      API_URL: http://api:3737
+    depends_on:
+      - api
     restart: unless-stopped
 
   website:
@@ -33,7 +46,7 @@ services:
       context: ./website
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3030:3000"
     restart: unless-stopped
 
 volumes:

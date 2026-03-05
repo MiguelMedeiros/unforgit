@@ -8,6 +8,7 @@ dist
 .hippocampus
 .cursor
 web
+admin
 README.md
 LICENSE
 .DS_Store

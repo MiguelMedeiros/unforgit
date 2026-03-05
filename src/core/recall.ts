@@ -20,6 +20,21 @@ export function computeCompositeScore(
   return textScore * 0.6 + recency * 0.2 + conf * 0.2;
 }
 
+export function computeHybridScore(
+  ftsScore: number,
+  embeddingScore: number,
+  createdAt: Date,
+  confidence?: number,
+): number {
+  const recency = recencyScore(createdAt);
+  const conf = confidence ?? 0.5;
+  return embeddingScore * 0.5 + ftsScore * 0.2 + recency * 0.15 + conf * 0.15;
+}
+
+export function normalizeEmbeddingScore(similarity: number): number {
+  return Math.max(0, Math.min(1, (similarity + 1) / 2));
+}
+
 export function deduplicateResults(results: RecallResult[]): RecallResult[] {
   const seen = new Map<string, RecallResult>();
   for (const r of results) {

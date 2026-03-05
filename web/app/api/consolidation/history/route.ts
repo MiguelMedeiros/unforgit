@@ -35,12 +35,14 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "50", 10);
   const includeDeleted = searchParams.get("includeDeleted") === "true";
 
-  const statuses = includeDeleted ? ["active", "superseded", "deleted"] : ["active"];
+  const statuses = includeDeleted
+    ? (["active", "superseded", "deleted"] as const)
+    : (["active"] as const);
 
   const memories = store.list({
     orgId: config.remote.orgId,
     repoId: config.remote.repoId,
-    status: statuses,
+    status: [...statuses],
     limit: 500,
     sortBy: "createdAt",
     sortOrder: "desc",

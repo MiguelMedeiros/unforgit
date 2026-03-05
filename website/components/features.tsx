@@ -10,15 +10,25 @@ import {
   KeyRound,
   History,
   Search,
+  Sparkles,
+  Users,
+  Zap,
+  Server,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const features = [
   {
+    icon: Search,
+    title: "Semantic Search",
+    description: "AI embeddings find by meaning, not keywords.",
+    color: "text-dracula-purple",
+  },
+  {
     icon: Database,
     title: "Local + Remote",
-    description: "SQLite local, PostgreSQL for teams.",
+    description: "SQLite local, PostgreSQL + pgvector for teams.",
     color: "text-dracula-cyan",
   },
   {
@@ -35,39 +45,39 @@ const features = [
   },
   {
     icon: Terminal,
-    title: "Powerful CLI",
-    description: "add, recall, promote, consolidate...",
+    title: "Templates",
+    description: "decision, gotcha, playbook, bug...",
     color: "text-dracula-orange",
   },
   {
-    icon: LayoutDashboard,
-    title: "Web Dashboard",
-    description: "Browse and manage visually.",
+    icon: Sparkles,
+    title: "Smart Curation",
+    description: "AI suggests consolidations & cleanups.",
     color: "text-dracula-pink",
   },
   {
-    icon: GitMerge,
-    title: "Smart Merge",
-    description: "Auto-consolidate similar memories.",
+    icon: Users,
+    title: "Team Dashboard",
+    description: "Leaderboard, top memories, health.",
     color: "text-dracula-yellow",
   },
   {
-    icon: KeyRound,
-    title: "API Keys",
-    description: "Secure remote sync.",
+    icon: GitMerge,
+    title: "Auto-Sync",
+    description: "Background sync with conflict resolution.",
     color: "text-dracula-red",
   },
   {
-    icon: History,
-    title: "Lifecycle",
-    description: "Promote, deprecate, supersede.",
+    icon: Zap,
+    title: "Quality Score",
+    description: "Track memory health & usage.",
     color: "text-dracula-cyan",
   },
   {
-    icon: Search,
-    title: "Semantic Search",
-    description: "Find memories instantly.",
-    color: "text-dracula-purple",
+    icon: Server,
+    title: "Server-Side AI",
+    description: "Centralized AI for teams. One API key for all.",
+    color: "text-dracula-green",
   },
 ];
 

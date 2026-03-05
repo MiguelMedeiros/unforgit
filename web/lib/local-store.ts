@@ -1208,4 +1208,165 @@ export class WebLocalStore {
       notTracked: notTracked.count,
     };
   }
+
+  hasEmbedding(memoryId: string): boolean {
+    const embeddingsTable = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embeddings'")
+      .all() as Array<{ name: string }>;
+
+    if (embeddingsTable.length === 0) return false;
+
+    const row = this.db
+      .prepare("SELECT 1 FROM memory_embeddings WHERE memory_id = ?")
+      .get(memoryId);
+    return !!row;
+  }
+
+  getUsageStats(orgId: string, repoId: string): Array<{
+    memoryId: string;
+    count: number;
+    lastUsed: Date;
+  }> {
+    const usageTable = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_usage'")
+      .all() as Array<{ name: string }>;
+
+    if (usageTable.length === 0) return [];
+
+    const rows = this.db
+      .prepare(`
+        SELECT 
+          mu.memory_id,
+          COUNT(*) as count,
+          MAX(mu.recalled_at) as last_used
+        FROM memory_usage mu
+        JOIN memories m ON mu.memory_id = m.id
+        WHERE m.org_id = ? AND m.repo_id = ?
+        GROUP BY mu.memory_id
+      `)
+      .all(orgId, repoId) as Array<{
+        memory_id: string;
+        count: number;
+        last_used: string;
+      }>;
+
+    return rows.map((r) => ({
+      memoryId: r.memory_id,
+      count: r.count,
+      lastUsed: new Date(r.last_used),
+    }));
+  }
+
+  getMemoriesWithoutEmbeddings(orgId: string, repoId: string): Memory[] {
+    const embeddingsTable = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embeddings'")
+      .all() as Array<{ name: string }>;
+
+    if (embeddingsTable.length === 0) {
+      return this.list({ orgId, repoId, status: ["active"] });
+    }
+
+    const rows = this.db
+      .prepare(`
+        SELECT m.* FROM memories m
+        LEFT JOIN memory_embeddings e ON m.id = e.memory_id
+        WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active' AND e.memory_id IS NULL
+        ORDER BY m.created_at DESC
+      `)
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+
+    return rows.map(rowToMemory);
+  }
+
+  getEmbeddingStats(orgId: string, repoId: string): {
+    total: number;
+    withEmbeddings: number;
+    withoutEmbeddings: number;
+    coverage: number;
+  } {
+    const total = this.db
+      .prepare("SELECT COUNT(*) as count FROM memories WHERE org_id = ? AND repo_id = ? AND status = 'active'")
+      .get(orgId, repoId) as { count: number };
+
+    const embeddingsTable = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embeddings'")
+      .all() as Array<{ name: string }>;
+
+    if (embeddingsTable.length === 0) {
+      return {
+        total: total.count,
+        withEmbeddings: 0,
+        withoutEmbeddings: total.count,
+        coverage: 0,
+      };
+    }
+
+    const withEmbeddings = this.db
+      .prepare(`
+        SELECT COUNT(*) as count FROM memories m
+        JOIN memory_embeddings e ON m.id = e.memory_id
+        WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'
+      `)
+      .get(orgId, repoId) as { count: number };
+
+    return {
+      total: total.count,
+      withEmbeddings: withEmbeddings.count,
+      withoutEmbeddings: total.count - withEmbeddings.count,
+      coverage: total.count > 0 ? withEmbeddings.count / total.count : 1,
+    };
+  }
+
+  storeEmbedding(memoryId: string, embedding: number[], model: string): void {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS memory_embeddings (
+        memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+        embedding BLOB NOT NULL,
+        model TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+
+    const buffer = Buffer.alloc(embedding.length * 4);
+    for (let i = 0; i < embedding.length; i++) {
+      buffer.writeFloatLE(embedding[i], i * 4);
+    }
+
+    this.db
+      .prepare(`
+        INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `)
+      .run(memoryId, buffer, model);
+  }
+
+  getTopUsedMemories(orgId: string, repoId: string, limit: number = 10): Array<{
+    memory: Memory;
+    usageCount: number;
+  }> {
+    const usageTable = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_usage'")
+      .all() as Array<{ name: string }>;
+
+    if (usageTable.length === 0) return [];
+
+    const rows = this.db
+      .prepare(`
+        SELECT 
+          m.*,
+          COUNT(mu.id) as usage_count
+        FROM memories m
+        JOIN memory_usage mu ON m.id = mu.memory_id
+        WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'
+        GROUP BY m.id
+        ORDER BY usage_count DESC
+        LIMIT ?
+      `)
+      .all(orgId, repoId, limit) as Array<Record<string, unknown> & { usage_count: number }>;
+
+    return rows.map((row) => ({
+      memory: rowToMemory(row),
+      usageCount: row.usage_count,
+    }));
+  }
 }

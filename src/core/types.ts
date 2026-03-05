@@ -136,6 +136,19 @@ export interface LinkQuery {
   linkType?: LinkType;
 }
 
+export interface SyncConfig {
+  enabled: boolean;
+  intervalMs: number;
+  debounceMs: number;
+  autoResolveConflicts: "last_write_wins" | "local_wins" | "remote_wins" | "manual";
+}
+
+export interface EmbeddingConfig {
+  enabled: boolean;
+  model: string;
+  autoGenerate: boolean;
+}
+
 export interface HippoConfig {
   remote: {
     url: string;
@@ -147,6 +160,8 @@ export interface HippoConfig {
     visibility: Visibility;
     memoryType: MemoryType;
   };
+  sync?: SyncConfig;
+  embeddings?: EmbeddingConfig;
 }
 
 export interface ConsolidateMemoriesInput {

@@ -21,7 +21,14 @@ import type {
   SyncState,
   SyncStatus,
 } from "../core/types.js";
-import { computeCompositeScore } from "../core/recall.js";
+import { computeCompositeScore, computeHybridScore } from "../core/recall.js";
+import {
+  generateEmbedding,
+  serializeEmbedding,
+  deserializeEmbedding,
+  cosineSimilarity,
+  type EmbeddingConfig,
+} from "../core/embeddings.js";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS memories (
@@ -109,6 +116,24 @@ CREATE TABLE IF NOT EXISTS synced_links (
   link_id TEXT PRIMARY KEY,
   synced_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS memory_embeddings (
+  memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+  embedding BLOB NOT NULL,
+  model TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS memory_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  memory_id TEXT NOT NULL,
+  recalled_at TEXT NOT NULL DEFAULT (datetime('now')),
+  query TEXT,
+  session_id TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_usage_memory ON memory_usage(memory_id);
+CREATE INDEX IF NOT EXISTS idx_memory_usage_recalled ON memory_usage(recalled_at);
 `;
 
 function rowToLink(row: Record<string, unknown>): MemoryLink {
@@ -246,6 +271,37 @@ export class LocalStore {
           sync_status TEXT NOT NULL DEFAULT 'pending_push' CHECK(sync_status IN ('synced','pending_push','pending_pull','conflict'))
         );
         CREATE INDEX IF NOT EXISTS idx_sync_state_status ON sync_state(sync_status);
+      `);
+    }
+
+    const embeddingTables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embeddings'")
+      .all() as Array<{ name: string }>;
+    if (embeddingTables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS memory_embeddings (
+          memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+          embedding BLOB NOT NULL,
+          model TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+    }
+
+    const usageTables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_usage'")
+      .all() as Array<{ name: string }>;
+    if (usageTables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS memory_usage (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          memory_id TEXT NOT NULL,
+          recalled_at TEXT NOT NULL DEFAULT (datetime('now')),
+          query TEXT,
+          session_id TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_memory_usage_memory ON memory_usage(memory_id);
+        CREATE INDEX IF NOT EXISTS idx_memory_usage_recalled ON memory_usage(recalled_at);
       `);
     }
   }
@@ -1541,7 +1597,6 @@ export class LocalStore {
   }
 
   cleanupOrphanLinks(): number {
-    // Remove links where either source or target memory is deleted or doesn't exist
     const result = this.db
       .prepare(
         `DELETE FROM memory_links
@@ -1557,7 +1612,6 @@ export class LocalStore {
       )
       .run();
 
-    // Also clean up synced_links for removed links
     this.db
       .prepare(
         `DELETE FROM synced_links
@@ -1566,6 +1620,270 @@ export class LocalStore {
       .run();
 
     return result.changes;
+  }
+
+  async storeEmbedding(
+    memoryId: string,
+    embedding: number[],
+    model: string
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const blob = serializeEmbedding(embedding);
+
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, created_at)
+         VALUES (?, ?, ?, ?)`
+      )
+      .run(memoryId, blob, model, now);
+  }
+
+  async generateAndStoreEmbedding(
+    memoryId: string,
+    text: string,
+    config?: EmbeddingConfig
+  ): Promise<void> {
+    try {
+      const result = await generateEmbedding(text, config);
+      await this.storeEmbedding(memoryId, result.embedding, result.model);
+    } catch (error) {
+      console.error(`Failed to generate embedding for ${memoryId}:`, error);
+    }
+  }
+
+  getEmbedding(memoryId: string): number[] | undefined {
+    const row = this.db
+      .prepare("SELECT embedding FROM memory_embeddings WHERE memory_id = ?")
+      .get(memoryId) as { embedding: Buffer } | undefined;
+
+    if (!row) return undefined;
+    return deserializeEmbedding(row.embedding);
+  }
+
+  hasEmbedding(memoryId: string): boolean {
+    const row = this.db
+      .prepare("SELECT 1 FROM memory_embeddings WHERE memory_id = ?")
+      .get(memoryId);
+    return !!row;
+  }
+
+  getAllEmbeddings(
+    orgId: string,
+    repoId: string
+  ): Array<{ memoryId: string; embedding: number[] }> {
+    const rows = this.db
+      .prepare(
+        `SELECT e.memory_id, e.embedding FROM memory_embeddings e
+         JOIN memories m ON e.memory_id = m.id
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'`
+      )
+      .all(orgId, repoId) as Array<{ memory_id: string; embedding: Buffer }>;
+
+    return rows.map((row) => ({
+      memoryId: row.memory_id,
+      embedding: deserializeEmbedding(row.embedding),
+    }));
+  }
+
+  getMemoriesWithoutEmbeddings(orgId: string, repoId: string): Memory[] {
+    const rows = this.db
+      .prepare(
+        `SELECT m.* FROM memories m
+         LEFT JOIN memory_embeddings e ON m.id = e.memory_id
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active' AND e.memory_id IS NULL`
+      )
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+
+    return rows.map(rowToMemory);
+  }
+
+  async recallWithEmbeddings(
+    query: RecallQuery,
+    queryEmbedding?: number[]
+  ): Promise<RecallResult[]> {
+    const ftsResults = this.recall(query);
+
+    if (!queryEmbedding) {
+      return ftsResults;
+    }
+
+    const allEmbeddings = this.getAllEmbeddings(query.orgId, query.repoId);
+
+    if (allEmbeddings.length === 0) {
+      return ftsResults;
+    }
+
+    const embeddingScores = new Map<string, number>();
+    for (const { memoryId, embedding } of allEmbeddings) {
+      const similarity = cosineSimilarity(queryEmbedding, embedding);
+      embeddingScores.set(memoryId, Math.max(0, similarity));
+    }
+
+    const ftsIds = new Set(ftsResults.map((r) => r.id));
+    const k = query.k ?? 10;
+
+    const sortedByEmbedding = Array.from(embeddingScores.entries())
+      .filter(([id]) => !ftsIds.has(id))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, k);
+
+    const additionalMemories: RecallResult[] = [];
+    for (const [memoryId, similarity] of sortedByEmbedding) {
+      if (similarity < 0.3) continue;
+      const memory = this.getById(memoryId);
+      if (!memory || memory.status !== "active") continue;
+
+      additionalMemories.push({
+        id: memory.id,
+        memoryType: memory.memoryType,
+        text: memory.text,
+        summary: memory.summary,
+        tags: memory.tags,
+        sourceRefs: memory.sourceRefs,
+        score: computeHybridScore(0, similarity, memory.createdAt, memory.confidence),
+        source: "local",
+        status: memory.status,
+        supersedesId: memory.supersedesId,
+        isConsolidation: memory.isConsolidation,
+        consolidationVersion: memory.consolidationVersion,
+      });
+    }
+
+    const hybridResults = ftsResults.map((r) => {
+      const embScore = embeddingScores.get(r.id) ?? 0;
+      const memory = this.getById(r.id);
+      if (!memory) return r;
+
+      return {
+        ...r,
+        score: computeHybridScore(r.score, embScore, memory.createdAt, memory.confidence),
+      };
+    });
+
+    const combined = [...hybridResults, ...additionalMemories];
+    return combined.sort((a, b) => b.score - a.score).slice(0, k);
+  }
+
+  recordUsage(memoryId: string, query?: string, sessionId?: string): void {
+    this.db
+      .prepare(
+        `INSERT INTO memory_usage (memory_id, query, session_id) VALUES (?, ?, ?)`
+      )
+      .run(memoryId, query ?? null, sessionId ?? null);
+  }
+
+  recordUsageBatch(memoryIds: string[], query?: string, sessionId?: string): void {
+    const stmt = this.db.prepare(
+      `INSERT INTO memory_usage (memory_id, query, session_id) VALUES (?, ?, ?)`
+    );
+    const insertMany = this.db.transaction((ids: string[]) => {
+      for (const id of ids) {
+        stmt.run(id, query ?? null, sessionId ?? null);
+      }
+    });
+    insertMany(memoryIds);
+  }
+
+  getUsageCount(memoryId: string): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) as cnt FROM memory_usage WHERE memory_id = ?")
+      .get(memoryId) as { cnt: number };
+    return row.cnt;
+  }
+
+  getUsageStats(
+    orgId: string,
+    repoId: string
+  ): Array<{ memoryId: string; count: number; lastUsed: Date }> {
+    const rows = this.db
+      .prepare(
+        `SELECT u.memory_id, COUNT(*) as cnt, MAX(u.recalled_at) as last_used
+         FROM memory_usage u
+         JOIN memories m ON u.memory_id = m.id
+         WHERE m.org_id = ? AND m.repo_id = ?
+         GROUP BY u.memory_id
+         ORDER BY cnt DESC`
+      )
+      .all(orgId, repoId) as Array<{
+      memory_id: string;
+      cnt: number;
+      last_used: string;
+    }>;
+
+    return rows.map((row) => ({
+      memoryId: row.memory_id,
+      count: row.cnt,
+      lastUsed: new Date(row.last_used),
+    }));
+  }
+
+  getTopUsedMemories(
+    orgId: string,
+    repoId: string,
+    limit = 10
+  ): Array<{ memory: Memory; usageCount: number }> {
+    const rows = this.db
+      .prepare(
+        `SELECT m.*, COUNT(u.id) as usage_count
+         FROM memories m
+         LEFT JOIN memory_usage u ON m.id = u.memory_id
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'
+         GROUP BY m.id
+         ORDER BY usage_count DESC
+         LIMIT ?`
+      )
+      .all(orgId, repoId, limit) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      memory: rowToMemory(row),
+      usageCount: row.usage_count as number,
+    }));
+  }
+
+  getUnusedMemories(
+    orgId: string,
+    repoId: string,
+    daysSinceCreation = 30
+  ): Memory[] {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysSinceCreation);
+
+    const rows = this.db
+      .prepare(
+        `SELECT m.* FROM memories m
+         LEFT JOIN memory_usage u ON m.id = u.memory_id
+         WHERE m.org_id = ? 
+           AND m.repo_id = ? 
+           AND m.status = 'active'
+           AND m.created_at < ?
+           AND u.id IS NULL`
+      )
+      .all(orgId, repoId, cutoff.toISOString()) as Array<Record<string, unknown>>;
+
+    return rows.map(rowToMemory);
+  }
+
+  getEmbeddingStats(orgId: string, repoId: string): {
+    total: number;
+    withEmbedding: number;
+    withoutEmbedding: number;
+  } {
+    const row = this.db
+      .prepare(
+        `SELECT 
+           COUNT(m.id) as total,
+           COUNT(e.memory_id) as with_embedding
+         FROM memories m
+         LEFT JOIN memory_embeddings e ON m.id = e.memory_id
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'`
+      )
+      .get(orgId, repoId) as { total: number; with_embedding: number };
+
+    return {
+      total: row.total,
+      withEmbedding: row.with_embedding,
+      withoutEmbedding: row.total - row.with_embedding,
+    };
   }
 
   close(): void {

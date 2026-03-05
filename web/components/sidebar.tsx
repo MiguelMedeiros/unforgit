@@ -9,12 +9,16 @@ import {
   GitFork,
   History,
   Settings,
+  Sparkles,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/memories", label: "Memories", icon: Database },
+  { href: "/curation", label: "Curation", icon: Sparkles },
+  { href: "/team", label: "Team", icon: Users },
   { href: "/history", label: "History", icon: History },
   { href: "/graph", label: "Graph", icon: GitFork },
   { href: "/settings", label: "Settings", icon: Settings },

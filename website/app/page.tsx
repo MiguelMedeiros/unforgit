@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { Features } from "@/components/features";
+import { SemanticSearch } from "@/components/semantic-search";
 import { TeamMemory } from "@/components/team-memory";
 import { ELI5 } from "@/components/eli5";
 import { HowItWorks } from "@/components/how-it-works";
@@ -15,6 +16,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Features />
+      <SemanticSearch />
       <TeamMemory />
       <ELI5 />
       <HowItWorks />

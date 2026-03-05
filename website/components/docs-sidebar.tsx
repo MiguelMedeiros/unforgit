@@ -10,6 +10,9 @@ import {
   Settings,
   Menu,
   X,
+  Search,
+  Sparkles,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +21,26 @@ const sections = [
     id: "overview",
     title: "Overview",
     icon: Brain,
+  },
+  {
+    id: "semantic-search",
+    title: "Semantic Search",
+    icon: Search,
+    subsections: [
+      { id: "embeddings-overview", title: "How It Works" },
+      { id: "embeddings-commands", title: "CLI Commands" },
+      { id: "hybrid-scoring", title: "Hybrid Scoring" },
+    ],
+  },
+  {
+    id: "curation",
+    title: "Curation & Health",
+    icon: Sparkles,
+    subsections: [
+      { id: "quality-score", title: "Quality Score" },
+      { id: "suggestions", title: "AI Suggestions" },
+      { id: "templates", title: "Memory Templates" },
+    ],
   },
   {
     id: "cli",
@@ -73,6 +96,16 @@ const sections = [
     subsections: [
       { id: "config-yaml", title: "hippo.yaml" },
       { id: "config-env", title: "Environment Variables" },
+    ],
+  },
+  {
+    id: "server-ai",
+    title: "Server-Side AI (Teams)",
+    icon: Users,
+    subsections: [
+      { id: "server-ai-config", title: "Configuration" },
+      { id: "server-ai-endpoints", title: "AI Endpoints" },
+      { id: "server-ai-example", title: "Example" },
     ],
   },
 ];

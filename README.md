@@ -67,6 +67,48 @@ hippo recall "race condition" --local-only
 hippo recall "auth decisions" --remote-only
 ```
 
+### Templates
+
+Use templates for common memory types:
+
+```bash
+# Decision (semantic, auto-tagged)
+hippo add --template decision "We're using PostgreSQL instead of MySQL for better JSON support"
+
+# Gotcha (episodic, warning)
+hippo add --template gotcha "OAuth callback requires HTTPS in production"
+
+# Playbook (procedural, how-to)
+hippo add --template playbook "To deploy: make release && kubectl apply -f k8s/"
+
+# Bug fix
+hippo add --template bug "Fixed race condition in queue worker by adding mutex"
+
+# Other templates: adr, convention, workaround, perf, security, api
+hippo add --list-templates
+```
+
+### Semantic Search with Embeddings
+
+Hippocampus uses OpenAI embeddings for semantic search, finding memories by meaning rather than just keywords.
+
+```bash
+# Generate embeddings for existing memories
+hippo embeddings backfill
+
+# Check embedding coverage
+hippo embeddings stats
+
+# Clear all embeddings (requires regeneration)
+hippo embeddings clear --yes
+```
+
+The system uses a hybrid scoring approach:
+- **50%** Semantic similarity (embeddings)
+- **20%** Text match (FTS5)
+- **15%** Recency
+- **15%** Confidence
+
 ### Promote to shared
 
 ```bash
@@ -105,6 +147,47 @@ hippo history <memory-id>
 ```
 
 The original memories are preserved and linked via `derived_from` relationships. By default, source memories are marked as `superseded` so they don't clutter recall results, but the history is always accessible.
+
+## OpenAI API Key (Optional)
+
+Hippocampus works **without** an OpenAI API key, but some advanced features require it.
+
+### What works WITHOUT OpenAI:
+
+| Feature | Status |
+|---------|--------|
+| Add memories (`hippo add`) | ✅ Full |
+| Recall via text search (`hippo recall`) | ✅ FTS5 |
+| Promote, deprecate, supersede | ✅ Full |
+| Manual consolidation (`hippo merge`) | ✅ Full |
+| Team sync (push/pull) | ✅ Full |
+| Web dashboard | ✅ Full |
+| MCP integration (Cursor) | ✅ Full |
+| Links and history | ✅ Full |
+
+### What REQUIRES OpenAI:
+
+| Feature | Description |
+|---------|-------------|
+| Semantic search | `hippo recall` uses AI embeddings for meaning-based search |
+| Embedding generation | `hippo embeddings backfill` creates vectors for existing memories |
+| Auto-consolidation | AI-powered suggestions for merging similar memories |
+| Hybrid scoring | 50% semantic + 20% FTS + 15% recency + 15% confidence |
+
+### Configuration
+
+```bash
+# Set via CLI
+hippo auth openai sk-your-api-key
+
+# Or in .hippocampus/hippo.yaml
+openaiApiKey: sk-your-api-key
+
+# Or via environment variable
+export OPENAI_API_KEY=sk-your-api-key
+```
+
+When the key is not configured, Hippocampus gracefully falls back to FTS-only search without errors.
 
 ## Sync with Remote Server
 
@@ -166,6 +249,15 @@ openaiApiKey: sk-your-openai-key
 defaults:
   visibility: auto
   memoryType: episodic
+sync:
+  enabled: true
+  intervalMs: 60000           # Sync every 60 seconds
+  debounceMs: 5000            # Wait 5s after changes before syncing
+  autoResolveConflicts: last_write_wins  # or: local_wins, remote_wins, manual
+embeddings:
+  enabled: true
+  model: text-embedding-3-small
+  autoGenerate: true          # Generate embeddings on memory creation
 ```
 
 ### Push & Pull
@@ -267,6 +359,95 @@ curl -H "Authorization: Bearer hk_your_api_key" \
 }
 ```
 
+## Server-Side AI (Team Mode)
+
+When running the Hippocampus server for a team, you can configure server-side OpenAI integration so individual developers don't need their own API keys.
+
+### Configuration
+
+Set these environment variables on the server:
+
+```bash
+# Required for AI features
+OPENAI_API_KEY=sk-your-team-api-key
+
+# Auto-generate embeddings when memories are created
+AUTO_EMBEDDING_ENABLED=true
+
+# LLM model for consolidation (default: gpt-4o-mini)
+CONSOLIDATION_MODEL=gpt-4o-mini
+```
+
+### Server AI Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/v1/recall` | **Semantic search** - hybrid FTS + embedding similarity |
+| POST | `/v1/embeddings/generate/:memoryId` | Generate embedding for one memory |
+| POST | `/v1/embeddings/backfill` | Generate embeddings for all memories |
+| GET | `/v1/embeddings/stats` | Embedding coverage statistics |
+| POST | `/v1/auto-consolidate/preview` | Find consolidation candidates |
+| POST | `/v1/auto-consolidate` | Auto-consolidate with LLM |
+| POST | `/v1/auto-consolidate/execute` | Execute specific group |
+| GET | `/v1/suggestions` | AI-powered curation suggestions |
+| GET | `/v1/health/repo` | Repository health report |
+
+### Example: Semantic Search
+
+When `OPENAI_API_KEY` is set on the server, `/v1/recall` automatically uses hybrid scoring:
+
+```bash
+curl -X POST http://localhost:3737/v1/recall \
+  -H "Authorization: Bearer hk_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org","repoId":"repo","query":"how to release to production"}'
+```
+
+Response includes `searchType: "hybrid"` when semantic search is active.
+
+### Example: Auto-Consolidation
+
+```bash
+# Preview candidates
+curl -X POST http://localhost:3737/v1/auto-consolidate/preview \
+  -H "Authorization: Bearer hk_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org","repoId":"repo","threshold":0.5}'
+
+# Execute consolidation
+curl -X POST http://localhost:3737/v1/auto-consolidate \
+  -H "Authorization: Bearer hk_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId":"org","repoId":"repo","maxGroups":5}'
+```
+
+### Example: Health Check
+
+```bash
+curl "http://localhost:3737/v1/health/repo?orgId=org&repoId=repo" \
+  -H "Authorization: Bearer hk_xxx"
+```
+
+Returns:
+
+```json
+{
+  "overall": "healthy",
+  "score": 85,
+  "metrics": {
+    "totalMemories": 150,
+    "embeddingCoverage": 92,
+    "consolidationRatio": 15
+  },
+  "recommendations": ["Consider consolidating similar memories"],
+  "serverCapabilities": {
+    "semanticSearch": true,
+    "autoConsolidation": true,
+    "autoEmbedding": true
+  }
+}
+```
+
 ## Agent Tools
 
 Import and use the programmatic interface:
@@ -334,7 +515,8 @@ Restart Cursor after adding the MCP config.
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `hippo_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?`, `expandHistory?` |
-| `hippo_add` | Store a new memory | `text`, `type`, `tags?` |
+| `hippo_add` | Store a new memory | `text`, `type?`, `tags?`, `template?` |
+| `hippo_embedding_recall` | Semantic search using embeddings | `query`, `types?`, `tags?`, `k?` |
 | `hippo_consolidate` | Merge multiple memories into one | `sourceIds`, `consolidatedText`, `memoryType?`, `tags?` |
 | `hippo_reconsolidate` | Update existing consolidation | `existingConsolidationId`, `newText`, `additionalSourceIds?`, `tags?` |
 | `hippo_find_similar` | Find memories similar to a given one | `memoryId`, `threshold?`, `k?` |
@@ -342,6 +524,11 @@ Restart Cursor after adding the MCP config.
 | `hippo_link` | Create link between memories | `sourceId`, `targetId`, `linkType` |
 | `hippo_unlink` | Remove link between memories | `sourceId`, `targetId`, `linkType` |
 | `hippo_links` | Get all links for a memory | `memoryId`, `linkType?` |
+| `hippo_sync_status` | Get sync status and embedding coverage | - |
+| `hippo_suggestions` | Get AI-powered curation suggestions | `maxSuggestions?` |
+| `hippo_health` | Get repository memory health report | - |
+| `hippo_notifications` | Get pending notifications | - |
+| `hippo_templates` | List available memory templates | - |
 
 The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.hippocampus/hippo.yaml` in the current workspace.
 
@@ -369,18 +556,37 @@ src/
 ├── mcp/             # MCP server (hippo-mcp)
 │   └── index.ts     # Stdio transport + tools
 ├── cli/             # Commander CLI (hippo)
-│   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede
+│   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede, embeddings
 │   └── index.ts     # CLI entry point
 ├── core/            # Shared domain logic
 │   ├── types.ts     # TypeScript types
 │   ├── schemas.ts   # Zod validation schemas
 │   ├── policy.ts    # Auto-visibility policy
-│   └── recall.ts    # Merge + dedup + rank
+│   ├── recall.ts    # Merge + dedup + rank + hybrid scoring
+│   ├── embeddings.ts    # OpenAI embeddings generation & similarity
+│   ├── quality.ts       # Memory quality scoring
+│   ├── suggestions.ts   # Curation suggestions generation
+│   ├── notifications.ts # Notification system
+│   ├── templates.ts     # Memory templates (decision, gotcha, playbook, etc.)
+│   └── sync-service.ts  # Background sync service
 ├── db/              # Data access
-│   ├── local.ts     # SQLite + FTS5
-│   └── remote.ts    # Prisma + PostgreSQL
+│   ├── local.ts     # SQLite + FTS5 + embeddings + usage tracking
+│   └── remote.ts    # Prisma + PostgreSQL + pgvector
 └── tools/           # Agent tool functions
     └── index.ts     # recall, store, promote, consolidate
+
+web/                 # Local dashboard (Next.js)
+├── app/
+│   ├── curation/    # Curation dashboard with suggestions
+│   ├── team/        # Team leaderboard and metrics
+│   └── ...
+└── components/
+
+website/             # Public website and docs (Next.js)
+├── app/
+│   ├── docs/        # Documentation
+│   └── ...
+└── components/
 ```
 
 ## Development

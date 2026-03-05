@@ -18,7 +18,7 @@ export function createAuthMiddleware(store: RemoteStore) {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
-    if (PUBLIC_ROUTES.includes(request.url)) {
+    if (PUBLIC_ROUTES.includes(request.url) || request.url.startsWith("/v1/admin")) {
       return;
     }
 

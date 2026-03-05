@@ -10,6 +10,11 @@ import {
   executeConsolidation,
   formatCandidatePreview,
 } from "../core/auto-consolidate.js";
+import { generateEmbedding } from "../core/embeddings.js";
+import { generateSuggestions, formatSuggestion } from "../core/suggestions.js";
+import { computeRepositoryHealth, type MemoryStats } from "../core/quality.js";
+import { getTemplate, applyTemplate, formatTemplateList, MEMORY_TEMPLATES } from "../core/templates.js";
+import { getNotifications, formatNotificationsSummary } from "../core/notifications.js";
 
 const cwd = process.cwd();
 
@@ -151,7 +156,7 @@ const AUTO_LINK_MAX = 3;
 
 server.tool(
   "hippo_add",
-  "Store a memory in the local repository knowledge base. Use for decisions, conventions, bugs, gotchas, and procedures worth remembering across sessions. Automatically links to related existing memories.",
+  "Store a memory in the local repository knowledge base. Use for decisions, conventions, bugs, gotchas, and procedures worth remembering across sessions. Automatically links to related existing memories. Use templates for common memory types.",
   {
     text: z
       .string()
@@ -159,32 +164,53 @@ server.tool(
       .describe("Memory content (concise, self-contained)"),
     type: z
       .enum(["episodic", "semantic", "procedural"])
+      .optional()
       .describe(
-        "episodic = observations/bugs, semantic = facts/decisions, procedural = workflows/playbooks",
+        "episodic = observations/bugs, semantic = facts/decisions, procedural = workflows/playbooks (auto-set if using template)",
       ),
     tags: z
       .array(z.string())
       .optional()
       .default([])
       .describe("Tags for discoverability (e.g. auth, bug, deploy)"),
+    template: z
+      .enum(Object.keys(MEMORY_TEMPLATES) as [string, ...string[]])
+      .optional()
+      .describe("Template: decision, gotcha, playbook, bug, convention, adr, deploy, workaround, perf, security, api"),
     autoLink: z
       .boolean()
       .optional()
       .default(true)
       .describe("Automatically link to related memories (default: true)"),
   },
-  async ({ text, type, tags, autoLink }) => {
+  async ({ text, type, tags, template, autoLink }) => {
     const { store, orgId, repoId } = getStore();
     const author = getGitAuthor();
 
     try {
+      let memoryText = text;
+      let memoryType = (type ?? "episodic") as MemoryType;
+      let memoryTags = tags;
+      let visibility: "private" | "repo" = "private";
+
+      if (template) {
+        const tmpl = getTemplate(template);
+        if (tmpl) {
+          const applied = applyTemplate(tmpl, text, tags);
+          memoryText = applied.text;
+          memoryType = applied.memoryType;
+          memoryTags = applied.tags;
+          visibility = applied.visibility === "auto" ? "private" : applied.visibility;
+        }
+      }
+
       const input = {
         orgId,
         repoId,
-        memoryType: type as MemoryType,
-        text,
-        tags,
-        visibility: "private" as const,
+        memoryType,
+        text: memoryText,
+        tags: memoryTags,
+        visibility: visibility as const,
         authorId: author.authorId,
         authorName: author.authorName,
       };
@@ -1004,6 +1030,291 @@ server.tool(
     } finally {
       store.close();
     }
+  },
+);
+
+server.tool(
+  "hippo_sync_status",
+  "Get the sync status between local and remote storage. Shows pending pushes, pulls, and conflicts.",
+  {},
+  async () => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const summary = store.getSyncSummary(orgId, repoId);
+      const embeddingStats = store.getEmbeddingStats(orgId, repoId);
+
+      const parts = [
+        "Sync Status",
+        "===========",
+        `Synced:        ${summary.synced}`,
+        `Pending Push:  ${summary.pendingPush}`,
+        `Pending Pull:  ${summary.pendingPull}`,
+        `Conflicts:     ${summary.conflicts}`,
+        "",
+        "Embedding Coverage",
+        "==================",
+        `With embedding:    ${embeddingStats.withEmbedding}`,
+        `Without embedding: ${embeddingStats.withoutEmbedding}`,
+        `Coverage:          ${embeddingStats.total > 0 ? ((embeddingStats.withEmbedding / embeddingStats.total) * 100).toFixed(1) : 0}%`,
+      ];
+
+      if (summary.conflicts > 0) {
+        parts.push("");
+        parts.push("Warning: You have unresolved conflicts. Run 'hippo status' for details.");
+      }
+
+      if (embeddingStats.withoutEmbedding > 0) {
+        parts.push("");
+        parts.push(`Tip: Run 'hippo embeddings backfill' to generate missing embeddings for better semantic search.`);
+      }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_embedding_recall",
+  "Search memories using semantic embeddings for better relevance. Falls back to text search if embeddings are unavailable.",
+  {
+    query: z.string().describe("Search query (natural language)"),
+    types: z
+      .array(z.enum(["episodic", "semantic", "procedural"]))
+      .optional()
+      .describe("Filter by memory types"),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe("Filter by tags"),
+    k: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .optional()
+      .default(10)
+      .describe("Max number of results"),
+  },
+  async ({ query, types, tags, k }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      let queryEmbedding: number[] | undefined;
+
+      try {
+        const embResult = await generateEmbedding(query);
+        queryEmbedding = embResult.embedding;
+      } catch {
+        debug("Embedding generation failed, falling back to FTS");
+      }
+
+      const results = await store.recallWithEmbeddings(
+        {
+          orgId,
+          repoId,
+          query,
+          types: types as MemoryType[] | undefined,
+          tags,
+          k,
+        },
+        queryEmbedding
+      );
+
+      if (results.length === 0) {
+        return {
+          content: [{ type: "text", text: "No memories found." }],
+        };
+      }
+
+      const searchMethod = queryEmbedding ? "semantic + text" : "text only";
+      const formatted = results.map((r) => {
+        const consolidationMarker = r.isConsolidation
+          ? ` [consolidated v${r.consolidationVersion ?? 1}]`
+          : "";
+        const parts = [
+          `[${r.memoryType}] ${r.id.slice(0, 8)}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
+          r.text,
+        ];
+        if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
+        return parts.join("\n");
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Found ${results.length} memories (${searchMethod}):\n\n${formatted.join("\n\n")}`,
+          },
+        ],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_suggestions",
+  "Get AI-powered curation suggestions for improving memory quality. Analyzes memories and suggests consolidations, deprecations, and improvements.",
+  {
+    maxSuggestions: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .optional()
+      .default(10)
+      .describe("Maximum number of suggestions to return"),
+  },
+  async ({ maxSuggestions }) => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const result = generateSuggestions(store, orgId, repoId, {
+        maxSuggestions,
+      });
+
+      const parts = [
+        "Curation Suggestions",
+        "====================",
+        `Analyzed ${result.stats.memoriesAnalyzed} memories`,
+        `Found ${result.stats.suggestionsGenerated} suggestions`,
+        "",
+      ];
+
+      if (result.suggestions.length === 0) {
+        parts.push("No suggestions at this time. Your memory base is healthy!");
+      } else {
+        for (const suggestion of result.suggestions) {
+          parts.push(formatSuggestion(suggestion));
+          parts.push("");
+        }
+      }
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_health",
+  "Get the health status of the repository memory base. Shows quality metrics and identifies areas needing attention.",
+  {},
+  async () => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const memories = store.list({
+        orgId,
+        repoId,
+        status: ["active"],
+        limit: 500,
+      });
+
+      const usageStats = store.getUsageStats(orgId, repoId);
+      const usageMap = new Map(usageStats.map((s) => [s.memoryId, s]));
+
+      const memoryData = memories.map((memory) => {
+        const usage = usageMap.get(memory.id);
+        const links = store.getLinks({ memoryId: memory.id });
+        const hasEmbedding = store.hasEmbedding(memory.id);
+
+        const stats: MemoryStats = {
+          recallCount: usage?.count ?? 0,
+          linkCount: links.length,
+          hasEmbedding,
+          daysSinceCreation: Math.floor(
+            (Date.now() - memory.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+          ),
+          daysSinceLastRecall: usage
+            ? Math.floor(
+                (Date.now() - usage.lastUsed.getTime()) / (1000 * 60 * 60 * 24)
+              )
+            : null,
+        };
+
+        return { memory, stats };
+      });
+
+      const health = computeRepositoryHealth(memoryData);
+
+      const statusEmoji = {
+        healthy: "✅",
+        needs_attention: "⚠️",
+        critical: "🔴",
+      };
+
+      const parts = [
+        "Repository Health Report",
+        "========================",
+        `${statusEmoji[health.status]} Status: ${health.status.replace("_", " ").toUpperCase()}`,
+        `Overall Score: ${Math.round(health.overallScore * 100)}%`,
+        "",
+        "Memory Counts",
+        `  Total:           ${health.memoryCounts.total}`,
+        `  Healthy:         ${health.memoryCounts.healthy}`,
+        `  Needs Attention: ${health.memoryCounts.needsAttention}`,
+        `  Critical:        ${health.memoryCounts.critical}`,
+      ];
+
+      if (health.topIssues.length > 0) {
+        parts.push("");
+        parts.push("Top Issues");
+        for (const issue of health.topIssues) {
+          parts.push(`  [${issue.type}] ${issue.count}x: ${issue.description}`);
+        }
+      }
+
+      parts.push("");
+      parts.push("Run 'hippo_suggestions' for specific recommendations.");
+
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_notifications",
+  "Get pending notifications about sync status, conflicts, missing embeddings, and curation suggestions. Run this periodically to stay informed.",
+  {},
+  async () => {
+    const { store, orgId, repoId } = getStore();
+
+    try {
+      const result = getNotifications(store, orgId, repoId);
+      const formatted = formatNotificationsSummary(result);
+
+      return {
+        content: [{ type: "text", text: formatted }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "hippo_templates",
+  "List available memory templates for common use cases like decisions, gotchas, playbooks, etc.",
+  {},
+  async () => {
+    const list = formatTemplateList();
+    return {
+      content: [{ type: "text", text: list }],
+    };
   },
 );
 

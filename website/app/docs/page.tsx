@@ -184,6 +184,127 @@ export default function DocsPage() {
         </motion.div>
       </Section>
 
+      {/* Semantic Search Section */}
+      <Section id="semantic-search" title="Semantic Search">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="prose prose-invert max-w-none"
+        >
+          <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
+            Hippocampus uses AI embeddings for semantic search, finding memories by meaning rather than just keywords.
+            This means searching for "deployment process" will find memories about "release workflow" even without exact word matches.
+          </p>
+
+          <Subsection id="embeddings-overview" title="How It Works">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
+              <ol className="text-sm text-dracula-foreground/70 space-y-2 list-decimal list-inside">
+                <li>When you add a memory, Hippocampus generates a vector embedding using OpenAI's <code className="text-dracula-cyan">text-embedding-3-small</code> model</li>
+                <li>Embeddings are stored alongside the memory (SQLite locally, pgvector in PostgreSQL for teams)</li>
+                <li>On recall, both text search (FTS5) and embedding similarity are combined for best results</li>
+              </ol>
+            </div>
+          </Subsection>
+
+          <Subsection id="embeddings-commands" title="CLI Commands">
+            <div className="space-y-4">
+              <Terminal
+                title="Generate embeddings for existing memories"
+                code="$ hippo embeddings backfill"
+              />
+              <Terminal
+                title="Check embedding coverage"
+                code="$ hippo embeddings stats"
+              />
+            </div>
+          </Subsection>
+
+          <Subsection id="hybrid-scoring" title="Hybrid Scoring">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+              <p className="text-sm text-dracula-foreground/70 mb-3">
+                Results are ranked using a hybrid scoring algorithm:
+              </p>
+              <ul className="text-sm text-dracula-foreground/70 space-y-1">
+                <li><span className="text-dracula-purple font-bold">50%</span> - Semantic similarity (embeddings)</li>
+                <li><span className="text-dracula-cyan font-bold">20%</span> - Text match (FTS5)</li>
+                <li><span className="text-dracula-green font-bold">15%</span> - Recency</li>
+                <li><span className="text-dracula-orange font-bold">15%</span> - Confidence score</li>
+              </ul>
+            </div>
+          </Subsection>
+        </motion.div>
+      </Section>
+
+      {/* Curation & Health Section */}
+      <Section id="curation" title="Curation & Health">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="prose prose-invert max-w-none"
+        >
+          <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
+            Keep your memory base healthy with AI-powered curation suggestions, quality scoring, and memory templates.
+          </p>
+
+          <Subsection id="quality-score" title="Quality Score">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
+              <p className="text-sm text-dracula-foreground/70 mb-3">
+                Each memory gets a quality score (0-100%) based on:
+              </p>
+              <ul className="text-sm text-dracula-foreground/70 space-y-1">
+                <li><span className="text-dracula-purple">Text Quality</span> - Length and clarity</li>
+                <li><span className="text-dracula-cyan">Usage</span> - How often it's recalled</li>
+                <li><span className="text-dracula-green">Links</span> - Connections to other memories</li>
+                <li><span className="text-dracula-orange">Tags</span> - Discoverability</li>
+                <li><span className="text-dracula-pink">Embeddings</span> - Semantic search ready</li>
+                <li><span className="text-dracula-yellow">Age</span> - Recent use vs. stale</li>
+              </ul>
+            </div>
+          </Subsection>
+
+          <Subsection id="suggestions" title="AI Suggestions">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
+              <p className="text-sm text-dracula-foreground/70 mb-3">
+                Hippocampus proactively suggests improvements:
+              </p>
+              <ul className="text-sm text-dracula-foreground/70 space-y-1">
+                <li><span className="text-dracula-purple">Consolidate</span> - Merge similar memories (&gt;70% similarity)</li>
+                <li><span className="text-dracula-red">Deprecate</span> - Old memories with no recalls</li>
+                <li><span className="text-dracula-cyan">Add Tags</span> - Improve discoverability</li>
+                <li><span className="text-dracula-green">Promote</span> - Share popular private memories with team</li>
+                <li><span className="text-dracula-orange">Generate Embeddings</span> - Enable semantic search</li>
+              </ul>
+            </div>
+            <Terminal
+              title="MCP Tool"
+              code="hippo_suggestions  # Get AI-powered curation suggestions"
+            />
+          </Subsection>
+
+          <Subsection id="templates" title="Memory Templates">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
+              <p className="text-sm text-dracula-foreground/70 mb-3">
+                Templates auto-configure memory type and tags:
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div><code className="text-dracula-green">decision</code> - Technical decisions</div>
+                <div><code className="text-dracula-orange">gotcha</code> - Non-obvious issues</div>
+                <div><code className="text-dracula-cyan">playbook</code> - Step-by-step guides</div>
+                <div><code className="text-dracula-red">bug</code> - Bug fixes</div>
+                <div><code className="text-dracula-purple">adr</code> - Architecture decisions</div>
+                <div><code className="text-dracula-pink">convention</code> - Coding standards</div>
+                <div><code className="text-dracula-yellow">workaround</code> - Temporary fixes</div>
+                <div><code className="text-dracula-green">perf</code> - Performance notes</div>
+              </div>
+            </div>
+            <Terminal
+              title="Using templates"
+              code={`$ hippo add --template decision "Using PostgreSQL for JSON support"\n$ hippo add --template gotcha "OAuth needs HTTPS in prod"`}
+            />
+          </Subsection>
+        </motion.div>
+      </Section>
+
       {/* CLI Reference Section */}
       <Section id="cli" title="CLI Reference">
         <p className="text-dracula-foreground/70 mb-6">
@@ -233,6 +354,10 @@ export default function DocsPage() {
                 },
                 { flag: "--tags <tags>", description: "Comma-separated tags" },
                 {
+                  flag: "--template <name>",
+                  description: "Use template (decision, gotcha, playbook, bug, adr, convention, workaround, perf, security, api)",
+                },
+                {
                   flag: "--visibility <visibility>",
                   description: "Visibility (private|repo|auto)",
                   default: "auto",
@@ -247,8 +372,9 @@ export default function DocsPage() {
                   description: "Confidence score (0-1)",
                 },
                 { flag: "--ttl <seconds>", description: "Time to live" },
+                { flag: "--list-templates", description: "List available templates" },
               ]}
-              example='hippo add "Always use UTC timestamps" --type semantic --tags "convention,time"'
+              example='hippo add --template decision "Using PostgreSQL for better JSON support"'
             />
 
             <CommandReference
@@ -1062,7 +1188,7 @@ export default function DocsPage() {
                     Store a new memory
                   </td>
                   <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    text, type, tags?, autoLink?
+                    text, type?, tags?, template?, autoLink?
                   </td>
                 </tr>
                 <tr>
@@ -1204,6 +1330,72 @@ export default function DocsPage() {
                   <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
                     threshold?, minGroupSize?, maxGroups?, types?, dryRun?,
                     execute?, model?
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_embedding_recall</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    Semantic search with embeddings
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    query, types?, tags?, k?
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_sync_status</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    Sync status & embedding coverage
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    -
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_suggestions</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    AI curation suggestions
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    maxSuggestions?
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_health</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    Repository health report
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    -
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_notifications</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    Pending notifications
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    -
+                  </td>
+                </tr>
+                <tr className="bg-dracula-purple/10">
+                  <td className="py-3 px-4">
+                    <code className="text-dracula-purple">hippo_templates</code>
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/70">
+                    List memory templates
+                  </td>
+                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
+                    -
                   </td>
                 </tr>
               </tbody>
@@ -1368,10 +1560,15 @@ export default function DocsPage() {
                 Example .env file
               </h4>
               <Terminal
-                code={`DATABASE_URL=postgresql://hippocampus:hippocampus@postgres:5432/hippocampus
-PORT=3737
-HOST=0.0.0.0
-OPENAI_API_KEY=sk-your-openai-key`}
+                code={`# Required for server-side AI features
+OPENAI_API_KEY=sk-your-openai-key
+
+# Optional: auto-generate embeddings on memory creation
+AUTO_EMBEDDING_ENABLED=true
+
+# Note: DATABASE_URL is already set in docker-compose.yml
+# Only add if running without Docker:
+# DATABASE_URL=postgresql://user:pass@localhost:5432/hippocampus`}
                 title=".env"
                 language="yaml"
               />
@@ -1671,7 +1868,18 @@ openaiApiKey: sk-your-openai-key
 
 defaults:
   visibility: auto
-  memoryType: episodic`}
+  memoryType: episodic
+
+sync:
+  enabled: true
+  intervalMs: 60000           # Sync every 60 seconds
+  debounceMs: 5000            # Wait 5s after changes
+  autoResolveConflicts: last_write_wins  # local_wins, remote_wins, manual
+
+embeddings:
+  enabled: true
+  model: text-embedding-3-small
+  autoGenerate: true`}
             title=".hippocampus/hippo.yaml"
             language="yaml"
             showLineNumbers
@@ -1709,6 +1917,26 @@ defaults:
               <li>
                 <code className="text-dracula-cyan">defaults.memoryType</code> -
                 Default memory type
+              </li>
+              <li>
+                <code className="text-dracula-cyan">sync.enabled</code> -
+                Enable/disable automatic sync
+              </li>
+              <li>
+                <code className="text-dracula-cyan">sync.intervalMs</code> -
+                Sync interval in milliseconds
+              </li>
+              <li>
+                <code className="text-dracula-cyan">sync.autoResolveConflicts</code> -
+                Conflict resolution strategy
+              </li>
+              <li>
+                <code className="text-dracula-cyan">embeddings.enabled</code> -
+                Enable semantic search
+              </li>
+              <li>
+                <code className="text-dracula-cyan">embeddings.autoGenerate</code> -
+                Auto-generate embeddings on add
               </li>
             </ul>
           </div>
@@ -1797,12 +2025,150 @@ defaults:
                       <code className="text-dracula-cyan">OPENAI_API_KEY</code>
                     </td>
                     <td className="py-2 px-3 text-dracula-foreground/70">
-                      For server-side auto-consolidation
+                      For server-side semantic search & auto-consolidation
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3">
+                      <code className="text-dracula-cyan">AUTO_EMBEDDING_ENABLED</code>
+                    </td>
+                    <td className="py-2 px-3 text-dracula-foreground/70">
+                      Auto-generate embeddings on memory creation (true/false)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3">
+                      <code className="text-dracula-cyan">CONSOLIDATION_MODEL</code>
+                    </td>
+                    <td className="py-2 px-3 text-dracula-foreground/70">
+                      LLM model for consolidation (default: gpt-4o-mini)
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </div>
+        </Subsection>
+      </Section>
+
+      <Section id="server-ai" title="Server-Side AI (Teams)">
+        <p className="text-dracula-foreground/80 mb-6">
+          For team deployments, configure the server with a single OpenAI API key
+          to provide semantic search and auto-consolidation for all developers.
+        </p>
+
+        <Subsection id="server-ai-config" title="Configuration">
+          <Terminal code={`# .env on server
+OPENAI_API_KEY=sk-your-team-api-key
+AUTO_EMBEDDING_ENABLED=true
+CONSOLIDATION_MODEL=gpt-4o-mini`} title="Environment" />
+          <p className="text-sm text-dracula-foreground/70 mt-4">
+            With these settings, every memory created via the API automatically gets an embedding,
+            and all search requests use hybrid semantic + FTS scoring.
+          </p>
+        </Subsection>
+
+        <Subsection id="server-ai-endpoints" title="AI Endpoints">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-dracula-current/50">
+                  <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
+                    Endpoint
+                  </th>
+                  <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dracula-current/30">
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">POST /v1/recall</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Hybrid search (semantic + FTS) when OpenAI key is set
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">POST /v1/embeddings/backfill</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Generate embeddings for all memories without one
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">GET /v1/embeddings/stats</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Embedding coverage statistics
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">POST /v1/auto-consolidate/preview</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Find consolidation candidates without executing
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">POST /v1/auto-consolidate</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Auto-consolidate with LLM
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">GET /v1/suggestions</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    AI-powered curation suggestions
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3">
+                    <code className="text-dracula-cyan">GET /v1/health/repo</code>
+                  </td>
+                  <td className="py-2 px-3 text-dracula-foreground/70">
+                    Repository health report with recommendations
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Subsection>
+
+        <Subsection id="server-ai-example" title="Example: Health Check">
+          <Terminal code={`curl "http://localhost:3737/v1/health/repo?orgId=org&repoId=repo" \\
+  -H "Authorization: Bearer hk_xxx"`} title="Terminal" />
+          <p className="text-sm text-dracula-foreground/70 mt-4">
+            Returns overall health score, embedding coverage, consolidation ratio,
+            and recommendations for improving memory quality.
+          </p>
+          <div className="rounded-lg bg-dracula-current/30 p-4 mt-4 overflow-x-auto">
+            <pre className="text-sm text-dracula-foreground/90 font-mono">{`{
+  "overall": "healthy",
+  "score": 85,
+  "metrics": {
+    "totalMemories": 150,
+    "embeddingCoverage": 92,
+    "consolidationRatio": 15,
+    "staleCount": 5
+  },
+  "recommendations": [
+    "Consider consolidating similar memories"
+  ],
+  "serverCapabilities": {
+    "semanticSearch": true,
+    "autoConsolidation": true,
+    "autoEmbedding": true
+  }
+}`}</pre>
           </div>
         </Subsection>
       </Section>

@@ -78,5 +78,16 @@ export function defaultConfig(): HippoConfig {
       visibility: "auto",
       memoryType: "episodic",
     },
+    sync: {
+      enabled: true,
+      intervalMs: 60000,
+      debounceMs: 5000,
+      autoResolveConflicts: "last_write_wins",
+    },
+    embeddings: {
+      enabled: true,
+      model: "text-embedding-3-small",
+      autoGenerate: true,
+    },
   };
 }

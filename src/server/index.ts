@@ -9,7 +9,13 @@ import { consolidateRoutes } from "./routes/consolidate.js";
 import { linkRoutes } from "./routes/links.js";
 import { syncRoutes } from "./routes/sync.js";
 import { apiKeyRoutes } from "./routes/api-keys.js";
+import { embeddingRoutes } from "./routes/embeddings.js";
+import { autoConsolidateRoutes } from "./routes/auto-consolidate.js";
+import { suggestionsRoutes } from "./routes/suggestions.js";
+import { healthRoutes } from "./routes/health.js";
+import { adminRoutes } from "./routes/admin.js";
 import { registerAuthMiddleware } from "./middleware/auth.js";
+import { isOpenAIConfigured } from "../core/embeddings.js";
 
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });
@@ -27,7 +33,20 @@ export async function buildApp(connectionString: string) {
   await app.register(syncRoutes, { store });
   await app.register(apiKeyRoutes, { store });
 
-  app.get("/health", async () => ({ status: "ok" }));
+  await embeddingRoutes(app, store);
+  await autoConsolidateRoutes(app, store);
+  await suggestionsRoutes(app, store);
+  await healthRoutes(app, store);
+  await app.register(adminRoutes, { store });
+
+  app.get("/health", async () => ({
+    status: "ok",
+    capabilities: {
+      semanticSearch: isOpenAIConfigured(),
+      autoConsolidation: isOpenAIConfigured(),
+      autoEmbedding: process.env.AUTO_EMBEDDING_ENABLED === "true",
+    },
+  }));
 
   app.addHook("onClose", async () => {
     await store.disconnect();

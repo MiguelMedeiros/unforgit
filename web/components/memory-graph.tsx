@@ -618,8 +618,8 @@ export function MemoryGraph() {
   const filteredStats = useMemo(() => {
     const linkedIds = new Set<string>();
     for (const link of graphData.links) {
-      const sourceId = typeof link.source === "string" ? link.source : link.source.id;
-      const targetId = typeof link.target === "string" ? link.target : link.target.id;
+      const sourceId = typeof link.source === "string" ? link.source : (link.source as GraphNode).id;
+      const targetId = typeof link.target === "string" ? link.target : (link.target as GraphNode).id;
       linkedIds.add(sourceId);
       linkedIds.add(targetId);
     }
@@ -788,7 +788,6 @@ export function MemoryGraph() {
                       borderColor: color,
                       borderWidth: 2,
                       borderStyle: "solid",
-                      ringColor: color,
                     }}
                   />
                   <span className={`text-[11px] capitalize ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
