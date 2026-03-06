@@ -27,14 +27,18 @@ export const deprecateCommand = new Command("deprecate")
     }
 
     const store = new LocalStore(getDbPath());
-    const ok = store.deprecate(id, opts.reason);
-    store.close();
 
-    if (!ok) {
-      console.error(`Error: Memory ${id} not found.`);
-      process.exit(1);
+    try {
+      const ok = store.deprecate(id, opts.reason);
+
+      if (!ok) {
+        console.error(`Error: Memory ${id} not found.`);
+        process.exit(1);
+      }
+
+      console.log(`Deprecated local memory ${id.slice(0, 8)}...`);
+      if (opts.reason) console.log(`  Reason: ${opts.reason}`);
+    } finally {
+      store.close();
     }
-
-    console.log(`Deprecated local memory ${id.slice(0, 8)}...`);
-    if (opts.reason) console.log(`  Reason: ${opts.reason}`);
   });

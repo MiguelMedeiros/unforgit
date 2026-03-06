@@ -28,25 +28,27 @@ export const deleteCommand = new Command("delete")
     }
 
     const store = new LocalStore(getDbPath());
-    
-    let ok: boolean;
-    if (opts.hard) {
-      ok = store.hardDelete(id);
-    } else {
-      ok = store.softDelete({ id, deletedBy: opts.by });
-    }
-    
-    store.close();
 
-    if (!ok) {
-      console.error(`Error: Memory ${id} not found.`);
-      process.exit(1);
-    }
+    try {
+      let ok: boolean;
+      if (opts.hard) {
+        ok = store.hardDelete(id);
+      } else {
+        ok = store.softDelete({ id, deletedBy: opts.by });
+      }
 
-    const action = opts.hard ? "Hard deleted" : "Soft deleted";
-    console.log(`${action} local memory ${id.slice(0, 8)}...`);
-    if (!opts.hard) {
-      console.log("  This memory can be restored with 'hippo restore'.");
+      if (!ok) {
+        console.error(`Error: Memory ${id} not found.`);
+        process.exit(1);
+      }
+
+      const action = opts.hard ? "Hard deleted" : "Soft deleted";
+      console.log(`${action} local memory ${id.slice(0, 8)}...`);
+      if (!opts.hard) {
+        console.log("  This memory can be restored with 'hippo restore'.");
+      }
+    } finally {
+      store.close();
     }
   });
 
@@ -72,13 +74,17 @@ export const restoreCommand = new Command("restore")
     }
 
     const store = new LocalStore(getDbPath());
-    const ok = store.restore(id);
-    store.close();
 
-    if (!ok) {
-      console.error(`Error: Memory ${id} not found or not deleted.`);
-      process.exit(1);
+    try {
+      const ok = store.restore(id);
+
+      if (!ok) {
+        console.error(`Error: Memory ${id} not found or not deleted.`);
+        process.exit(1);
+      }
+
+      console.log(`Restored local memory ${id.slice(0, 8)}...`);
+    } finally {
+      store.close();
     }
-
-    console.log(`Restored local memory ${id.slice(0, 8)}...`);
   });

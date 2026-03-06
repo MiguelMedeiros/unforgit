@@ -15,6 +15,7 @@
     "dev:admin": "cd admin && next dev -p 3939",
     "dev:website": "cd website && next dev -p 3000",
     "build": "tsup",
+    "prepublishOnly": "pnpm build",
     "build:web": "cd web && next build",
     "build:admin": "cd admin && next build",
     "build:website": "cd website && next build",
@@ -33,6 +34,22 @@
     "repository"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MiguelMedeiros/hippocampus.git"
+  },
+  "homepage": "https://github.com/MiguelMedeiros/hippocampus",
+  "bugs": {
+    "url": "https://github.com/MiguelMedeiros/hippocampus/issues"
+  },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@modelcontextprotocol/sdk": "^1.27.1",

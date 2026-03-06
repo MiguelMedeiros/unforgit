@@ -3,6 +3,7 @@ import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.
 import fs from "node:fs";
 import YAML from "yaml";
 import type { HippoConfig } from "../../core/types.js";
+import { maskKey } from "../utils.js";
 
 interface ExtendedHippoConfig extends HippoConfig {
   openaiApiKey?: string;
@@ -40,8 +41,8 @@ configCommand
     console.log("remote.url =", config.remote.url || "(not set)");
     console.log("remote.orgId =", config.remote.orgId || "(not set)");
     console.log("remote.repoId =", config.remote.repoId || "(not set)");
-    console.log("remote.apiKey =", config.remote.apiKey ? `${config.remote.apiKey.slice(0, 10)}...` : "(not set)");
-    console.log("openaiApiKey =", config.openaiApiKey ? `${config.openaiApiKey.slice(0, 10)}...` : "(not set)");
+    console.log("remote.apiKey =", config.remote.apiKey ? maskKey(config.remote.apiKey) : "(not set)");
+    console.log("openaiApiKey =", config.openaiApiKey ? maskKey(config.openaiApiKey) : "(not set)");
     console.log("defaults.visibility =", config.defaults.visibility);
     console.log("defaults.memoryType =", config.defaults.memoryType);
   });
@@ -65,7 +66,7 @@ configCommand
     }
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
-      console.log(value ? `${String(value).slice(0, 10)}...` : "(not set)");
+      console.log(value ? maskKey(String(value)) : "(not set)");
     } else {
       console.log(value);
     }
@@ -87,7 +88,7 @@ configCommand
     saveExtendedConfig(config);
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
-      console.log(`${key} = ${value.slice(0, 10)}...`);
+      console.log(`${key} = ${maskKey(value)}`);
     } else {
       console.log(`${key} = ${value}`);
     }

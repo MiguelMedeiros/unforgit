@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
+import { truncate } from "../utils.js";
 
 export const statusCommand = new Command("status")
   .description("Show the working tree status (pending sync state)")
@@ -14,25 +15,28 @@ export const statusCommand = new Command("status")
 
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
-    const orgId = config.remote.orgId || "local";
-    const repoId = config.remote.repoId || "local";
 
-    const branch = "main";
-    const remoteUrl = config.remote.url;
-    const remoteName = "origin";
+    try {
+      const orgId = config.remote.orgId || "local";
+      const repoId = config.remote.repoId || "local";
 
-    const pendingPush = store.getPendingPush();
-    const conflicts = store.getConflicts();
-    const untracked = store.getUntrackedMemories(orgId, repoId);
-    const summary = store.getSyncSummary(orgId, repoId);
+      const branch = "main";
+      const remoteUrl = config.remote.url;
+      const remoteName = "origin";
 
-    if (opts.short) {
-      printShortStatus(pendingPush, conflicts, untracked);
-    } else {
-      printLongStatus(branch, remoteName, remoteUrl, pendingPush, conflicts, untracked, summary);
+      const pendingPush = store.getPendingPush();
+      const conflicts = store.getConflicts();
+      const untracked = store.getUntrackedMemories(orgId, repoId);
+      const summary = store.getSyncSummary(orgId, repoId);
+
+      if (opts.short) {
+        printShortStatus(pendingPush, conflicts, untracked);
+      } else {
+        printLongStatus(branch, remoteName, remoteUrl, pendingPush, conflicts, untracked, summary);
+      }
+    } finally {
+      store.close();
     }
-
-    store.close();
   });
 
 function printShortStatus(
@@ -113,8 +117,3 @@ function printLongStatus(
   console.log(`${total} change(s) pending`);
 }
 
-function truncate(text: string, maxLength: number): string {
-  const singleLine = text.replace(/\n/g, " ").trim();
-  if (singleLine.length <= maxLength) return singleLine;
-  return singleLine.slice(0, maxLength - 3) + "...";
-}

@@ -4,6 +4,7 @@ import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { mergeAndRank } from "../../core/recall.js";
 import type { MemoryType, RecallResult } from "../../core/types.js";
+import { parsePositiveInt } from "../schemas.js";
 
 export const recallCommand = new Command("recall")
   .description("Recall memories matching a query")
@@ -18,7 +19,7 @@ export const recallCommand = new Command("recall")
   .option("--local-only", "Only query local")
   .action(async (query, opts) => {
     const config = loadConfig();
-    const k = parseInt(opts.limit, 10);
+    const k = parsePositiveInt(opts.limit, "limit");
     const types = opts.types
       ? (opts.types.split(",").map((t: string) => t.trim()) as MemoryType[])
       : undefined;
@@ -39,14 +40,16 @@ export const recallCommand = new Command("recall")
     };
 
     if (!opts.remoteOnly) {
+      let store: LocalStore | undefined;
       try {
-        const store = new LocalStore(getDbPath());
+        store = new LocalStore(getDbPath());
         localResults = store.recall(recallQuery);
-        store.close();
       } catch {
         if (!opts.localOnly) {
           console.error("Warning: Local store not available");
         }
+      } finally {
+        store?.close();
       }
     }
 

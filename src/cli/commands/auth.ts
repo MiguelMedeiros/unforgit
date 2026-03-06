@@ -3,6 +3,7 @@ import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.
 import fs from "node:fs";
 import YAML from "yaml";
 import type { HippoConfig } from "../../core/types.js";
+import { maskKey } from "../utils.js";
 
 interface ExtendedHippoConfig extends HippoConfig {
   openaiApiKey?: string;
@@ -19,6 +20,23 @@ function loadExtendedConfig(): ExtendedHippoConfig {
 function saveExtendedConfig(config: ExtendedHippoConfig): void {
   const configPath = getConfigPath();
   fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
+}
+
+function checkConfigPermissions(): void {
+  if (process.platform === "win32") return;
+  try {
+    const configPath = getConfigPath();
+    const stat = fs.statSync(configPath);
+    const mode = stat.mode & 0o777;
+    if (mode & 0o044) {
+      console.error(
+        `warning: ${configPath} is readable by others (mode ${mode.toString(8)}). ` +
+        `Consider running: chmod 600 ${configPath}`,
+      );
+    }
+  } catch {
+    // ignore — file might not exist yet
+  }
 }
 
 export const authCommand = new Command("auth")
@@ -43,9 +61,10 @@ authCommand
     config.remote.apiKey = apiKey;
     saveConfig(config);
 
+    checkConfigPermissions();
     console.log("API key configured successfully!");
     console.log(`  Remote: ${config.remote.url}`);
-    console.log(`  Key: ${apiKey.slice(0, 10)}...${apiKey.slice(-4)}`);
+    console.log(`  Key: ${maskKey(apiKey)}`);
   });
 
 authCommand
@@ -64,9 +83,11 @@ authCommand
     console.log(`  Org ID: ${config.remote.orgId || "(not configured)"}`);
     console.log(`  Repo ID: ${config.remote.repoId || "(not configured)"}`);
 
-    if (config.remote.apiKey) {
-      const key = config.remote.apiKey;
-      console.log(`  API Key: ${key.slice(0, 10)}...${key.slice(-4)}`);
+    const effectiveApiKey = config.remote.apiKey || process.env.HIPPO_API_KEY;
+
+    if (effectiveApiKey) {
+      const source = config.remote.apiKey ? "config" : "env (HIPPO_API_KEY)";
+      console.log(`  API Key: ${maskKey(effectiveApiKey)} (from ${source})`);
 
       if (config.remote.url) {
         console.log("\nTesting connection...");
@@ -76,7 +97,7 @@ authCommand
             console.log("  ✓ Server reachable");
 
             const authRes = await fetch(`${config.remote.url}/v1/api-keys`, {
-              headers: { Authorization: `Bearer ${config.remote.apiKey}` },
+              headers: { Authorization: `Bearer ${effectiveApiKey}` },
             });
             if (authRes.ok) {
               console.log("  ✓ API key valid");
@@ -94,8 +115,10 @@ authCommand
       }
     } else {
       console.log("  API Key: (not configured)");
-      console.log("\nRun 'hippo auth set <api-key>' to configure authentication.");
+      console.log("\nRun 'hippo auth set <api-key>' or set HIPPO_API_KEY env var.");
     }
+
+    checkConfigPermissions();
   });
 
 authCommand
@@ -138,8 +161,9 @@ authCommand
     config.openaiApiKey = apiKey;
     saveExtendedConfig(config);
 
+    checkConfigPermissions();
     console.log("OpenAI API key configured successfully!");
-    console.log(`  Key: ${apiKey.slice(0, 10)}...${apiKey.slice(-4)}`);
+    console.log(`  Key: ${maskKey(apiKey)}`);
     console.log("\nYou can now use 'hippo auto-consolidate' for AI-powered consolidation.");
   });
 

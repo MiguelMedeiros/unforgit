@@ -16,21 +16,21 @@ export const pullCommand = new Command("pull")
 
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
-    const orgId = config.remote.orgId || "local";
-    const repoId = config.remote.repoId || "local";
-
-    if (!config.remote.url) {
-      console.error(`fatal: No remote '${remote}' configured.`);
-      console.error("Use 'hippo remote add origin <url>' to add a remote.");
-      store.close();
-      process.exit(1);
-    }
-
-    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
-
-    console.log(`Fetching from ${remote} (${config.remote.url})...`);
 
     try {
+      const orgId = config.remote.orgId || "local";
+      const repoId = config.remote.repoId || "local";
+
+      if (!config.remote.url) {
+        console.error(`fatal: No remote '${remote}' configured.`);
+        console.error("Use 'hippo remote add origin <url>' to add a remote.");
+        process.exit(1);
+      }
+
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+
+      console.log(`Fetching from ${remote} (${config.remote.url})...`);
+
       const response = await client.recall({
         orgId,
         repoId,
@@ -43,7 +43,6 @@ export const pullCommand = new Command("pull")
 
       if (remoteMemories.length === 0) {
         console.log("Already up to date (no memories on remote)");
-        store.close();
         return;
       }
 
@@ -63,7 +62,6 @@ export const pullCommand = new Command("pull")
         console.log(`\nWould pull:`);
         console.log(`  ${newCount} new memories`);
         console.log(`  ${updateCount} updates`);
-        store.close();
         return;
       }
 
@@ -166,9 +164,8 @@ export const pullCommand = new Command("pull")
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.error(`fatal: Could not fetch from remote: ${errorMsg}`);
-      store.close();
       process.exit(1);
+    } finally {
+      store.close();
     }
-
-    store.close();
   });

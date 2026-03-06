@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
+import { truncate } from "../utils.js";
 
 export const diffCommand = new Command("diff")
   .description("Show differences between local and remote memories")
@@ -15,24 +16,26 @@ export const diffCommand = new Command("diff")
 
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
-    const orgId = config.remote.orgId || "local";
-    const repoId = config.remote.repoId || "local";
 
-    if (!config.remote.url) {
-      console.error("fatal: No remote configured.");
+    try {
+      const orgId = config.remote.orgId || "local";
+      const repoId = config.remote.repoId || "local";
+
+      if (!config.remote.url) {
+        console.error("fatal: No remote configured.");
+        process.exit(1);
+      }
+
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+
+      if (memoryId) {
+        await diffSingleMemory(store, client, memoryId, orgId, repoId);
+      } else {
+        await diffAll(store, client, orgId, repoId, opts.stat);
+      }
+    } finally {
       store.close();
-      process.exit(1);
     }
-
-    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
-
-    if (memoryId) {
-      await diffSingleMemory(store, client, memoryId, orgId, repoId);
-    } else {
-      await diffAll(store, client, orgId, repoId, opts.stat);
-    }
-
-    store.close();
   });
 
 async function diffSingleMemory(
@@ -164,8 +167,3 @@ function findFullId(store: LocalStore, partialId: string, orgId: string, repoId:
   return match?.id ?? null;
 }
 
-function truncate(text: string, maxLength: number): string {
-  const singleLine = text.replace(/\n/g, " ").trim();
-  if (singleLine.length <= maxLength) return singleLine;
-  return singleLine.slice(0, maxLength - 3) + "...";
-}

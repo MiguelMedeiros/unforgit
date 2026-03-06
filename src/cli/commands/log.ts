@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
+import { parsePositiveInt, validateMemoryType } from "../schemas.js";
 
 export const logCommand = new Command("log")
   .description("Show memory history log")
@@ -17,63 +18,71 @@ export const logCommand = new Command("log")
 
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
-    const orgId = config.remote.orgId || "local";
-    const repoId = config.remote.repoId || "local";
 
-    const limit = parseInt(opts.maxCount, 10);
-    const types = opts.type ? [opts.type] : undefined;
-    const status = opts.all ? undefined : ["active" as const];
+    try {
+      const orgId = config.remote.orgId || "local";
+      const repoId = config.remote.repoId || "local";
 
-    const memories = store.list({
-      orgId,
-      repoId,
-      types,
-      status,
-      limit,
-      sortBy: "createdAt",
-      sortOrder: "desc",
-    });
+      const limit = parsePositiveInt(opts.maxCount, "max-count");
 
-    if (memories.length === 0) {
-      console.log("No memories found.");
-      store.close();
-      return;
-    }
-
-    let filteredMemories = memories;
-    if (opts.tags) {
-      const filterTags = opts.tags.split(",").map((t: string) => t.trim());
-      filteredMemories = memories.filter((m) =>
-        m.tags.some((t) => filterTags.includes(t))
-      );
-    }
-
-    if (opts.oneline) {
-      for (const mem of filteredMemories) {
-        const typeIcon = getTypeIcon(mem.memoryType);
-        const text = mem.text.replace(/\n/g, " ").slice(0, 60);
-        console.log(`${mem.id.slice(0, 7)} ${typeIcon} ${text}${mem.text.length > 60 ? "..." : ""}`);
+      if (opts.type && !validateMemoryType(opts.type)) {
+        console.error(`error: Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
+        process.exit(1);
       }
-    } else {
-      for (const mem of filteredMemories) {
-        const typeIcon = getTypeIcon(mem.memoryType);
-        const date = mem.createdAt.toISOString().split("T")[0];
-        const time = mem.createdAt.toISOString().split("T")[1].slice(0, 5);
-        
-        console.log(`\x1b[33mmemory ${mem.id}\x1b[0m`);
-        console.log(`Type:   ${typeIcon} ${mem.memoryType}`);
-        console.log(`Date:   ${date} ${time}`);
-        console.log(`Status: ${mem.status}`);
-        if (mem.tags.length > 0) {
-          console.log(`Tags:   ${mem.tags.join(", ")}`);
+
+      const types = opts.type ? [opts.type] : undefined;
+      const status = opts.all ? undefined : ["active" as const];
+
+      const memories = store.list({
+        orgId,
+        repoId,
+        types,
+        status,
+        limit,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+
+      if (memories.length === 0) {
+        console.log("No memories found.");
+        return;
+      }
+
+      let filteredMemories = memories;
+      if (opts.tags) {
+        const filterTags = opts.tags.split(",").map((t: string) => t.trim());
+        filteredMemories = memories.filter((m) =>
+          m.tags.some((t) => filterTags.includes(t))
+        );
+      }
+
+      if (opts.oneline) {
+        for (const mem of filteredMemories) {
+          const typeIcon = getTypeIcon(mem.memoryType);
+          const text = mem.text.replace(/\n/g, " ").slice(0, 60);
+          console.log(`${mem.id.slice(0, 7)} ${typeIcon} ${text}${mem.text.length > 60 ? "..." : ""}`);
         }
-        console.log();
-        console.log(`    ${mem.text.split("\n").join("\n    ")}`);
-        console.log();
+      } else {
+        for (const mem of filteredMemories) {
+          const typeIcon = getTypeIcon(mem.memoryType);
+          const date = mem.createdAt.toISOString().split("T")[0];
+          const time = mem.createdAt.toISOString().split("T")[1].slice(0, 5);
+          
+          console.log(`\x1b[33mmemory ${mem.id}\x1b[0m`);
+          console.log(`Type:   ${typeIcon} ${mem.memoryType}`);
+          console.log(`Date:   ${date} ${time}`);
+          console.log(`Status: ${mem.status}`);
+          if (mem.tags.length > 0) {
+            console.log(`Tags:   ${mem.tags.join(", ")}`);
+          }
+          console.log();
+          console.log(`    ${mem.text.split("\n").join("\n    ")}`);
+          console.log();
+        }
       }
+    } finally {
+      store.close();
     }
-
-    store.close();
   });
 
 function getTypeIcon(type: string): string {

@@ -102,17 +102,21 @@ export const unlinkCommand = new Command("unlink")
     }
 
     const store = new LocalStore(getDbPath());
-    const ok = store.unlink(sourceId, targetId, opts.type);
-    store.close();
 
-    if (!ok) {
-      console.error("Error: Link not found.");
-      process.exit(1);
+    try {
+      const ok = store.unlink(sourceId, targetId, opts.type);
+
+      if (!ok) {
+        console.error("Error: Link not found.");
+        process.exit(1);
+      }
+
+      console.log(
+        `Unlinked: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)}`,
+      );
+    } finally {
+      store.close();
     }
-
-    console.log(
-      `Unlinked: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)}`,
-    );
   });
 
 export const linksCommand = new Command("links")
@@ -159,23 +163,27 @@ export const linksCommand = new Command("links")
     }
 
     const store = new LocalStore(getDbPath());
-    const links = store.getLinks({
-      memoryId,
-      linkType: opts.type as LinkType | undefined,
-    });
-    store.close();
 
-    if (links.length === 0) {
-      console.log("No links found.");
-      return;
-    }
+    try {
+      const links = store.getLinks({
+        memoryId,
+        linkType: opts.type as LinkType | undefined,
+      });
 
-    console.log(`Found ${links.length} links:\n`);
-    for (const l of links) {
-      const direction =
-        l.sourceId === memoryId
-          ? `--[${l.linkType}]--> ${l.targetId.slice(0, 8)}`
-          : `<--[${l.linkType}]-- ${l.sourceId.slice(0, 8)}`;
-      console.log(`  ${l.id.slice(0, 8)}: ${direction}`);
+      if (links.length === 0) {
+        console.log("No links found.");
+        return;
+      }
+
+      console.log(`Found ${links.length} links:\n`);
+      for (const l of links) {
+        const direction =
+          l.sourceId === memoryId
+            ? `--[${l.linkType}]--> ${l.targetId.slice(0, 8)}`
+            : `<--[${l.linkType}]-- ${l.sourceId.slice(0, 8)}`;
+        console.log(`  ${l.id.slice(0, 8)}: ${direction}`);
+      }
+    } finally {
+      store.close();
     }
   });

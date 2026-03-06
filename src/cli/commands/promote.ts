@@ -18,21 +18,21 @@ export const promoteCommand = new Command("promote")
     }
 
     const store = new LocalStore(getDbPath());
-    const memory = store.getById(id);
-
-    if (!memory) {
-      console.error(`Error: Memory ${id} not found locally.`);
-      store.close();
-      process.exit(1);
-    }
-
-    const sourceRefs = { ...(memory.sourceRefs ?? {}) };
-    if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
-    if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
-
-    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
     try {
+      const memory = store.getById(id);
+
+      if (!memory) {
+        console.error(`Error: Memory ${id} not found locally.`);
+        process.exit(1);
+      }
+
+      const sourceRefs = { ...(memory.sourceRefs ?? {}) };
+      if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
+      if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
+
+      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+
       const result = await client.store({
         orgId: config.remote.orgId || memory.orgId,
         repoId: config.remote.repoId || memory.repoId,
@@ -46,16 +46,16 @@ export const promoteCommand = new Command("promote")
       });
 
       store.updateVisibility(id, "repo");
-      store.close();
 
       console.log(`Promoted memory ${id.slice(0, 8)}... to remote.`);
       console.log(`  Remote ID: ${result.id}`);
       console.log(`  Scope: ${opts.to}`);
     } catch (err) {
-      store.close();
       console.error(
         `Error promoting memory: ${err instanceof Error ? err.message : err}`,
       );
       process.exit(1);
+    } finally {
+      store.close();
     }
   });

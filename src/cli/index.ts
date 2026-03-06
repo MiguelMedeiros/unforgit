@@ -28,13 +28,54 @@ import { keysCommand } from "./commands/keys.js";
 import { authCommand } from "./commands/auth.js";
 import { configCommand } from "./commands/config.js";
 import { embeddingsCommand } from "./commands/embeddings.js";
+import { createRequire } from "node:module";
+import { setVerbosity } from "./logger.js";
+import { EXIT_ERROR, EXIT_SIGINT, EXIT_SIGTERM } from "./exit-codes.js";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
+
+const cleanupHandlers: Array<() => void> = [];
+export function registerCleanup(fn: () => void) {
+  cleanupHandlers.push(fn);
+}
+export function unregisterCleanup(fn: () => void) {
+  const idx = cleanupHandlers.indexOf(fn);
+  if (idx >= 0) cleanupHandlers.splice(idx, 1);
+}
+
+function runCleanup() {
+  for (const fn of cleanupHandlers) {
+    try { fn(); } catch { /* best-effort */ }
+  }
+}
+
+process.on("SIGINT", () => { runCleanup(); process.exit(EXIT_SIGINT); });
+process.on("SIGTERM", () => { runCleanup(); process.exit(EXIT_SIGTERM); });
+process.on("uncaughtException", (err) => {
+  console.error(`fatal: ${err.message}`);
+  runCleanup();
+  process.exit(EXIT_ERROR);
+});
+process.on("unhandledRejection", (err) => {
+  console.error(`fatal: ${err instanceof Error ? err.message : err}`);
+  runCleanup();
+  process.exit(EXIT_ERROR);
+});
 
 const program = new Command();
 
 program
   .name("hippo")
   .description("Hippocampus — repository memory for agents and developers")
-  .version("0.1.0");
+  .version(pkg.version)
+  .option("--verbose", "Enable verbose output")
+  .option("--quiet", "Suppress non-essential output")
+  .hook("preAction", () => {
+    const opts = program.opts();
+    if (opts.quiet) setVerbosity(0);
+    else if (opts.verbose) setVerbosity(2);
+  });
 
 program.addCommand(initCommand);
 program.addCommand(addCommand);
@@ -68,4 +109,8 @@ program.addCommand(authCommand);
 program.addCommand(configCommand);
 program.addCommand(embeddingsCommand);
 
-program.parse();
+program.parseAsync().catch((err) => {
+  console.error(`fatal: ${err instanceof Error ? err.message : err}`);
+  runCleanup();
+  process.exit(EXIT_ERROR);
+});

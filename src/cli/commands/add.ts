@@ -4,6 +4,7 @@ import { LocalStore } from "../../db/local.js";
 import { resolveVisibility } from "../../core/policy.js";
 import type { MemoryType } from "../../core/types.js";
 import { getTemplate, applyTemplate, formatTemplateList } from "../../core/templates.js";
+import { validateMemoryType, parseConfidence, parseTtl } from "../schemas.js";
 
 export const addCommand = new Command("add")
   .description("Add a memory (local by default)")
@@ -34,66 +35,73 @@ export const addCommand = new Command("add")
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
 
-    let userTags = opts.tags
-      ? opts.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
-      : [];
+    try {
+      let userTags = opts.tags
+        ? opts.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
+        : [];
 
-    let memoryType = opts.type as MemoryType;
-    let memoryText = text;
-    let visibility = opts.visibility;
-
-    if (opts.template) {
-      const template = getTemplate(opts.template);
-      if (!template) {
-        console.error(`Unknown template: ${opts.template}`);
-        console.log("\n" + formatTemplateList());
+      if (!validateMemoryType(opts.type)) {
+        console.error(`error: Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
         process.exit(1);
       }
 
-      const applied = applyTemplate(template, text, userTags);
-      memoryText = applied.text;
-      memoryType = applied.memoryType;
-      userTags = applied.tags;
-      if (visibility === "auto") {
-        visibility = applied.visibility;
+      let memoryType = opts.type as MemoryType;
+      let memoryText = text;
+      let visibility = opts.visibility;
+
+      if (opts.template) {
+        const template = getTemplate(opts.template);
+        if (!template) {
+          console.error(`Unknown template: ${opts.template}`);
+          console.log("\n" + formatTemplateList());
+          process.exit(1);
+        }
+
+        const applied = applyTemplate(template, text, userTags);
+        memoryText = applied.text;
+        memoryType = applied.memoryType;
+        userTags = applied.tags;
+        if (visibility === "auto") {
+          visibility = applied.visibility;
+        }
+
+        console.log(`Using template: ${template.name}`);
       }
 
-      console.log(`Using template: ${template.name}`);
+      const sourceRefs: Record<string, unknown> = {};
+      if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
+      if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
+
+      const input = {
+        orgId: config.remote.orgId || "local",
+        repoId: config.remote.repoId || "local",
+        memoryType,
+        text: memoryText,
+        tags: userTags,
+        sourceRefs: Object.keys(sourceRefs).length > 0 ? sourceRefs : undefined,
+        confidence: opts.confidence ? parseConfidence(opts.confidence) : undefined,
+        ttlSeconds: opts.ttl ? parseTtl(opts.ttl) : undefined,
+        visibility,
+      };
+
+      const policy = resolveVisibility(input);
+      const memory = store.store({
+        ...input,
+        visibility: policy.visibility,
+      });
+
+      console.log(`Memory stored: ${memory.id}`);
+      console.log(`  Type: ${memory.memoryType}`);
+      console.log(`  Visibility: ${memory.visibility}`);
+      console.log(`  Tags: ${memory.tags.join(", ") || "(none)"}`);
+
+      if (policy.suggestion === "promote") {
+        console.log(
+          "\n  Hint: This memory might be useful for the team. " +
+            `Use 'hippo promote ${memory.id}' to share it.`,
+        );
+      }
+    } finally {
+      store.close();
     }
-
-    const sourceRefs: Record<string, unknown> = {};
-    if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
-    if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
-
-    const input = {
-      orgId: config.remote.orgId || "local",
-      repoId: config.remote.repoId || "local",
-      memoryType,
-      text: memoryText,
-      tags: userTags,
-      sourceRefs: Object.keys(sourceRefs).length > 0 ? sourceRefs : undefined,
-      confidence: opts.confidence ? parseFloat(opts.confidence) : undefined,
-      ttlSeconds: opts.ttl ? parseInt(opts.ttl, 10) : undefined,
-      visibility,
-    };
-
-    const policy = resolveVisibility(input);
-    const memory = store.store({
-      ...input,
-      visibility: policy.visibility,
-    });
-
-    console.log(`Memory stored: ${memory.id}`);
-    console.log(`  Type: ${memory.memoryType}`);
-    console.log(`  Visibility: ${memory.visibility}`);
-    console.log(`  Tags: ${memory.tags.join(", ") || "(none)"}`);
-
-    if (policy.suggestion === "promote") {
-      console.log(
-        "\n  Hint: This memory might be useful for the team. " +
-          `Use 'hippo promote ${memory.id}' to share it.`,
-      );
-    }
-
-    store.close();
   });

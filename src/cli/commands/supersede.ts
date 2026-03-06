@@ -28,15 +28,19 @@ export const supersedeCommand = new Command("supersede")
     }
 
     const store = new LocalStore(getDbPath());
-    const ok = store.supersede(oldId, opts.with);
-    store.close();
 
-    if (!ok) {
-      console.error(`Error: Memory ${oldId} not found.`);
-      process.exit(1);
+    try {
+      const ok = store.supersede(oldId, opts.with);
+
+      if (!ok) {
+        console.error(`Error: Memory ${oldId} not found.`);
+        process.exit(1);
+      }
+
+      console.log(
+        `Superseded local memory ${oldId.slice(0, 8)}... with ${opts.with.slice(0, 8)}...`,
+      );
+    } finally {
+      store.close();
     }
-
-    console.log(
-      `Superseded local memory ${oldId.slice(0, 8)}... with ${opts.with.slice(0, 8)}...`,
-    );
   });

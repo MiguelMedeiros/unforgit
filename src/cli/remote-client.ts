@@ -5,11 +5,25 @@ import type {
   RecallResult,
 } from "../core/types.js";
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF_MS = 1_000;
+
+function isTransientError(status: number): boolean {
+  return status >= 500 || status === 429;
+}
+
 export class RemoteClient {
   private apiKey?: string;
+  private timeoutMs: number;
 
-  constructor(private baseUrl: string, apiKey?: string) {
-    this.apiKey = apiKey;
+  constructor(
+    private baseUrl: string,
+    apiKey?: string,
+    options?: { timeoutMs?: number },
+  ) {
+    this.apiKey = apiKey || process.env.HIPPO_API_KEY;
+    this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   private getHeaders(): Record<string, string> {
@@ -32,62 +46,103 @@ export class RemoteClient {
     throw new Error(`Remote ${operation} failed (${res.status}): ${errorText}`);
   }
 
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new Error(`Request timed out after ${this.timeoutMs}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async fetchWithRetry(
+    url: string,
+    init: RequestInit,
+    operation: string,
+  ): Promise<Response> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const res = await this.fetchWithTimeout(url, init);
+
+        if (res.ok || !isTransientError(res.status)) {
+          return res;
+        }
+
+        lastError = new Error(
+          `Remote ${operation} failed (${res.status}): ${await res.text()}`,
+        );
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        const isFatalAbort =
+          lastError.message.includes("timed out") && attempt === MAX_RETRIES - 1;
+        if (isFatalAbort) throw lastError;
+      }
+
+      if (attempt < MAX_RETRIES - 1) {
+        const backoff = INITIAL_BACKOFF_MS * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+      }
+    }
+
+    throw lastError ?? new Error(`Remote ${operation} failed after ${MAX_RETRIES} retries`);
+  }
+
   async store(input: CreateMemoryInput): Promise<{ id: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(input),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory`,
+      { method: "POST", headers: this.getHeaders(), body: JSON.stringify(input) },
+      "store",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "store", err);
+      this.handleError(res, "store", await res.text());
     }
     return res.json() as Promise<{ id: string }>;
   }
 
-  async recall(
-    query: RecallQuery,
-  ): Promise<{ results: RecallResult[] }> {
-    const res = await fetch(`${this.baseUrl}/v1/recall`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(query),
-    });
+  async recall(query: RecallQuery): Promise<{ results: RecallResult[] }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/recall`,
+      { method: "POST", headers: this.getHeaders(), body: JSON.stringify(query) },
+      "recall",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "recall", err);
+      this.handleError(res, "recall", await res.text());
     }
     return res.json() as Promise<{ results: RecallResult[] }>;
   }
 
-  async deprecate(
-    id: string,
-    reason?: string,
-  ): Promise<{ ok: boolean }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${id}/deprecate`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ reason }),
-    });
+  async deprecate(id: string, reason?: string): Promise<{ ok: boolean }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${id}/deprecate`,
+      { method: "POST", headers: this.getHeaders(), body: JSON.stringify({ reason }) },
+      "deprecate",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "deprecate", err);
+      this.handleError(res, "deprecate", await res.text());
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
 
-  async supersede(
-    oldId: string,
-    newId: string,
-  ): Promise<{ ok: boolean }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${oldId}/supersede`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ newId }),
-    });
+  async supersede(oldId: string, newId: string): Promise<{ ok: boolean }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${oldId}/supersede`,
+      { method: "POST", headers: this.getHeaders(), body: JSON.stringify({ newId }) },
+      "supersede",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "supersede", err);
+      this.handleError(res, "supersede", await res.text());
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
@@ -98,14 +153,17 @@ export class RemoteClient {
     linkType: string,
     metadata?: Record<string, unknown>,
   ): Promise<{ link: MemoryLink }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${sourceId}/link`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ targetId, linkType, metadata }),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${sourceId}/link`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ targetId, linkType, metadata }),
+      },
+      "link",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "link", err);
+      this.handleError(res, "link", await res.text());
     }
     return res.json() as Promise<{ link: MemoryLink }>;
   }
@@ -115,14 +173,17 @@ export class RemoteClient {
     targetId: string,
     linkType: string,
   ): Promise<{ ok: boolean }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${sourceId}/link`, {
-      method: "DELETE",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ targetId, linkType }),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${sourceId}/link`,
+      {
+        method: "DELETE",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ targetId, linkType }),
+      },
+      "unlink",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "unlink", err);
+      this.handleError(res, "unlink", await res.text());
     }
     return res.json() as Promise<{ ok: boolean }>;
   }
@@ -136,10 +197,9 @@ export class RemoteClient {
     const qs = params.toString();
     const url = `${this.baseUrl}/v1/memory/${memoryId}/links${qs ? `?${qs}` : ""}`;
 
-    const res = await fetch(url, { headers: this.getHeaders() });
+    const res = await this.fetchWithRetry(url, { headers: this.getHeaders() }, "getLinks");
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "getLinks", err);
+      this.handleError(res, "getLinks", await res.text());
     }
     return res.json() as Promise<{ links: MemoryLink[] }>;
   }
@@ -149,14 +209,13 @@ export class RemoteClient {
     superseded: string[];
     processedCount: number;
   }> {
-    const res = await fetch(`${this.baseUrl}/v1/consolidate`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(body),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/consolidate`,
+      { method: "POST", headers: this.getHeaders(), body: JSON.stringify(body) },
+      "consolidate",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "consolidate", err);
+      this.handleError(res, "consolidate", await res.text());
     }
     return res.json() as Promise<{
       created: string[];
@@ -170,26 +229,29 @@ export class RemoteClient {
     deletedBy?: string,
     hardDelete?: boolean,
   ): Promise<{ success: boolean; action: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${id}`, {
-      method: "DELETE",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ deletedBy, hardDelete }),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${id}`,
+      {
+        method: "DELETE",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ deletedBy, hardDelete }),
+      },
+      "delete",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "delete", err);
+      this.handleError(res, "delete", await res.text());
     }
     return res.json() as Promise<{ success: boolean; action: string }>;
   }
 
   async restore(id: string): Promise<{ success: boolean }> {
-    const res = await fetch(`${this.baseUrl}/v1/memory/${id}/restore`, {
-      method: "POST",
-      headers: this.getHeaders(),
-    });
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memory/${id}/restore`,
+      { method: "POST", headers: this.getHeaders() },
+      "restore",
+    );
     if (!res.ok) {
-      const err = await res.text();
-      this.handleError(res, "restore", err);
+      this.handleError(res, "restore", await res.text());
     }
     return res.json() as Promise<{ success: boolean }>;
   }
