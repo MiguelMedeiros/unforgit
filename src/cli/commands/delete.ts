@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { loadConfig, getDbPath } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR } from "../exit-codes.js";
 
 export const deleteCommand = new Command("delete")
   .description("Soft delete a memory (can be restored)")
@@ -17,12 +19,12 @@ export const deleteCommand = new Command("delete")
       try {
         await client.delete(id, opts.by, opts.hard);
         const action = opts.hard ? "Hard deleted" : "Soft deleted";
-        console.log(`${action} remote memory ${id.slice(0, 8)}...`);
+        logger.info(`${action} remote memory ${id.slice(0, 8)}...`);
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -38,14 +40,14 @@ export const deleteCommand = new Command("delete")
       }
 
       if (!ok) {
-        console.error(`Error: Memory ${id} not found.`);
-        process.exit(1);
+        logger.error(`Memory ${id} not found.`);
+        process.exit(EXIT_ERROR);
       }
 
       const action = opts.hard ? "Hard deleted" : "Soft deleted";
-      console.log(`${action} local memory ${id.slice(0, 8)}...`);
+      logger.info(`${action} local memory ${id.slice(0, 8)}...`);
       if (!opts.hard) {
-        console.log("  This memory can be restored with 'hippo restore'.");
+        logger.info("  This memory can be restored with 'hippo restore'.");
       }
     } finally {
       store.close();
@@ -63,12 +65,12 @@ export const restoreCommand = new Command("restore")
 
       try {
         await client.restore(id);
-        console.log(`Restored remote memory ${id.slice(0, 8)}...`);
+        logger.info(`Restored remote memory ${id.slice(0, 8)}...`);
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -79,11 +81,11 @@ export const restoreCommand = new Command("restore")
       const ok = store.restore(id);
 
       if (!ok) {
-        console.error(`Error: Memory ${id} not found or not deleted.`);
-        process.exit(1);
+        logger.error(`Memory ${id} not found or not deleted.`);
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(`Restored local memory ${id.slice(0, 8)}...`);
+      logger.info(`Restored local memory ${id.slice(0, 8)}...`);
     } finally {
       store.close();
     }

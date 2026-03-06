@@ -1,5 +1,7 @@
 import { Command } from "commander";
-import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.js";
+import { isInitialized, getConfigPath } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import fs from "node:fs";
 import YAML from "yaml";
 import type { HippoConfig } from "../../core/types.js";
@@ -31,20 +33,20 @@ configCommand
   .description("List all configuration values")
   .action(() => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadExtendedConfig();
 
-    console.log("Current configuration:\n");
-    console.log("remote.url =", config.remote.url || "(not set)");
-    console.log("remote.orgId =", config.remote.orgId || "(not set)");
-    console.log("remote.repoId =", config.remote.repoId || "(not set)");
-    console.log("remote.apiKey =", config.remote.apiKey ? maskKey(config.remote.apiKey) : "(not set)");
-    console.log("openaiApiKey =", config.openaiApiKey ? maskKey(config.openaiApiKey) : "(not set)");
-    console.log("defaults.visibility =", config.defaults.visibility);
-    console.log("defaults.memoryType =", config.defaults.memoryType);
+    logger.info("Current configuration:\n");
+    logger.info(`remote.url = ${config.remote.url || "(not set)"}`);
+    logger.info(`remote.orgId = ${config.remote.orgId || "(not set)"}`);
+    logger.info(`remote.repoId = ${config.remote.repoId || "(not set)"}`);
+    logger.info(`remote.apiKey = ${config.remote.apiKey ? maskKey(config.remote.apiKey) : "(not set)"}`);
+    logger.info(`openaiApiKey = ${config.openaiApiKey ? maskKey(config.openaiApiKey) : "(not set)"}`);
+    logger.info(`defaults.visibility = ${config.defaults.visibility}`);
+    logger.info(`defaults.memoryType = ${config.defaults.memoryType}`);
   });
 
 configCommand
@@ -53,22 +55,22 @@ configCommand
   .argument("<key>", "Configuration key (e.g., remote.url, openaiApiKey)")
   .action((key) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadExtendedConfig();
     const value = getConfigValue(config, key);
 
     if (value === undefined) {
-      console.error(`fatal: key '${key}' not found`);
-      process.exit(1);
+      logger.fatal(`key '${key}' not found`);
+      process.exit(EXIT_ERROR);
     }
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
-      console.log(value ? maskKey(String(value)) : "(not set)");
+      logger.info(value ? maskKey(String(value)) : "(not set)");
     } else {
-      console.log(value);
+      logger.info(String(value));
     }
   });
 
@@ -79,8 +81,8 @@ configCommand
   .argument("<value>", "Value to set")
   .action((key, value) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadExtendedConfig();
@@ -88,9 +90,9 @@ configCommand
     saveExtendedConfig(config);
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
-      console.log(`${key} = ${maskKey(value)}`);
+      logger.info(`${key} = ${maskKey(value)}`);
     } else {
-      console.log(`${key} = ${value}`);
+      logger.info(`${key} = ${value}`);
     }
   });
 
@@ -100,15 +102,15 @@ configCommand
   .argument("<key>", "Configuration key to remove")
   .action((key) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadExtendedConfig();
     unsetConfigValue(config, key);
     saveExtendedConfig(config);
 
-    console.log(`Unset ${key}`);
+    logger.info(`Unset ${key}`);
   });
 
 function getConfigValue(config: ExtendedHippoConfig, key: string): unknown {
@@ -130,11 +132,11 @@ function setConfigValue(config: ExtendedHippoConfig, key: string, value: string)
   const parts = key.split(".");
 
   if (parts.length === 1) {
-    (config as Record<string, unknown>)[key] = value;
+    (config as unknown as Record<string, unknown>)[key] = value;
     return;
   }
 
-  let current: Record<string, unknown> = config as Record<string, unknown>;
+  let current: Record<string, unknown> = config as unknown as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (!(part in current) || typeof current[part] !== "object") {
@@ -150,11 +152,11 @@ function unsetConfigValue(config: ExtendedHippoConfig, key: string): void {
   const parts = key.split(".");
 
   if (parts.length === 1) {
-    delete (config as Record<string, unknown>)[key];
+    delete (config as unknown as Record<string, unknown>)[key];
     return;
   }
 
-  let current: Record<string, unknown> = config as Record<string, unknown>;
+  let current: Record<string, unknown> = config as unknown as Record<string, unknown>;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (!(part in current) || typeof current[part] !== "object") {

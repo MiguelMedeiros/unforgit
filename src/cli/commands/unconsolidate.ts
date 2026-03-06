@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import { getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 
 export const unconsolidateCommand = new Command("unconsolidate")
   .description("Revert a consolidation, restoring original memories to active status")
@@ -10,8 +12,8 @@ export const unconsolidateCommand = new Command("unconsolidate")
     const cwd = process.cwd();
 
     if (!isInitialized(cwd)) {
-      console.error("Error: Hippocampus not initialized. Run 'hippo init' first.");
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const dbPath = getDbPath(cwd);
@@ -20,14 +22,14 @@ export const unconsolidateCommand = new Command("unconsolidate")
     try {
       const memory = store.getById(consolidationId);
       if (!memory) {
-        console.error(`Error: Memory not found: ${consolidationId}`);
-        process.exit(1);
+        logger.error(`Memory not found: ${consolidationId}`);
+        process.exit(EXIT_ERROR);
       }
 
       if (!memory.isConsolidation) {
-        console.error(`Error: Memory ${consolidationId} is not a consolidation.`);
-        console.error("Only consolidated memories can be unconsolidated.");
-        process.exit(1);
+        logger.error(`Memory ${consolidationId} is not a consolidation.`);
+        logger.error("Only consolidated memories can be unconsolidated.");
+        process.exit(EXIT_ERROR);
       }
 
       const sourceLinks = store.getLinks({ memoryId: consolidationId, linkType: "derived_from" });
@@ -35,49 +37,48 @@ export const unconsolidateCommand = new Command("unconsolidate")
         .filter((l) => l.sourceId === consolidationId)
         .map((l) => l.targetId);
 
-      console.log(`Consolidation: ${consolidationId.slice(0, 8)}`);
-      console.log(`Version: ${memory.consolidationVersion ?? 1}`);
-      console.log(`Source memories: ${sourceIds.length}`);
-      console.log("");
+      logger.info(`Consolidation: ${consolidationId.slice(0, 8)}`);
+      logger.info(`Version: ${memory.consolidationVersion ?? 1}`);
+      logger.info(`Source memories: ${sourceIds.length}`);
 
       if (sourceIds.length === 0) {
-        console.error("No source memories found for this consolidation.");
-        process.exit(1);
+        logger.error("No source memories found for this consolidation.");
+        process.exit(EXIT_ERROR);
       }
 
-      console.log("Source memories to restore:");
+      logger.info("Source memories to restore:");
       for (const sourceId of sourceIds) {
         const source = store.getById(sourceId);
         if (source) {
           const status = source.status === "superseded" ? "will restore" : `${source.status} (no change)`;
           const preview = source.text.slice(0, 60) + (source.text.length > 60 ? "..." : "");
-          console.log(`  - ${sourceId.slice(0, 8)} [${source.memoryType}] (${status})`);
-          console.log(`    ${preview}`);
+          logger.info(`  - ${sourceId.slice(0, 8)} [${source.memoryType}] (${status})`);
+          logger.info(`    ${preview}`);
         }
       }
-      console.log("");
+      logger.info("");
 
       if (opts.dryRun) {
-        console.log("[Dry run - no changes made]");
-        console.log("Run without --dry-run to execute the unconsolidation.");
+        logger.info("[Dry run - no changes made]");
+        logger.info("Run without --dry-run to execute the unconsolidation.");
         return;
       }
 
       const result = store.unconsolidate(consolidationId);
 
-      console.log("Unconsolidation complete:");
-      console.log(`  Restored: ${result.restoredIds.length} memories`);
-      console.log(`  Links removed: ${result.linksRemoved}`);
-      console.log(`  Consolidation deleted: ${result.consolidationDeleted ? "Yes" : "No"}`);
+      logger.info("Unconsolidation complete:");
+      logger.info(`  Restored: ${result.restoredIds.length} memories`);
+      logger.info(`  Links removed: ${result.linksRemoved}`);
+      logger.info(`  Consolidation deleted: ${result.consolidationDeleted ? "Yes" : "No"}`);
 
       if (result.restoredIds.length > 0) {
-        console.log("\nRestored memories:");
+        logger.info("\nRestored memories:");
         for (const id of result.restoredIds) {
-          console.log(`  - ${id.slice(0, 8)}`);
+          logger.info(`  - ${id.slice(0, 8)}`);
         }
       }
 
-      console.log("\nThe consolidated memory has been soft-deleted and can be restored with 'hippo restore'.");
+      logger.info("\nThe consolidated memory has been soft-deleted and can be restored with 'hippo restore'.");
     } finally {
       store.close();
     }

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { logger } from "./logger.js";
+import { EXIT_ERROR } from "./exit-codes.js";
 
 export const syncConfigSchema = z.object({
   enabled: z.boolean(),
@@ -43,8 +45,17 @@ export function validateMemoryType(value: string): value is (typeof VALID_MEMORY
 export function parseConfidence(value: string): number {
   const n = parseFloat(value);
   if (Number.isNaN(n) || n < 0 || n > 1) {
-    console.error("error: --confidence must be a number between 0 and 1");
-    process.exit(1);
+    logger.error("--confidence must be a number between 0 and 1");
+    process.exit(EXIT_ERROR);
+  }
+  return n;
+}
+
+export function parseThreshold(value: string): number {
+  const n = parseFloat(value);
+  if (Number.isNaN(n) || n < 0 || n > 1) {
+    logger.error("--threshold must be a number between 0 and 1");
+    process.exit(EXIT_ERROR);
   }
   return n;
 }
@@ -52,8 +63,8 @@ export function parseConfidence(value: string): number {
 export function parseTtl(value: string): number {
   const n = parseInt(value, 10);
   if (Number.isNaN(n) || n <= 0) {
-    console.error("error: --ttl must be a positive integer (seconds)");
-    process.exit(1);
+    logger.error("--ttl must be a positive integer (seconds)");
+    process.exit(EXIT_ERROR);
   }
   return n;
 }
@@ -61,8 +72,8 @@ export function parseTtl(value: string): number {
 export function parsePositiveInt(value: string, name: string): number {
   const n = parseInt(value, 10);
   if (Number.isNaN(n) || n <= 0) {
-    console.error(`error: --${name} must be a positive integer`);
-    process.exit(1);
+    logger.error(`--${name} must be a positive integer`);
+    process.exit(EXIT_ERROR);
   }
   return n;
 }

@@ -2,6 +2,9 @@ import { Command } from "commander";
 import { LocalStore } from "../../db/local.js";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { generateEmbedding } from "../../core/embeddings.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
+import { parsePositiveInt } from "../schemas.js";
 
 const cwd = process.cwd();
 
@@ -17,14 +20,14 @@ embeddingsCommand
   .option("--model <model>", "OpenAI embedding model", "text-embedding-3-small")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      console.error("Hippocampus not initialized. Run 'hippo init' first.");
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey && !opts.dryRun) {
-      console.error("OPENAI_API_KEY not set. Required for embedding generation.");
-      process.exit(1);
+      logger.error("OPENAI_API_KEY not set. Required for embedding generation.");
+      process.exit(EXIT_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -37,37 +40,37 @@ embeddingsCommand
       const memories = store.getMemoriesWithoutEmbeddings(orgId, repoId);
       const stats = store.getEmbeddingStats(orgId, repoId);
 
-      console.log(`Embedding stats:`);
-      console.log(`  Total memories: ${stats.total}`);
-      console.log(`  With embedding: ${stats.withEmbedding}`);
-      console.log(`  Without embedding: ${stats.withoutEmbedding}`);
-      console.log();
+      logger.info(`Embedding stats:`);
+      logger.info(`  Total memories: ${stats.total}`);
+      logger.info(`  With embedding: ${stats.withEmbedding}`);
+      logger.info(`  Without embedding: ${stats.withoutEmbedding}`);
+      logger.info("");
 
       if (memories.length === 0) {
-        console.log("All memories already have embeddings.");
+        logger.info("All memories already have embeddings.");
         return;
       }
 
-      console.log(`Found ${memories.length} memories without embeddings.`);
+      logger.info(`Found ${memories.length} memories without embeddings.`);
 
       if (opts.dryRun) {
-        console.log("\n[Dry run - no changes made]");
-        console.log("Would generate embeddings for:");
+        logger.info("\n[Dry run - no changes made]");
+        logger.info("Would generate embeddings for:");
         for (const m of memories.slice(0, 10)) {
-          console.log(`  - ${m.id.slice(0, 8)}: ${m.text.slice(0, 50)}...`);
+          logger.info(`  - ${m.id.slice(0, 8)}: ${m.text.slice(0, 50)}...`);
         }
         if (memories.length > 10) {
-          console.log(`  ... and ${memories.length - 10} more`);
+          logger.info(`  ... and ${memories.length - 10} more`);
         }
         return;
       }
 
-      const batchSize = parseInt(opts.batchSize, 10);
-      const delay = parseInt(opts.delay, 10);
+      const batchSize = parsePositiveInt(opts.batchSize, "batch-size");
+      const delay = parsePositiveInt(opts.delay, "delay");
       let processed = 0;
       let errors = 0;
 
-      console.log(`\nGenerating embeddings (batch size: ${batchSize}, delay: ${delay}ms)...`);
+      logger.info(`\nGenerating embeddings (batch size: ${batchSize}, delay: ${delay}ms)...`);
 
       for (let i = 0; i < memories.length; i += batchSize) {
         const batch = memories.slice(i, i + batchSize);
@@ -81,12 +84,10 @@ embeddingsCommand
               });
               await store.storeEmbedding(memory.id, result.embedding, result.model);
               processed++;
-              process.stdout.write(
-                `\rProcessed: ${processed}/${memories.length} (${errors} errors)`
-              );
+              logger.progress(processed, memories.length, "embeddings");
             } catch (err) {
               errors++;
-              console.error(`\nError for ${memory.id.slice(0, 8)}: ${err}`);
+              logger.error(`${memory.id.slice(0, 8)}: ${err instanceof Error ? err.message : err}`);
             }
           })
         );
@@ -96,9 +97,9 @@ embeddingsCommand
         }
       }
 
-      console.log(`\n\nBackfill complete:`);
-      console.log(`  Processed: ${processed}`);
-      console.log(`  Errors: ${errors}`);
+      logger.info(`\nBackfill complete:`);
+      logger.info(`  Processed: ${processed}`);
+      logger.info(`  Errors: ${errors}`);
     } finally {
       store.close();
     }
@@ -109,8 +110,8 @@ embeddingsCommand
   .description("Show embedding statistics")
   .action(async () => {
     if (!isInitialized(cwd)) {
-      console.error("Hippocampus not initialized. Run 'hippo init' first.");
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -125,15 +126,15 @@ embeddingsCommand
         ? ((stats.withEmbedding / stats.total) * 100).toFixed(1)
         : "0";
 
-      console.log("Embedding Statistics");
-      console.log("====================");
-      console.log(`Total memories:     ${stats.total}`);
-      console.log(`With embedding:     ${stats.withEmbedding}`);
-      console.log(`Without embedding:  ${stats.withoutEmbedding}`);
-      console.log(`Coverage:           ${coverage}%`);
+      logger.info("Embedding Statistics");
+      logger.info("====================");
+      logger.info(`Total memories:     ${stats.total}`);
+      logger.info(`With embedding:     ${stats.withEmbedding}`);
+      logger.info(`Without embedding:  ${stats.withoutEmbedding}`);
+      logger.info(`Coverage:           ${coverage}%`);
 
       if (stats.withoutEmbedding > 0) {
-        console.log(`\nRun 'hippo embeddings backfill' to generate missing embeddings.`);
+        logger.info(`\nRun 'hippo embeddings backfill' to generate missing embeddings.`);
       }
     } finally {
       store.close();
@@ -146,13 +147,13 @@ embeddingsCommand
   .option("--yes", "Skip confirmation")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      console.error("Hippocampus not initialized. Run 'hippo init' first.");
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!opts.yes) {
-      console.log("This will delete all embeddings. They will need to be regenerated.");
-      console.log("Use --yes to confirm.");
+      logger.info("This will delete all embeddings. They will need to be regenerated.");
+      logger.info("Use --yes to confirm.");
       return;
     }
 
@@ -162,7 +163,7 @@ embeddingsCommand
     try {
       const db = (store as unknown as { db: { exec: (sql: string) => void } }).db;
       db.exec("DELETE FROM memory_embeddings");
-      console.log("All embeddings cleared.");
+      logger.info("All embeddings cleared.");
     } finally {
       store.close();
     }

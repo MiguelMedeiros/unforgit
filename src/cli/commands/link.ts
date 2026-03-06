@@ -3,6 +3,8 @@ import { loadConfig, getDbPath } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import type { LinkType } from "../../core/types.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR } from "../exit-codes.js";
 
 const VALID_LINK_TYPES = [
   "related_to",
@@ -22,10 +24,10 @@ export const linkCommand = new Command("link")
   .option("--remote", "Create link on remote")
   .action(async (sourceId, targetId, opts) => {
     if (!VALID_LINK_TYPES.includes(opts.type)) {
-      console.error(
-        `Error: Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
+      logger.error(
+        `Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     }
 
     if (opts.remote) {
@@ -34,14 +36,14 @@ export const linkCommand = new Command("link")
 
       try {
         const result = await client.link(sourceId, targetId, opts.type);
-        console.log(
+        logger.info(
           `Linked remote: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)} (${result.link.id.slice(0, 8)})`,
         );
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -53,14 +55,14 @@ export const linkCommand = new Command("link")
         targetId,
         linkType: opts.type as LinkType,
       });
-      console.log(
+      logger.info(
         `Linked: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)} (${link.id.slice(0, 8)})`,
       );
     } catch (err) {
-      console.error(
-        `Error: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        err instanceof Error ? err.message : String(err),
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }
@@ -77,10 +79,10 @@ export const unlinkCommand = new Command("unlink")
   .option("--remote", "Remove link on remote")
   .action(async (sourceId, targetId, opts) => {
     if (!VALID_LINK_TYPES.includes(opts.type)) {
-      console.error(
-        `Error: Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
+      logger.error(
+        `Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     }
 
     if (opts.remote) {
@@ -89,14 +91,14 @@ export const unlinkCommand = new Command("unlink")
 
       try {
         await client.unlink(sourceId, targetId, opts.type);
-        console.log(
+        logger.info(
           `Unlinked remote: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)}`,
         );
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -107,11 +109,11 @@ export const unlinkCommand = new Command("unlink")
       const ok = store.unlink(sourceId, targetId, opts.type);
 
       if (!ok) {
-        console.error("Error: Link not found.");
-        process.exit(1);
+        logger.error("Link not found.");
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(
+      logger.info(
         `Unlinked: ${sourceId.slice(0, 8)} --[${opts.type}]--> ${targetId.slice(0, 8)}`,
       );
     } finally {
@@ -129,10 +131,10 @@ export const linksCommand = new Command("links")
   .option("--remote", "List links on remote")
   .action(async (memoryId, opts) => {
     if (opts.type && !VALID_LINK_TYPES.includes(opts.type)) {
-      console.error(
-        `Error: Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
+      logger.error(
+        `Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     }
 
     if (opts.remote) {
@@ -142,22 +144,22 @@ export const linksCommand = new Command("links")
       try {
         const result = await client.getLinks(memoryId, opts.type);
         if (result.links.length === 0) {
-          console.log("No links found.");
+          logger.info("No links found.");
           return;
         }
-        console.log(`Found ${result.links.length} links:\n`);
+        logger.info(`Found ${result.links.length} links:\n`);
         for (const l of result.links) {
           const direction =
             l.sourceId === memoryId
               ? `--[${l.linkType}]--> ${l.targetId.slice(0, 8)}`
               : `<--[${l.linkType}]-- ${l.sourceId.slice(0, 8)}`;
-          console.log(`  ${l.id.slice(0, 8)}: ${direction}`);
+          logger.info(`  ${l.id.slice(0, 8)}: ${direction}`);
         }
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -171,17 +173,17 @@ export const linksCommand = new Command("links")
       });
 
       if (links.length === 0) {
-        console.log("No links found.");
+        logger.info("No links found.");
         return;
       }
 
-      console.log(`Found ${links.length} links:\n`);
+      logger.info(`Found ${links.length} links:\n`);
       for (const l of links) {
         const direction =
           l.sourceId === memoryId
             ? `--[${l.linkType}]--> ${l.targetId.slice(0, 8)}`
             : `<--[${l.linkType}]-- ${l.sourceId.slice(0, 8)}`;
-        console.log(`  ${l.id.slice(0, 8)}: ${direction}`);
+        logger.info(`  ${l.id.slice(0, 8)}: ${direction}`);
       }
     } finally {
       store.close();

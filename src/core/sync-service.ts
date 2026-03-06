@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 import type { LocalStore } from "../db/local.js";
-import type { SyncResult, SyncStatus } from "./types.js";
 
 export interface SyncConfig {
   enabled: boolean;

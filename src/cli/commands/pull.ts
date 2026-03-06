@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 
 export const pullCommand = new Command("pull")
   .description("Pull remote memories to local")
@@ -10,8 +12,8 @@ export const pullCommand = new Command("pull")
   .option("--dry-run", "Show what would be pulled without actually pulling")
   .action(async (remote, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -22,14 +24,14 @@ export const pullCommand = new Command("pull")
       const repoId = config.remote.repoId || "local";
 
       if (!config.remote.url) {
-        console.error(`fatal: No remote '${remote}' configured.`);
-        console.error("Use 'hippo remote add origin <url>' to add a remote.");
-        process.exit(1);
+        logger.fatal(`No remote '${remote}' configured.`);
+        logger.fatal("Use 'hippo remote add origin <url>' to add a remote.");
+        process.exit(EXIT_CONFIG_ERROR);
       }
 
       const client = new RemoteClient(config.remote.url, config.remote.apiKey);
 
-      console.log(`Fetching from ${remote} (${config.remote.url})...`);
+      logger.info(`Fetching from ${remote} (${config.remote.url})...`);
 
       const response = await client.recall({
         orgId,
@@ -42,7 +44,7 @@ export const pullCommand = new Command("pull")
       const remoteMemories = response.results;
 
       if (remoteMemories.length === 0) {
-        console.log("Already up to date (no memories on remote)");
+        logger.info("Already up to date (no memories on remote)");
         return;
       }
 
@@ -59,9 +61,9 @@ export const pullCommand = new Command("pull")
           }
         }
 
-        console.log(`\nWould pull:`);
-        console.log(`  ${newCount} new memories`);
-        console.log(`  ${updateCount} updates`);
+        logger.info(`\nWould pull:`);
+        logger.info(`  ${newCount} new memories`);
+        logger.info(`  ${updateCount} updates`);
         return;
       }
 
@@ -104,7 +106,8 @@ export const pullCommand = new Command("pull")
 
           created++;
           const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
-          console.log(`  ↓ ${remoteMem.id.slice(0, 8)}... new memory${statusNote}`);
+          logger.info(`  ↓ ${remoteMem.id.slice(0, 8)}... new memory${statusNote}`);
+          logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
         } else {
           const syncState = store.getSyncState(remoteMem.id);
           const localVersion = syncState?.localVersion ?? localMem.version;
@@ -113,7 +116,8 @@ export const pullCommand = new Command("pull")
           if (syncState?.syncStatus === "pending_push" && !opts.force) {
             conflicts++;
             store.markAsConflict(remoteMem.id, remoteVersion + 1);
-            console.log(`  ⚠ ${remoteMem.id.slice(0, 8)}... conflict (local has unpushed changes)`);
+            logger.info(`  ⚠ ${remoteMem.id.slice(0, 8)}... conflict (local has unpushed changes)`);
+            logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
             continue;
           }
 
@@ -122,6 +126,7 @@ export const pullCommand = new Command("pull")
 
           if (!textChanged && !statusChanged) {
             skipped++;
+            logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
             continue;
           }
 
@@ -148,23 +153,24 @@ export const pullCommand = new Command("pull")
             updated++;
             const changeType = statusChanged && !textChanged ? "status updated" : "updated";
             const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
-            console.log(`  ↓ ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
+            logger.info(`  ↓ ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
+            logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
           }
         }
       }
 
-      console.log();
-      console.log(`Pull complete:`);
-      if (created > 0) console.log(`  ${created} new memories`);
-      if (updated > 0) console.log(`  ${updated} updates`);
-      if (skipped > 0) console.log(`  ${skipped} already up to date`);
+      logger.info("");
+      logger.info(`Pull complete:`);
+      if (created > 0) logger.info(`  ${created} new memories`);
+      if (updated > 0) logger.info(`  ${updated} updates`);
+      if (skipped > 0) logger.info(`  ${skipped} already up to date`);
       if (conflicts > 0) {
-        console.log(`  ${conflicts} conflicts (use --force to overwrite local)`);
+        logger.info(`  ${conflicts} conflicts (use --force to overwrite local)`);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error(`fatal: Could not fetch from remote: ${errorMsg}`);
-      process.exit(1);
+      logger.fatal(`Could not fetch from remote: ${errorMsg}`);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }

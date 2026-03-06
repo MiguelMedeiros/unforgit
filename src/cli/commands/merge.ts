@@ -2,6 +2,13 @@ import { Command } from "commander";
 import { LocalStore } from "../../db/local.js";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import type { MemoryType } from "../../core/types.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
+import {
+  parseThreshold,
+  parsePositiveInt,
+  validateMemoryType,
+} from "../schemas.js";
 
 const cwd = process.cwd();
 
@@ -25,15 +32,18 @@ export const mergeCommand = new Command("merge")
   )
   .action(async (ids: string[], opts) => {
     if (!isInitialized(cwd)) {
-      console.error(
-        "Error: Hippocampus not initialized. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (ids.length < 2) {
-      console.error("Error: At least 2 memory IDs are required for merge.");
-      process.exit(1);
+      logger.error("At least 2 memory IDs are required for merge.");
+      process.exit(EXIT_ERROR);
+    }
+
+    if (opts.type && !validateMemoryType(opts.type)) {
+      logger.error("--type must be one of: episodic, semantic, procedural");
+      process.exit(EXIT_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -50,23 +60,23 @@ export const mergeCommand = new Command("merge")
         preserveOriginals: opts.supersede !== false,
       });
 
-      console.log("Merge complete!");
-      console.log(`  Consolidated ID: ${result.consolidatedId}`);
-      console.log(`  Version: ${result.version}`);
-      console.log(`  Sources preserved: ${result.sourcesPreserved}`);
-      console.log(
+      logger.info("Merge complete!");
+      logger.info(`  Consolidated ID: ${result.consolidatedId}`);
+      logger.info(`  Version: ${result.version}`);
+      logger.info(`  Sources preserved: ${result.sourcesPreserved}`);
+      logger.info(
         `  Source IDs: ${result.sourceIds.map((id) => id.slice(0, 8)).join(", ")}`,
       );
-      console.log();
-      console.log(
+      logger.info("");
+      logger.info(
         "Original memories are linked via 'derived_from' and marked as 'superseded'.",
       );
-      console.log("Use 'hippo history <id>' to view the consolidation history.");
+      logger.info("Use 'hippo history <id>' to view the consolidation history.");
     } catch (err) {
-      console.error(
-        `Error merging memories: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Merging memories: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }
@@ -85,10 +95,8 @@ export const remergeCommand = new Command("remerge")
   .option("--tags <tags>", "Comma-separated tags (keeps existing if not provided)")
   .action(async (consolidationId: string, opts) => {
     if (!isInitialized(cwd)) {
-      console.error(
-        "Error: Hippocampus not initialized. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -106,20 +114,20 @@ export const remergeCommand = new Command("remerge")
         tags: opts.tags ? opts.tags.split(",").map((t: string) => t.trim()) : undefined,
       });
 
-      console.log("Remerge complete!");
-      console.log(`  New consolidated ID: ${result.consolidatedId}`);
-      console.log(`  New version: ${result.version}`);
-      console.log(`  Total sources: ${result.sourcesPreserved}`);
-      console.log(
+      logger.info("Remerge complete!");
+      logger.info(`  New consolidated ID: ${result.consolidatedId}`);
+      logger.info(`  New version: ${result.version}`);
+      logger.info(`  Total sources: ${result.sourcesPreserved}`);
+      logger.info(
         `  Previous consolidation: ${consolidationId.slice(0, 8)} (now superseded)`,
       );
-      console.log();
-      console.log("Use 'hippo history <id>' to view all versions.");
+      logger.info("");
+      logger.info("Use 'hippo history <id>' to view all versions.");
     } catch (err) {
-      console.error(
-        `Error remerging: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Remerging: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }
@@ -140,10 +148,8 @@ export const similarCommand = new Command("similar")
   )
   .action(async (memoryId: string, opts) => {
     if (!isInitialized(cwd)) {
-      console.error(
-        "Error: Hippocampus not initialized. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -154,34 +160,34 @@ export const similarCommand = new Command("similar")
         orgId: config.remote.orgId || "local",
         repoId: config.remote.repoId || "local",
         memoryId,
-        threshold: parseFloat(opts.threshold),
-        k: parseInt(opts.limit, 10),
+        threshold: parseThreshold(opts.threshold),
+        k: parsePositiveInt(opts.limit, "limit"),
       });
 
       if (similar.length === 0) {
-        console.log("No similar memories found.");
+        logger.info("No similar memories found.");
         return;
       }
 
-      console.log(`Found ${similar.length} similar memories:\n`);
+      logger.info(`Found ${similar.length} similar memories:\n`);
 
       for (const mem of similar) {
-        console.log(
+        logger.info(
           `[${mem.memoryType}] ${mem.id.slice(0, 8)} (score: ${mem.score.toFixed(3)})`,
         );
-        console.log(`  ${mem.text.slice(0, 100)}${mem.text.length > 100 ? "..." : ""}`);
+        logger.info(`  ${mem.text.slice(0, 100)}${mem.text.length > 100 ? "..." : ""}`);
         if (mem.tags.length > 0) {
-          console.log(`  Tags: ${mem.tags.join(", ")}`);
+          logger.info(`  Tags: ${mem.tags.join(", ")}`);
         }
-        console.log();
+        logger.info("");
       }
 
-      console.log("Tip: Use 'hippo merge <id1> <id2> ... -t \"merged text\"' to consolidate.");
+      logger.info("Tip: Use 'hippo merge <id1> <id2> ... -t \"merged text\"' to consolidate.");
     } catch (err) {
-      console.error(
-        `Error finding similar: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Finding similar: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }
@@ -192,10 +198,8 @@ export const historyCommand = new Command("history")
   .argument("<memory-id>", "Memory ID to show history for")
   .action(async (memoryId: string) => {
     if (!isInitialized(cwd)) {
-      console.error(
-        "Error: Hippocampus not initialized. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const store = new LocalStore(getDbPath(cwd));
@@ -203,24 +207,24 @@ export const historyCommand = new Command("history")
     try {
       const memory = store.getById(memoryId);
       if (!memory) {
-        console.error("Memory not found.");
-        process.exit(1);
+        logger.error("Memory not found.");
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(`Memory: ${memory.id.slice(0, 8)}`);
-      console.log(`Type: ${memory.memoryType}`);
-      console.log(`Status: ${memory.status}`);
-      console.log(`Is Consolidation: ${memory.isConsolidation ? "Yes" : "No"}`);
+      logger.info(`Memory: ${memory.id.slice(0, 8)}`);
+      logger.info(`Type: ${memory.memoryType}`);
+      logger.info(`Status: ${memory.status}`);
+      logger.info(`Is Consolidation: ${memory.isConsolidation ? "Yes" : "No"}`);
 
       if (memory.isConsolidation) {
-        console.log(`Version: ${memory.consolidationVersion ?? 1}`);
-        console.log(`Text: ${memory.text}`);
+        logger.info(`Version: ${memory.consolidationVersion ?? 1}`);
+        logger.info(`Text: ${memory.text}`);
 
         const sources = store.getConsolidatedSources(memoryId);
         if (sources.length > 0) {
-          console.log("\nSource memories:");
+          logger.info("\nSource memories:");
           for (const src of sources) {
-            console.log(
+            logger.info(
               `  └─ [${src.memoryType}] ${src.id.slice(0, 8)}: ${src.text.slice(0, 60)}...`,
             );
           }
@@ -229,24 +233,24 @@ export const historyCommand = new Command("history")
         const history = store.getConsolidationHistory(memoryId);
         const previousVersions = history.filter((h) => h.isConsolidation);
         if (previousVersions.length > 0) {
-          console.log("\nPrevious consolidation versions:");
+          logger.info("\nPrevious consolidation versions:");
           for (const prev of previousVersions) {
-            console.log(
+            logger.info(
               `  └─ v${prev.consolidationVersion ?? 1} (${prev.id.slice(0, 8)}): ${prev.text.slice(0, 60)}...`,
             );
           }
         }
       } else {
-        console.log(`Text: ${memory.text}`);
+        logger.info(`Text: ${memory.text}`);
 
         const links = store.getLinks({ memoryId, linkType: "derived_from" });
         const consolidations = links.filter((l) => l.targetId === memoryId);
         if (consolidations.length > 0) {
-          console.log("\nIncluded in consolidations:");
+          logger.info("\nIncluded in consolidations:");
           for (const link of consolidations) {
             const consol = store.getById(link.sourceId);
             if (consol) {
-              console.log(
+              logger.info(
                 `  └─ v${consol.consolidationVersion ?? 1} (${consol.id.slice(0, 8)}): ${consol.text.slice(0, 60)}...`,
               );
             }
@@ -254,10 +258,10 @@ export const historyCommand = new Command("history")
         }
       }
     } catch (err) {
-      console.error(
-        `Error fetching history: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Fetching history: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }

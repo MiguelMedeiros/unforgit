@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath } from "../config.js";
+import { logger } from "../logger.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { mergeAndRank } from "../../core/recall.js";
@@ -46,7 +47,7 @@ export const recallCommand = new Command("recall")
         localResults = store.recall(recallQuery);
       } catch {
         if (!opts.localOnly) {
-          console.error("Warning: Local store not available");
+          logger.warn("Local store not available");
         }
       } finally {
         store?.close();
@@ -63,7 +64,7 @@ export const recallCommand = new Command("recall")
         }));
       } catch {
         if (!opts.remoteOnly) {
-          console.error("Warning: Remote API not available");
+          logger.warn("Remote API not available");
         }
       }
     }
@@ -71,18 +72,18 @@ export const recallCommand = new Command("recall")
     const results = mergeAndRank(localResults, remoteResults, k);
 
     if (results.length === 0) {
-      console.log("No memories found.");
+      logger.info("No memories found.");
       return;
     }
 
-    console.log(`Found ${results.length} memories:\n`);
+    logger.info(`Found ${results.length} memories:\n`);
     for (const r of results) {
       const sourceTag = r.source === "local" ? "[local]" : "[remote]";
-      console.log(
+      logger.info(
         `${sourceTag} [${r.memoryType}] ${r.id.slice(0, 8)}... (score: ${r.score.toFixed(3)})`,
       );
-      console.log(`  ${r.text.slice(0, 120)}${r.text.length > 120 ? "..." : ""}`);
-      if (r.tags.length > 0) console.log(`  Tags: ${r.tags.join(", ")}`);
-      console.log();
+      logger.info(`  ${r.text.slice(0, 120)}${r.text.length > 120 ? "..." : ""}`);
+      if (r.tags.length > 0) logger.info(`  Tags: ${r.tags.join(", ")}`);
+      logger.info("");
     }
   });

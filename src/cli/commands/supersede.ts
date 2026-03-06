@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { loadConfig, getDbPath } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR } from "../exit-codes.js";
 
 export const supersedeCommand = new Command("supersede")
   .description("Mark a memory as superseded by another")
@@ -15,14 +17,14 @@ export const supersedeCommand = new Command("supersede")
 
       try {
         await client.supersede(oldId, opts.with);
-        console.log(
+        logger.info(
           `Superseded remote memory ${oldId.slice(0, 8)}... with ${opts.with.slice(0, 8)}...`,
         );
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -33,11 +35,11 @@ export const supersedeCommand = new Command("supersede")
       const ok = store.supersede(oldId, opts.with);
 
       if (!ok) {
-        console.error(`Error: Memory ${oldId} not found.`);
-        process.exit(1);
+        logger.error(`Memory ${oldId} not found.`);
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(
+      logger.info(
         `Superseded local memory ${oldId.slice(0, 8)}... with ${opts.with.slice(0, 8)}...`,
       );
     } finally {

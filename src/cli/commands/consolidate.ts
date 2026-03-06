@@ -1,6 +1,9 @@
 import { Command } from "commander";
 import { loadConfig } from "../config.js";
 import { RemoteClient } from "../remote-client.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
+import { parsePositiveInt } from "../schemas.js";
 
 export const consolidateCommand = new Command("consolidate")
   .description("Consolidate episodic memories into semantic/procedural")
@@ -11,8 +14,8 @@ export const consolidateCommand = new Command("consolidate")
     const config = loadConfig();
 
     if (!config.remote.url) {
-      console.error("Error: Remote URL not configured. Update hippo.yaml.");
-      process.exit(1);
+      logger.error("Remote URL not configured. Update hippo.yaml.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const client = new RemoteClient(config.remote.url, config.remote.apiKey);
@@ -30,27 +33,27 @@ export const consolidateCommand = new Command("consolidate")
     }
 
     if (opts.lastN) {
-      body.lastN = parseInt(opts.lastN, 10);
+      body.lastN = parsePositiveInt(opts.lastN, "last-n");
     }
 
     try {
       const result = await client.consolidate(body);
 
-      console.log("Consolidation complete:");
-      console.log(`  Created: ${result.created.length} memories`);
-      console.log(`  Superseded: ${result.superseded.length} memories`);
-      console.log(`  Processed: ${result.processedCount} total`);
+      logger.info("Consolidation complete:");
+      logger.info(`  Created: ${result.created.length} memories`);
+      logger.info(`  Superseded: ${result.superseded.length} memories`);
+      logger.info(`  Processed: ${result.processedCount} total`);
 
       if (result.created.length > 0) {
-        console.log("\nNew memories:");
+        logger.info("\nNew memories:");
         for (const id of result.created) {
-          console.log(`  - ${id}`);
+          logger.info(`  - ${id}`);
         }
       }
     } catch (err) {
-      console.error(
-        `Error consolidating: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Consolidating: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     }
   });

@@ -1,8 +1,10 @@
 import { Command } from "commander";
 import { getConfigPath, isInitialized } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import fs from "node:fs";
 import YAML from "yaml";
-import type { HippoConfig, HippoConfigV2 } from "../../core/types.js";
+import type { HippoConfig } from "../../core/types.js";
 
 export const branchCommand = new Command("branch")
   .description("List, create, or delete branches")
@@ -11,8 +13,8 @@ export const branchCommand = new Command("branch")
   .option("-a, --all", "List all branches")
   .action((branchName, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -24,40 +26,40 @@ export const branchCommand = new Command("branch")
         const prefix = branch === currentBranch ? "* " : "  ";
         const color = branch === currentBranch ? "\x1b[32m" : "";
         const reset = branch === currentBranch ? "\x1b[0m" : "";
-        console.log(`${prefix}${color}${branch}${reset}`);
+        logger.info(`${prefix}${color}${branch}${reset}`);
       }
       return;
     }
 
     if (opts.delete) {
       if (branchName === "main") {
-        console.error("error: Cannot delete branch 'main'");
-        process.exit(1);
+        logger.error("Cannot delete branch 'main'");
+        process.exit(EXIT_ERROR);
       }
       if (branchName === currentBranch) {
-        console.error(`error: Cannot delete branch '${branchName}' while checked out.`);
-        console.error(`Use 'hippo checkout main' first.`);
-        process.exit(1);
+        logger.error(`Cannot delete branch '${branchName}' while checked out.`);
+        logger.error("Use 'hippo checkout main' first.");
+        process.exit(EXIT_ERROR);
       }
       if (!branches.includes(branchName)) {
-        console.error(`error: branch '${branchName}' not found.`);
-        process.exit(1);
+        logger.error(`branch '${branchName}' not found.`);
+        process.exit(EXIT_ERROR);
       }
 
       const newBranches = branches.filter((b: string) => b !== branchName);
       saveConfig({ ...config, branches: newBranches });
-      console.log(`Deleted branch ${branchName}`);
+      logger.info(`Deleted branch ${branchName}`);
       return;
     }
 
     if (branches.includes(branchName)) {
-      console.error(`fatal: A branch named '${branchName}' already exists.`);
-      process.exit(1);
+      logger.fatal(`A branch named '${branchName}' already exists.`);
+      process.exit(EXIT_ERROR);
     }
 
     const newBranches = [...branches, branchName];
     saveConfig({ ...config, branches: newBranches });
-    console.log(`Created branch '${branchName}'`);
+    logger.info(`Created branch '${branchName}'`);
   });
 
 export const checkoutCommand = new Command("checkout")
@@ -66,8 +68,8 @@ export const checkoutCommand = new Command("checkout")
   .option("-b", "Create and checkout a new branch")
   .action((branchName, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -76,31 +78,32 @@ export const checkoutCommand = new Command("checkout")
 
     if (opts.b) {
       if (branches.includes(branchName)) {
-        console.error(`fatal: A branch named '${branchName}' already exists.`);
-        process.exit(1);
+        logger.fatal(`A branch named '${branchName}' already exists.`);
+        process.exit(EXIT_ERROR);
       }
 
       const newBranches = [...branches, branchName];
       saveConfig({ ...config, branches: newBranches, currentBranch: branchName });
-      console.log(`Switched to a new branch '${branchName}'`);
+      logger.info(`Switched to a new branch '${branchName}'`);
       return;
     }
 
     if (!branches.includes(branchName)) {
-      console.error(`error: pathspec '${branchName}' did not match any branch.`);
-      process.exit(1);
+      logger.error(`pathspec '${branchName}' did not match any branch.`);
+      process.exit(EXIT_ERROR);
     }
 
     if (branchName === currentBranch) {
-      console.log(`Already on '${branchName}'`);
+      logger.info(`Already on '${branchName}'`);
       return;
     }
 
     saveConfig({ ...config, currentBranch: branchName });
-    console.log(`Switched to branch '${branchName}'`);
+    logger.info(`Switched to branch '${branchName}'`);
   });
 
-interface ExtendedConfig extends HippoConfig, Partial<HippoConfigV2> {
+interface ExtendedConfig extends HippoConfig {
+  currentBranch?: string;
   branches?: string[];
 }
 

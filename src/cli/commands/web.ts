@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import { isInitialized } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 
 export const webCommand = new Command("web")
   .description("Start the Hippocampus web dashboard")
@@ -12,18 +14,14 @@ export const webCommand = new Command("web")
     const cwd = process.cwd();
 
     if (!isInitialized(cwd)) {
-      console.error(
-        "Hippocampus not initialized in this directory. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized in this directory. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const webDir = findWebDir();
     if (!webDir) {
-      console.error(
-        "Web dashboard not found. Make sure hippocampus is installed correctly.",
-      );
-      process.exit(1);
+      logger.error("Web dashboard not found. Make sure hippocampus is installed correctly.");
+      process.exit(EXIT_ERROR);
     }
 
     const env: Record<string, string> = {
@@ -43,8 +41,8 @@ export const webCommand = new Command("web")
       }
     }
 
-    console.log(`Starting Hippocampus web dashboard on port ${opts.port}...`);
-    console.log(`Workspace: ${cwd}`);
+    logger.info(`Starting Hippocampus web dashboard on port ${opts.port}...`);
+    logger.info(`Workspace: ${cwd}`);
 
     const hasNextBuild = fs.existsSync(path.join(webDir, ".next"));
     const cmd = hasNextBuild ? "next" : "next";
@@ -75,8 +73,8 @@ export const webCommand = new Command("web")
     }
 
     child.on("error", (err) => {
-      console.error("Failed to start web dashboard:", err.message);
-      process.exit(1);
+      logger.fatal(`Failed to start web dashboard: ${err.message}`);
+      process.exit(EXIT_ERROR);
     });
 
     child.on("exit", (code) => {

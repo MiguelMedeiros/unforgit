@@ -210,7 +210,7 @@ server.tool(
         memoryType,
         text: memoryText,
         tags: memoryTags,
-        visibility: visibility as const,
+        visibility,
         authorId: author.authorId,
         authorName: author.authorName,
       };
@@ -1262,7 +1262,7 @@ server.tool(
         "Memory Counts",
         `  Total:           ${health.memoryCounts.total}`,
         `  Healthy:         ${health.memoryCounts.healthy}`,
-        `  Needs Attention: ${health.memoryCounts.needsAttention}`,
+        `  Needs Attention: ${health.memoryCounts.needs_attention}`,
         `  Critical:        ${health.memoryCounts.critical}`,
       ];
 

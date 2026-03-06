@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { truncate } from "../utils.js";
@@ -10,8 +12,8 @@ export const diffCommand = new Command("diff")
   .option("--stat", "Show only statistics")
   .action(async (memoryId, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -22,8 +24,8 @@ export const diffCommand = new Command("diff")
       const repoId = config.remote.repoId || "local";
 
       if (!config.remote.url) {
-        console.error("fatal: No remote configured.");
-        process.exit(1);
+        logger.fatal("No remote configured.");
+        process.exit(EXIT_CONFIG_ERROR);
       }
 
       const client = new RemoteClient(config.remote.url, config.remote.apiKey);
@@ -50,8 +52,8 @@ async function diffSingleMemory(
     : memoryId;
 
   if (!fullId) {
-    console.error(`error: memory '${memoryId}' not found`);
-    process.exit(1);
+    logger.error(`memory '${memoryId}' not found`);
+    process.exit(EXIT_ERROR);
   }
 
   const localMem = store.getById(fullId);
@@ -66,99 +68,99 @@ async function diffSingleMemory(
     });
     remoteMem = response.results.find((r) => r.id === fullId);
   } catch {
-    console.log("Could not fetch from remote");
+    logger.warn("Could not fetch from remote");
   }
 
   if (!localMem && !remoteMem) {
-    console.error(`error: memory '${memoryId}' not found locally or remotely`);
-    process.exit(1);
+    logger.error(`memory '${memoryId}' not found locally or remotely`);
+    process.exit(EXIT_ERROR);
   }
 
-  console.log(`diff ${fullId.slice(0, 8)}...`);
-  console.log("---");
+  logger.info(`diff ${fullId.slice(0, 8)}...`);
+  logger.info("---");
 
   if (!localMem) {
-    console.log("\x1b[31m(not in local)\x1b[0m");
-    console.log("\x1b[32m+ " + remoteMem!.text.split("\n").join("\n+ ") + "\x1b[0m");
+    logger.info("\x1b[31m(not in local)\x1b[0m");
+    logger.info("\x1b[32m+ " + remoteMem!.text.split("\n").join("\n+ ") + "\x1b[0m");
     return;
   }
 
   if (!remoteMem) {
-    console.log("\x1b[32m(not in remote)\x1b[0m");
-    console.log("\x1b[32m+ " + localMem.text.split("\n").join("\n+ ") + "\x1b[0m");
+    logger.info("\x1b[32m(not in remote)\x1b[0m");
+    logger.info("\x1b[32m+ " + localMem.text.split("\n").join("\n+ ") + "\x1b[0m");
     return;
   }
 
   if (localMem.text === remoteMem.text) {
-    console.log("No differences");
+    logger.info("No differences");
     return;
   }
 
   const localLines = localMem.text.split("\n");
   const remoteLines = remoteMem.text.split("\n");
 
-  console.log("\x1b[31m--- local\x1b[0m");
-  console.log("\x1b[32m+++ remote\x1b[0m");
-  console.log();
+  logger.info("\x1b[31m--- local\x1b[0m");
+  logger.info("\x1b[32m+++ remote\x1b[0m");
+  logger.info("");
 
   for (let i = 0; i < Math.max(localLines.length, remoteLines.length); i++) {
     const localLine = localLines[i];
     const remoteLine = remoteLines[i];
 
     if (localLine === remoteLine) {
-      console.log(`  ${localLine ?? ""}`);
+      logger.info(`  ${localLine ?? ""}`);
     } else if (localLine && !remoteLine) {
-      console.log(`\x1b[31m- ${localLine}\x1b[0m`);
+      logger.info(`\x1b[31m- ${localLine}\x1b[0m`);
     } else if (!localLine && remoteLine) {
-      console.log(`\x1b[32m+ ${remoteLine}\x1b[0m`);
+      logger.info(`\x1b[32m+ ${remoteLine}\x1b[0m`);
     } else {
-      console.log(`\x1b[31m- ${localLine}\x1b[0m`);
-      console.log(`\x1b[32m+ ${remoteLine}\x1b[0m`);
+      logger.info(`\x1b[31m- ${localLine}\x1b[0m`);
+      logger.info(`\x1b[32m+ ${remoteLine}\x1b[0m`);
     }
   }
 }
 
 async function diffAll(
   store: LocalStore,
-  client: RemoteClient,
-  orgId: string,
-  repoId: string,
+  _client: RemoteClient,
+  _orgId: string,
+  _repoId: string,
   statOnly: boolean,
 ): Promise<void> {
   const pendingPush = store.getPendingPush();
   const conflicts = store.getConflicts();
 
   if (pendingPush.length === 0 && conflicts.length === 0) {
-    console.log("No differences");
+    logger.info("No differences");
     return;
   }
 
   if (statOnly) {
-    console.log(`${pendingPush.length} memories to push`);
-    console.log(`${conflicts.length} conflicts`);
+    logger.info(`${pendingPush.length} memories to push`);
+    logger.info(`${conflicts.length} conflicts`);
     return;
   }
 
   if (pendingPush.length > 0) {
-    console.log("Changes to push:");
-    console.log();
+    logger.info("Changes to push:");
+    logger.info("");
     for (const { memory } of pendingPush) {
-      console.log(`\x1b[32m+ ${memory.id.slice(0, 8)}...\x1b[0m "${truncate(memory.text, 50)}"`);
+      logger.info(`\x1b[32m+ ${memory.id.slice(0, 8)}...\x1b[0m "${truncate(memory.text, 50)}"`);
     }
-    console.log();
+    logger.info("");
   }
 
   if (conflicts.length > 0) {
-    console.log("Conflicts:");
-    console.log();
+    logger.info("Conflicts:");
+    logger.info("");
     for (const { memory, syncState } of conflicts) {
-      console.log(`\x1b[33m! ${memory.id.slice(0, 8)}...\x1b[0m local:v${syncState.localVersion} remote:v${syncState.remoteVersion ?? "?"}`);
-      console.log(`  "${truncate(memory.text, 60)}"`);
+      logger.info(`\x1b[33m! ${memory.id.slice(0, 8)}...\x1b[0m local:v${syncState.localVersion} remote:v${syncState.remoteVersion ?? "?"}`);
+      logger.info(`  "${truncate(memory.text, 60)}"`);
     }
-    console.log();
+    logger.info("");
   }
 
-  console.log(`Total: ${pendingPush.length + conflicts.length} differences`);
+  logger.info(`Total: ${pendingPush.length + conflicts.length} differences`);
 }
 
 function findFullId(store: LocalStore, partialId: string, orgId: string, repoId: string): string | null {

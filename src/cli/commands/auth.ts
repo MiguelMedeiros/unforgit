@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import fs from "node:fs";
 import YAML from "yaml";
 import type { HippoConfig } from "../../core/types.js";
@@ -29,8 +31,8 @@ function checkConfigPermissions(): void {
     const stat = fs.statSync(configPath);
     const mode = stat.mode & 0o777;
     if (mode & 0o044) {
-      console.error(
-        `warning: ${configPath} is readable by others (mode ${mode.toString(8)}). ` +
+      logger.warn(
+        `${configPath} is readable by others (mode ${mode.toString(8)}). ` +
         `Consider running: chmod 600 ${configPath}`,
       );
     }
@@ -48,13 +50,13 @@ authCommand
   .argument("<api-key>", "API key to use for authentication")
   .action(async (apiKey) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      console.error("Run 'hippo init' first.");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      logger.error("Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!apiKey.startsWith("hk_")) {
-      console.error("warning: API key should start with 'hk_'");
+      logger.warn("API key should start with 'hk_'");
     }
 
     const config = loadConfig();
@@ -62,9 +64,9 @@ authCommand
     saveConfig(config);
 
     checkConfigPermissions();
-    console.log("API key configured successfully!");
-    console.log(`  Remote: ${config.remote.url}`);
-    console.log(`  Key: ${maskKey(apiKey)}`);
+    logger.info("API key configured successfully!");
+    logger.info(`  Remote: ${config.remote.url}`);
+    logger.info(`  Key: ${maskKey(apiKey)}`);
   });
 
 authCommand
@@ -72,50 +74,50 @@ authCommand
   .description("Check authentication status")
   .action(async () => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
 
-    console.log("Authentication status:");
-    console.log(`  Remote URL: ${config.remote.url || "(not configured)"}`);
-    console.log(`  Org ID: ${config.remote.orgId || "(not configured)"}`);
-    console.log(`  Repo ID: ${config.remote.repoId || "(not configured)"}`);
+    logger.info("Authentication status:");
+    logger.info(`  Remote URL: ${config.remote.url || "(not configured)"}`);
+    logger.info(`  Org ID: ${config.remote.orgId || "(not configured)"}`);
+    logger.info(`  Repo ID: ${config.remote.repoId || "(not configured)"}`);
 
     const effectiveApiKey = config.remote.apiKey || process.env.HIPPO_API_KEY;
 
     if (effectiveApiKey) {
       const source = config.remote.apiKey ? "config" : "env (HIPPO_API_KEY)";
-      console.log(`  API Key: ${maskKey(effectiveApiKey)} (from ${source})`);
+      logger.info(`  API Key: ${maskKey(effectiveApiKey)} (from ${source})`);
 
       if (config.remote.url) {
-        console.log("\nTesting connection...");
+        logger.info("\nTesting connection...");
         try {
           const res = await fetch(`${config.remote.url}/health`);
           if (res.ok) {
-            console.log("  ✓ Server reachable");
+            logger.info("  ✓ Server reachable");
 
             const authRes = await fetch(`${config.remote.url}/v1/api-keys`, {
               headers: { Authorization: `Bearer ${effectiveApiKey}` },
             });
             if (authRes.ok) {
-              console.log("  ✓ API key valid");
+              logger.info("  ✓ API key valid");
             } else if (authRes.status === 401) {
-              console.log("  ✗ API key invalid or expired");
+              logger.info("  ✗ API key invalid or expired");
             } else {
-              console.log(`  ? Could not verify API key (HTTP ${authRes.status})`);
+              logger.info(`  ? Could not verify API key (HTTP ${authRes.status})`);
             }
           } else {
-            console.log(`  ✗ Server returned HTTP ${res.status}`);
+            logger.info(`  ✗ Server returned HTTP ${res.status}`);
           }
         } catch (err) {
-          console.log(`  ✗ Could not connect: ${err instanceof Error ? err.message : err}`);
+          logger.info(`  ✗ Could not connect: ${err instanceof Error ? err.message : err}`);
         }
       }
     } else {
-      console.log("  API Key: (not configured)");
-      console.log("\nRun 'hippo auth set <api-key>' or set HIPPO_API_KEY env var.");
+      logger.info("  API Key: (not configured)");
+      logger.info("\nRun 'hippo auth set <api-key>' or set HIPPO_API_KEY env var.");
     }
 
     checkConfigPermissions();
@@ -126,21 +128,21 @@ authCommand
   .description("Remove the configured API key")
   .action(async () => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
 
     if (!config.remote.apiKey) {
-      console.log("No API key configured.");
+      logger.info("No API key configured.");
       return;
     }
 
     delete config.remote.apiKey;
     saveConfig(config);
 
-    console.log("API key removed.");
+    logger.info("API key removed.");
   });
 
 authCommand
@@ -149,12 +151,12 @@ authCommand
   .argument("<api-key>", "OpenAI API key (starts with sk-)")
   .action((apiKey) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!apiKey.startsWith("sk-")) {
-      console.error("warning: OpenAI API key should start with 'sk-'");
+      logger.warn("OpenAI API key should start with 'sk-'");
     }
 
     const config = loadExtendedConfig();
@@ -162,9 +164,9 @@ authCommand
     saveExtendedConfig(config);
 
     checkConfigPermissions();
-    console.log("OpenAI API key configured successfully!");
-    console.log(`  Key: ${maskKey(apiKey)}`);
-    console.log("\nYou can now use 'hippo auto-consolidate' for AI-powered consolidation.");
+    logger.info("OpenAI API key configured successfully!");
+    logger.info(`  Key: ${maskKey(apiKey)}`);
+    logger.info("\nYou can now use 'hippo auto-consolidate' for AI-powered consolidation.");
   });
 
 authCommand
@@ -172,19 +174,19 @@ authCommand
   .description("Remove the OpenAI API key")
   .action(() => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadExtendedConfig();
 
     if (!config.openaiApiKey) {
-      console.log("No OpenAI API key configured.");
+      logger.info("No OpenAI API key configured.");
       return;
     }
 
     delete config.openaiApiKey;
     saveExtendedConfig(config);
 
-    console.log("OpenAI API key removed.");
+    logger.info("OpenAI API key removed.");
   });

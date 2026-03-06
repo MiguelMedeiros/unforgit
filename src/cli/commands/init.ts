@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
+import { logger } from "../logger.js";
 import {
   getHippoDir,
   getConfigPath,
@@ -23,7 +24,7 @@ export const initCommand = new Command("init")
     const cwd = process.cwd();
 
     if (isInitialized(cwd)) {
-      console.log("Hippocampus is already initialized in this directory.");
+      logger.info("Hippocampus is already initialized in this directory.");
       return;
     }
 
@@ -42,18 +43,18 @@ export const initCommand = new Command("init")
     const store = new LocalStore(getDbPath(cwd));
     store.close();
 
-    console.log(`Initialized Hippocampus at ${hippoDir}`);
-    console.log(`  Config: ${getConfigPath(cwd)}`);
-    console.log(`  Local DB: ${getDbPath(cwd)}`);
+    logger.info(`Initialized Hippocampus at ${hippoDir}`);
+    logger.info(`  Config: ${getConfigPath(cwd)}`);
+    logger.info(`  Local DB: ${getDbPath(cwd)}`);
 
     if (config.remote.orgId || config.remote.repoId) {
-      console.log(`  Org: ${config.remote.orgId}`);
-      console.log(`  Repo: ${config.remote.repoId}`);
+      logger.info(`  Org: ${config.remote.orgId}`);
+      logger.info(`  Repo: ${config.remote.repoId}`);
       if (!opts.orgId && !opts.repoId) {
-        console.log("  (auto-detected from git remote)");
+        logger.info("  (auto-detected from git remote)");
       }
     } else {
-      console.log(
+      logger.info(
         "\nTip: Set org_id and repo_id in .hippocampus/hippo.yaml or add a git remote.",
       );
     }
@@ -66,9 +67,9 @@ export const initCommand = new Command("init")
       if (!fs.existsSync(rulePath)) {
         fs.mkdirSync(rulesDir, { recursive: true });
         fs.writeFileSync(rulePath, CURSOR_RULE_CONTENT, "utf-8");
-        console.log(`  Cursor rule: ${rulePath}`);
+        logger.info(`  Cursor rule: ${rulePath}`);
       } else {
-        console.log(`  Cursor rule: already exists`);
+        logger.info(`  Cursor rule: already exists`);
       }
 
       const mcpPath = path.join(cursorDir, "mcp.json");
@@ -87,7 +88,7 @@ export const initCommand = new Command("init")
           JSON.stringify(mcpConfig, null, 2) + "\n",
           "utf-8",
         );
-        console.log(`  MCP config: ${mcpPath}`);
+        logger.info(`  MCP config: ${mcpPath}`);
       } else {
         const existing = JSON.parse(fs.readFileSync(mcpPath, "utf-8"));
         if (!existing.mcpServers?.hippocampus) {
@@ -101,9 +102,9 @@ export const initCommand = new Command("init")
             JSON.stringify(existing, null, 2) + "\n",
             "utf-8",
           );
-          console.log(`  MCP config: added hippocampus to ${mcpPath}`);
+          logger.info(`  MCP config: added hippocampus to ${mcpPath}`);
         } else {
-          console.log(`  MCP config: already configured`);
+          logger.info(`  MCP config: already configured`);
         }
       }
     }

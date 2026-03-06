@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath, isInitialized } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
 import { parsePositiveInt, validateMemoryType } from "../schemas.js";
 
@@ -12,8 +14,8 @@ export const logCommand = new Command("log")
   .option("--tags <tags>", "Filter by tags (comma-separated)")
   .action((opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -26,8 +28,8 @@ export const logCommand = new Command("log")
       const limit = parsePositiveInt(opts.maxCount, "max-count");
 
       if (opts.type && !validateMemoryType(opts.type)) {
-        console.error(`error: Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
-        process.exit(1);
+        logger.error(`Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
+        process.exit(EXIT_ERROR);
       }
 
       const types = opts.type ? [opts.type] : undefined;
@@ -44,7 +46,7 @@ export const logCommand = new Command("log")
       });
 
       if (memories.length === 0) {
-        console.log("No memories found.");
+        logger.info("No memories found.");
         return;
       }
 
@@ -60,7 +62,7 @@ export const logCommand = new Command("log")
         for (const mem of filteredMemories) {
           const typeIcon = getTypeIcon(mem.memoryType);
           const text = mem.text.replace(/\n/g, " ").slice(0, 60);
-          console.log(`${mem.id.slice(0, 7)} ${typeIcon} ${text}${mem.text.length > 60 ? "..." : ""}`);
+          logger.info(`${mem.id.slice(0, 7)} ${typeIcon} ${text}${mem.text.length > 60 ? "..." : ""}`);
         }
       } else {
         for (const mem of filteredMemories) {
@@ -68,16 +70,16 @@ export const logCommand = new Command("log")
           const date = mem.createdAt.toISOString().split("T")[0];
           const time = mem.createdAt.toISOString().split("T")[1].slice(0, 5);
           
-          console.log(`\x1b[33mmemory ${mem.id}\x1b[0m`);
-          console.log(`Type:   ${typeIcon} ${mem.memoryType}`);
-          console.log(`Date:   ${date} ${time}`);
-          console.log(`Status: ${mem.status}`);
+          logger.info(`\x1b[33mmemory ${mem.id}\x1b[0m`);
+          logger.info(`Type:   ${typeIcon} ${mem.memoryType}`);
+          logger.info(`Date:   ${date} ${time}`);
+          logger.info(`Status: ${mem.status}`);
           if (mem.tags.length > 0) {
-            console.log(`Tags:   ${mem.tags.join(", ")}`);
+            logger.info(`Tags:   ${mem.tags.join(", ")}`);
           }
-          console.log();
-          console.log(`    ${mem.text.split("\n").join("\n    ")}`);
-          console.log();
+          logger.info("");
+          logger.info(`    ${mem.text.split("\n").join("\n    ")}`);
+          logger.info("");
         }
       }
     } finally {

@@ -134,7 +134,7 @@ export interface RepositoryHealth {
   memoryCounts: {
     total: number;
     healthy: number;
-    needsAttention: number;
+    needs_attention: number;
     critical: number;
   };
   topIssues: Array<{
@@ -151,7 +151,7 @@ export function computeRepositoryHealth(
     return {
       overallScore: 1.0,
       status: "healthy",
-      memoryCounts: { total: 0, healthy: 0, needsAttention: 0, critical: 0 },
+      memoryCounts: { total: 0, healthy: 0, needs_attention: 0, critical: 0 },
       topIssues: [],
     };
   }
@@ -163,7 +163,7 @@ export function computeRepositoryHealth(
   const totalScore = scores.reduce((sum, s) => sum + s.overall, 0);
   const overallScore = Math.round((totalScore / scores.length) * 100) / 100;
 
-  const counts = { healthy: 0, needsAttention: 0, critical: 0 };
+  const counts = { healthy: 0, needs_attention: 0, critical: 0 };
   for (const score of scores) {
     const status = getHealthStatus(score.overall);
     counts[status]++;

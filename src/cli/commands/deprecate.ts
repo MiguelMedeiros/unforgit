@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { loadConfig, getDbPath } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR } from "../exit-codes.js";
 
 export const deprecateCommand = new Command("deprecate")
   .description("Mark a memory as deprecated")
@@ -15,13 +17,13 @@ export const deprecateCommand = new Command("deprecate")
 
       try {
         await client.deprecate(id, opts.reason);
-        console.log(`Deprecated remote memory ${id.slice(0, 8)}...`);
-        if (opts.reason) console.log(`  Reason: ${opts.reason}`);
+        logger.info(`Deprecated remote memory ${id.slice(0, 8)}...`);
+        if (opts.reason) logger.info(`  Reason: ${opts.reason}`);
       } catch (err) {
-        console.error(
-          `Error: ${err instanceof Error ? err.message : err}`,
+        logger.error(
+          err instanceof Error ? err.message : String(err),
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
       return;
     }
@@ -32,12 +34,12 @@ export const deprecateCommand = new Command("deprecate")
       const ok = store.deprecate(id, opts.reason);
 
       if (!ok) {
-        console.error(`Error: Memory ${id} not found.`);
-        process.exit(1);
+        logger.error(`Memory ${id} not found.`);
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(`Deprecated local memory ${id.slice(0, 8)}...`);
-      if (opts.reason) console.log(`  Reason: ${opts.reason}`);
+      logger.info(`Deprecated local memory ${id.slice(0, 8)}...`);
+      if (opts.reason) logger.info(`  Reason: ${opts.reason}`);
     } finally {
       store.close();
     }

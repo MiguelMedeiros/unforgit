@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, getDbPath } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
 import { resolveVisibility } from "../../core/policy.js";
 import type { MemoryType } from "../../core/types.js";
@@ -28,7 +30,7 @@ export const addCommand = new Command("add")
   .option("--list-templates", "List available templates")
   .action((text, opts) => {
     if (opts.listTemplates) {
-      console.log(formatTemplateList());
+      logger.info(formatTemplateList());
       return;
     }
 
@@ -41,8 +43,8 @@ export const addCommand = new Command("add")
         : [];
 
       if (!validateMemoryType(opts.type)) {
-        console.error(`error: Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
-        process.exit(1);
+        logger.error(`Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
+        process.exit(EXIT_ERROR);
       }
 
       let memoryType = opts.type as MemoryType;
@@ -52,9 +54,9 @@ export const addCommand = new Command("add")
       if (opts.template) {
         const template = getTemplate(opts.template);
         if (!template) {
-          console.error(`Unknown template: ${opts.template}`);
-          console.log("\n" + formatTemplateList());
-          process.exit(1);
+          logger.error(`Unknown template: ${opts.template}`);
+          logger.info("\n" + formatTemplateList());
+          process.exit(EXIT_ERROR);
         }
 
         const applied = applyTemplate(template, text, userTags);
@@ -65,7 +67,7 @@ export const addCommand = new Command("add")
           visibility = applied.visibility;
         }
 
-        console.log(`Using template: ${template.name}`);
+        logger.info(`Using template: ${template.name}`);
       }
 
       const sourceRefs: Record<string, unknown> = {};
@@ -90,13 +92,13 @@ export const addCommand = new Command("add")
         visibility: policy.visibility,
       });
 
-      console.log(`Memory stored: ${memory.id}`);
-      console.log(`  Type: ${memory.memoryType}`);
-      console.log(`  Visibility: ${memory.visibility}`);
-      console.log(`  Tags: ${memory.tags.join(", ") || "(none)"}`);
+      logger.info(`Memory stored: ${memory.id}`);
+      logger.info(`  Type: ${memory.memoryType}`);
+      logger.info(`  Visibility: ${memory.visibility}`);
+      logger.info(`  Tags: ${memory.tags.join(", ") || "(none)"}`);
 
       if (policy.suggestion === "promote") {
-        console.log(
+        logger.info(
           "\n  Hint: This memory might be useful for the team. " +
             `Use 'hippo promote ${memory.id}' to share it.`,
         );

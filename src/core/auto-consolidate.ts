@@ -1,9 +1,8 @@
-import type { Memory, MemoryType, RecallResult } from "./types.js";
+import type { Memory, MemoryType } from "./types.js";
 import type { LocalStore } from "../db/local.js";
 import {
   generateConsolidatedText,
   memoriesToConsolidationInput,
-  type ConsolidationOutput,
 } from "./llm.js";
 
 export interface ConsolidationCandidate {

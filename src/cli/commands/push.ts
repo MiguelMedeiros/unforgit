@@ -4,6 +4,7 @@ import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { truncate } from "../utils.js";
 import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
 
 export const pushCommand = new Command("push")
   .description("Push local memories to remote")
@@ -13,8 +14,8 @@ export const pushCommand = new Command("push")
   .option("-a, --all", "Push all memories including untracked ones")
   .action(async (remote, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
@@ -25,9 +26,9 @@ export const pushCommand = new Command("push")
       const repoId = config.remote.repoId || "local";
 
       if (!config.remote.url) {
-        console.error(`fatal: No remote '${remote}' configured.`);
-        console.error("Use 'hippo remote add origin <url>' to add a remote.");
-        process.exit(1);
+        logger.fatal(`No remote '${remote}' configured.`);
+        logger.error("Use 'hippo remote add origin <url>' to add a remote.");
+        process.exit(EXIT_CONFIG_ERROR);
       }
 
       const client = new RemoteClient(config.remote.url, config.remote.apiKey);
@@ -47,32 +48,32 @@ export const pushCommand = new Command("push")
       const linksToSync = store.getLinksToSync(orgId, repoId);
 
       if (allToPush.length === 0 && supersededToSync.length === 0 && linksToSync.length === 0) {
-        console.log("Everything up-to-date");
+        logger.info("Everything up-to-date");
         return;
       }
 
-      console.log(`Pushing to ${remote} (${config.remote.url})...`);
+      logger.info(`Pushing to ${remote} (${config.remote.url})...`);
 
       if (opts.dryRun) {
         if (allToPush.length > 0) {
-          console.log("\nWould push the following memories:");
+          logger.info("\nWould push the following memories:");
           for (const { memory } of allToPush) {
-            console.log(`  ${memory.id.slice(0, 8)}... "${truncate(memory.text, 50)}"`);
+            logger.info(`  ${memory.id.slice(0, 8)}... "${truncate(memory.text, 50)}"`);
           }
         }
         if (supersededToSync.length > 0) {
-          console.log("\nWould sync superseded status:");
+          logger.info("\nWould sync superseded status:");
           for (const { memory, newId } of supersededToSync) {
-            console.log(`  ${memory.id.slice(0, 8)}... → superseded by ${newId.slice(0, 8)}...`);
+            logger.info(`  ${memory.id.slice(0, 8)}... → superseded by ${newId.slice(0, 8)}...`);
           }
         }
         if (linksToSync.length > 0) {
-          console.log("\nWould sync links:");
+          logger.info("\nWould sync links:");
           for (const { link } of linksToSync) {
-            console.log(`  ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
+            logger.info(`  ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
           }
         }
-        console.log(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length} status updates, ${linksToSync.length} links`);
+        logger.info(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length} status updates, ${linksToSync.length} links`);
         return;
       }
 
@@ -85,7 +86,7 @@ export const pushCommand = new Command("push")
           if (!fullMemory) continue;
 
           if (fullMemory.visibility !== "repo" && !opts.force) {
-            console.log(`  Skipping ${memory.id.slice(0, 8)}... (private memory, use --force to push anyway)`);
+            logger.info(`  Skipping ${memory.id.slice(0, 8)}... (private memory, use --force to push anyway)`);
             continue;
           }
 
@@ -112,14 +113,14 @@ export const pushCommand = new Command("push")
         } catch (err) {
           errors++;
           const errorMsg = err instanceof Error ? err.message : String(err);
-          console.error(`  ✗ ${memory.id.slice(0, 8)}... failed: ${errorMsg}`);
+          logger.error(`  ✗ ${memory.id.slice(0, 8)}... failed: ${errorMsg}`);
 
           if (errorMsg.includes("409") || errorMsg.includes("conflict")) {
             if (opts.force) {
-              console.log(`    Forcing overwrite...`);
+              logger.info(`    Forcing overwrite...`);
             } else {
               store.markAsConflict(memory.id, syncState?.remoteVersion ?? 0);
-              console.log(`    Marked as conflict. Use --force to overwrite.`);
+              logger.info(`    Marked as conflict. Use --force to overwrite.`);
             }
           }
         }
@@ -132,12 +133,12 @@ export const pushCommand = new Command("push")
           await client.supersede(memory.id, newId);
           store.markStatusSynced(memory.id);
           supersededSynced++;
-          console.log(`  ✓ ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          logger.info(`  ✓ ${memory.id.slice(0, 8)}... marked as superseded on remote`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
             errors++;
-            console.error(`  ✗ ${memory.id.slice(0, 8)}... failed to sync superseded status: ${errorMsg}`);
+            logger.error(`  ✗ ${memory.id.slice(0, 8)}... failed to sync superseded status: ${errorMsg}`);
           }
         }
       }
@@ -149,28 +150,28 @@ export const pushCommand = new Command("push")
           await client.link(link.sourceId, link.targetId, link.linkType, link.metadata);
           store.markLinkSynced(link.id);
           linksSynced++;
-          console.log(`  ✓ link ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
+          logger.info(`  ✓ link ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
             errors++;
-            console.error(`  ✗ link ${link.sourceId.slice(0, 8)}... failed: ${errorMsg}`);
+            logger.error(`  ✗ link ${link.sourceId.slice(0, 8)}... failed: ${errorMsg}`);
           }
         }
       }
 
-      console.log();
+      logger.info("");
       if (pushed > 0) {
-        console.log(`${pushed} memory(s) pushed successfully`);
+        logger.info(`${pushed} memory(s) pushed successfully`);
       }
       if (supersededSynced > 0) {
-        console.log(`${supersededSynced} memory(s) marked as superseded on remote`);
+        logger.info(`${supersededSynced} memory(s) marked as superseded on remote`);
       }
       if (linksSynced > 0) {
-        console.log(`${linksSynced} link(s) synced`);
+        logger.info(`${linksSynced} link(s) synced`);
       }
       if (errors > 0) {
-        console.log(`${errors} error(s) during push`);
+        logger.info(`${errors} error(s) during push`);
       }
     } finally {
       store.close();

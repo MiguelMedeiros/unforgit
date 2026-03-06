@@ -6,9 +6,15 @@ import {
   findConsolidationCandidates,
   executeConsolidation,
   formatCandidatePreview,
-  type ConsolidationCandidate,
 } from "../../core/auto-consolidate.js";
 import * as readline from "readline";
+import { logger } from "../logger.js";
+import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
+import {
+  parseThreshold,
+  parsePositiveInt,
+  validateMemoryType,
+} from "../schemas.js";
 
 const cwd = process.cwd();
 
@@ -72,10 +78,13 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
   )
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      console.error(
-        "Error: Hippocampus not initialized. Run 'hippo init' first.",
-      );
-      process.exit(1);
+      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      process.exit(EXIT_CONFIG_ERROR);
+    }
+
+    if (opts.type && !validateMemoryType(opts.type)) {
+      logger.error("--type must be one of: episodic, semantic, procedural");
+      process.exit(EXIT_ERROR);
     }
 
     const config = loadConfig(cwd);
@@ -84,13 +93,13 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
     const orgId = config.remote.orgId || "local";
     const repoId = config.remote.repoId || "local";
 
-    const threshold = parseFloat(opts.threshold);
-    const minGroupSize = parseInt(opts.minGroup, 10);
-    const maxGroups = parseInt(opts.maxGroups, 10);
+    const threshold = parseThreshold(opts.threshold);
+    const minGroupSize = parsePositiveInt(opts.minGroup, "min-group");
+    const maxGroups = parsePositiveInt(opts.maxGroups, "max-groups");
     const types = opts.type ? [opts.type as MemoryType] : undefined;
 
     try {
-      console.log("Scanning memories for consolidation candidates...\n");
+      logger.info("Scanning memories for consolidation candidates...\n");
 
       const result = findConsolidationCandidates(store, orgId, repoId, {
         threshold,
@@ -100,13 +109,13 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
         excludeConsolidations: true,
       });
 
-      console.log(`Scanned ${result.totalMemoriesScanned} active memories`);
-      console.log(`Found ${result.totalCandidateGroups} potential groups`);
-      console.log(`Showing top ${result.candidates.length} candidates\n`);
+      logger.info(`Scanned ${result.totalMemoriesScanned} active memories`);
+      logger.info(`Found ${result.totalCandidateGroups} potential groups`);
+      logger.info(`Showing top ${result.candidates.length} candidates\n`);
 
       if (result.candidates.length === 0) {
-        console.log("No consolidation candidates found.");
-        console.log(
+        logger.info("No consolidation candidates found.");
+        logger.info(
           "Try lowering the threshold (--threshold 0.3) or the minimum group size (--min-group 2).",
         );
         return;
@@ -114,28 +123,26 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
 
       for (let i = 0; i < result.candidates.length; i++) {
         const candidate = result.candidates[i];
-        console.log(`\n${"=".repeat(60)}`);
-        console.log(`Candidate ${i + 1}/${result.candidates.length}`);
-        console.log("=".repeat(60));
-        console.log(formatCandidatePreview(candidate));
+        logger.info(`\n${"=".repeat(60)}`);
+        logger.info(`Candidate ${i + 1}/${result.candidates.length}`);
+        logger.info("=".repeat(60));
+        logger.info(formatCandidatePreview(candidate));
       }
 
       if (opts.dryRun) {
-        console.log("\n[Dry run mode - no changes made]");
-        console.log(
+        logger.info("\n[Dry run mode - no changes made]");
+        logger.info(
           "Remove --dry-run flag to consolidate these memories.",
         );
         return;
       }
 
       if (!process.env.OPENAI_API_KEY) {
-        console.error(
-          "\nError: OPENAI_API_KEY environment variable not set.",
-        );
-        console.error(
+        logger.error("OPENAI_API_KEY environment variable not set.");
+        logger.error(
           "Set it in your environment or .env file to enable auto-consolidation.",
         );
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
 
       const rl = createReadlineInterface();
@@ -147,9 +154,9 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
           const candidate = result.candidates[i];
 
           if (!opts.yes) {
-            console.log(`\n${"─".repeat(60)}`);
-            console.log(`Processing candidate ${i + 1}/${result.candidates.length}`);
-            console.log(formatCandidatePreview(candidate));
+            logger.info(`\n${"─".repeat(60)}`);
+            logger.info(`Processing candidate ${i + 1}/${result.candidates.length}`);
+            logger.info(formatCandidatePreview(candidate));
 
             const shouldConsolidate = await askConfirmation(
               rl,
@@ -157,13 +164,14 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
             );
 
             if (!shouldConsolidate) {
-              console.log("Skipped.");
+              logger.info("Skipped.");
               skippedCount++;
+              logger.progress(i + 1, result.candidates.length, "candidates");
               continue;
             }
           }
 
-          console.log("\nGenerating consolidated text with AI...");
+          logger.info("\nGenerating consolidated text with AI...");
 
           try {
             const execResult = await executeConsolidation(
@@ -177,40 +185,41 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
               },
             );
 
-            console.log("\nConsolidation complete!");
-            console.log(`  New memory ID: ${execResult.consolidatedId}`);
-            console.log(`  Type: ${execResult.memoryType}`);
-            console.log(`  Tags: ${execResult.suggestedTags.join(", ") || "none"}`);
-            console.log(`  Sources consolidated: ${execResult.sourceIds.length}`);
-            console.log(`\nGenerated text:`);
-            console.log(`  ${execResult.generatedText}`);
+            logger.info("\nConsolidation complete!");
+            logger.info(`  New memory ID: ${execResult.consolidatedId}`);
+            logger.info(`  Type: ${execResult.memoryType}`);
+            logger.info(`  Tags: ${execResult.suggestedTags.join(", ") || "none"}`);
+            logger.info(`  Sources consolidated: ${execResult.sourceIds.length}`);
+            logger.info(`\nGenerated text:`);
+            logger.info(`  ${execResult.generatedText}`);
 
             consolidatedCount++;
           } catch (err) {
-            console.error(
-              `\nError consolidating: ${err instanceof Error ? err.message : err}`,
+            logger.error(
+              `Consolidating: ${err instanceof Error ? err.message : err}`,
             );
             skippedCount++;
           }
+          logger.progress(i + 1, result.candidates.length, "candidates");
         }
       } finally {
         rl.close();
       }
 
-      console.log(`\n${"=".repeat(60)}`);
-      console.log("Summary");
-      console.log("=".repeat(60));
-      console.log(`Consolidated: ${consolidatedCount} groups`);
-      console.log(`Skipped: ${skippedCount} groups`);
-      console.log(
+      logger.info(`\n${"=".repeat(60)}`);
+      logger.info("Summary");
+      logger.info("=".repeat(60));
+      logger.info(`Consolidated: ${consolidatedCount} groups`);
+      logger.info(`Skipped: ${skippedCount} groups`);
+      logger.info(
         `\nOriginal memories are preserved with status 'superseded'.`,
       );
-      console.log("Use 'hippo history <id>' to view consolidation history.");
+      logger.info("Use 'hippo history <id>' to view consolidation history.");
     } catch (err) {
-      console.error(
-        `Error: ${err instanceof Error ? err.message : err}`,
+      logger.error(
+        `Auto-consolidate: ${err instanceof Error ? err.message : err}`,
       );
-      process.exit(1);
+      process.exit(EXIT_ERROR);
     } finally {
       store.close();
     }

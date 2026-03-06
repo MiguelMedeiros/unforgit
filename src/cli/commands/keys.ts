@@ -1,5 +1,7 @@
 import { Command } from "commander";
 import { loadConfig, isInitialized } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 
 export const keysCommand = new Command("keys")
   .description("Manage API keys for remote authentication");
@@ -11,23 +13,23 @@ keysCommand
   .requiredOption("--org <orgId>", "Organization ID for the key")
   .action(async (opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
 
     if (!config.remote.url) {
-      console.error("fatal: No remote configured.");
-      console.error("Use 'hippo remote add origin <url>' to add a remote.");
-      process.exit(1);
+      logger.fatal("No remote configured.");
+      logger.error("Use 'hippo remote add origin <url>' to add a remote.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!config.remote.apiKey) {
-      console.error("fatal: No API key configured for admin access.");
-      console.error("You need an existing API key to create new ones.");
-      console.error("Configure apiKey in .hippocampus/hippo.yaml first.");
-      process.exit(1);
+      logger.fatal("No API key configured for admin access.");
+      logger.error("You need an existing API key to create new ones.");
+      logger.error("Configure apiKey in .hippocampus/hippo.yaml first.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     try {
@@ -43,31 +45,31 @@ keysCommand
       if (!res.ok) {
         const err = await res.text();
         if (res.status === 401) {
-          console.error("fatal: Authentication failed. Check your API key.");
+          logger.fatal("Authentication failed. Check your API key.");
         } else {
-          console.error(`fatal: Failed to create API key: ${err}`);
+          logger.fatal(`Failed to create API key: ${err}`);
         }
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
 
       const result = await res.json() as { id: string; key: string; name: string; orgId: string };
 
-      console.log("API key created successfully!");
-      console.log();
-      console.log(`  ID:    ${result.id}`);
-      console.log(`  Name:  ${result.name}`);
-      console.log(`  Org:   ${result.orgId}`);
-      console.log(`  Key:   ${result.key}`);
-      console.log();
-      console.log("Store this key securely. It will not be shown again.");
-      console.log();
-      console.log("To use this key, add it to .hippocampus/hippo.yaml:");
-      console.log();
-      console.log("  remote:");
-      console.log(`    apiKey: "${result.key}"`);
+      logger.info("API key created successfully!");
+      logger.info("");
+      logger.info(`  ID:    ${result.id}`);
+      logger.info(`  Name:  ${result.name}`);
+      logger.info(`  Org:   ${result.orgId}`);
+      logger.info(`  Key:   ${result.key}`);
+      logger.info("");
+      logger.info("Store this key securely. It will not be shown again.");
+      logger.info("");
+      logger.info("To use this key, add it to .hippocampus/hippo.yaml:");
+      logger.info("");
+      logger.info("  remote:");
+      logger.info(`    apiKey: "${result.key}"`);
     } catch (err) {
-      console.error(`fatal: ${err instanceof Error ? err.message : err}`);
-      process.exit(1);
+      logger.fatal(err instanceof Error ? err.message : String(err));
+      process.exit(EXIT_ERROR);
     }
   });
 
@@ -77,20 +79,20 @@ keysCommand
   .option("--org <orgId>", "Filter by organization ID")
   .action(async (opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
 
     if (!config.remote.url) {
-      console.error("fatal: No remote configured.");
-      process.exit(1);
+      logger.fatal("No remote configured.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!config.remote.apiKey) {
-      console.error("fatal: No API key configured.");
-      process.exit(1);
+      logger.fatal("No API key configured.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     try {
@@ -106,11 +108,11 @@ keysCommand
       if (!res.ok) {
         const err = await res.text();
         if (res.status === 401) {
-          console.error("fatal: Authentication failed. Check your API key.");
+          logger.fatal("Authentication failed. Check your API key.");
         } else {
-          console.error(`fatal: Failed to list API keys: ${err}`);
+          logger.fatal(`Failed to list API keys: ${err}`);
         }
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
 
       const result = await res.json() as {
@@ -125,23 +127,23 @@ keysCommand
       };
 
       if (result.keys.length === 0) {
-        console.log("No API keys found.");
+        logger.info("No API keys found.");
         return;
       }
 
-      console.log(`Found ${result.keys.length} API key(s):\n`);
+      logger.info(`Found ${result.keys.length} API key(s):\n`);
 
       for (const key of result.keys) {
         const status = key.isActive ? "\x1b[32m●\x1b[0m" : "\x1b[31m○\x1b[0m";
         const lastUsed = key.lastUsedAt
           ? `last used ${new Date(key.lastUsedAt).toLocaleDateString()}`
           : "never used";
-        console.log(`${status} ${key.id.slice(0, 8)}  ${key.name}`);
-        console.log(`    org: ${key.orgId}  |  ${lastUsed}`);
+        logger.info(`${status} ${key.id.slice(0, 8)}  ${key.name}`);
+        logger.info(`    org: ${key.orgId}  |  ${lastUsed}`);
       }
     } catch (err) {
-      console.error(`fatal: ${err instanceof Error ? err.message : err}`);
-      process.exit(1);
+      logger.fatal(err instanceof Error ? err.message : String(err));
+      process.exit(EXIT_ERROR);
     }
   });
 
@@ -151,20 +153,20 @@ keysCommand
   .argument("<id>", "API key ID to revoke")
   .action(async (id) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfig();
 
     if (!config.remote.url) {
-      console.error("fatal: No remote configured.");
-      process.exit(1);
+      logger.fatal("No remote configured.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     if (!config.remote.apiKey) {
-      console.error("fatal: No API key configured.");
-      process.exit(1);
+      logger.fatal("No API key configured.");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     try {
@@ -178,18 +180,18 @@ keysCommand
       if (!res.ok) {
         const err = await res.text();
         if (res.status === 401) {
-          console.error("fatal: Authentication failed. Check your API key.");
+          logger.fatal("Authentication failed. Check your API key.");
         } else if (res.status === 404) {
-          console.error(`fatal: API key '${id}' not found.`);
+          logger.fatal(`API key '${id}' not found.`);
         } else {
-          console.error(`fatal: Failed to revoke API key: ${err}`);
+          logger.fatal(`Failed to revoke API key: ${err}`);
         }
-        process.exit(1);
+        process.exit(EXIT_ERROR);
       }
 
-      console.log(`API key ${id.slice(0, 8)}... revoked successfully.`);
+      logger.info(`API key ${id.slice(0, 8)}... revoked successfully.`);
     } catch (err) {
-      console.error(`fatal: ${err instanceof Error ? err.message : err}`);
-      process.exit(1);
+      logger.fatal(err instanceof Error ? err.message : String(err));
+      process.exit(EXIT_ERROR);
     }
   });

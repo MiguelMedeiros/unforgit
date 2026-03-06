@@ -3,11 +3,6 @@ import { z } from "zod";
 import type { RemoteStore } from "../../db/remote.js";
 import { isOpenAIConfigured } from "../../core/embeddings.js";
 
-const generateSchema = z.object({
-  orgId: z.string(),
-  repoId: z.string(),
-});
-
 const backfillSchema = z.object({
   orgId: z.string(),
   repoId: z.string(),

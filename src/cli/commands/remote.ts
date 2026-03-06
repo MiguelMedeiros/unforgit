@@ -1,5 +1,7 @@
 import { Command } from "commander";
-import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.js";
+import { isInitialized, getConfigPath } from "../config.js";
+import { logger } from "../logger.js";
+import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import fs from "node:fs";
 import YAML from "yaml";
 import type { HippoConfig, HippoConfigV2, RemoteConfig } from "../../core/types.js";
@@ -8,21 +10,21 @@ export const remoteCommand = new Command("remote")
   .description("Manage set of tracked remote repositories")
   .action(() => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfigV2();
     const remotes = getRemotes(config);
 
     if (Object.keys(remotes).length === 0) {
-      console.log("No remotes configured.");
-      console.log("Use 'hippo remote add <name> <url>' to add a remote.");
+      logger.info("No remotes configured.");
+      logger.info("Use 'hippo remote add <name> <url>' to add a remote.");
       return;
     }
 
     for (const [name, remote] of Object.entries(remotes)) {
-      console.log(`${name}\t${remote.url}`);
+      logger.info(`${name}\t${remote.url}`);
     }
   });
 
@@ -34,17 +36,17 @@ export const remoteAddCommand = new Command("add")
   .option("--repo <repoId>", "Repository ID")
   .action((name, url, opts) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfigV2();
     const remotes = getRemotes(config);
 
     if (remotes[name]) {
-      console.error(`fatal: remote '${name}' already exists.`);
-      console.error(`Use 'hippo remote set-url ${name} <newurl>' to change the URL.`);
-      process.exit(1);
+      logger.fatal(`remote '${name}' already exists.`);
+      logger.error(`Use 'hippo remote set-url ${name} <newurl>' to change the URL.`);
+      process.exit(EXIT_ERROR);
     }
 
     remotes[name] = {
@@ -54,7 +56,7 @@ export const remoteAddCommand = new Command("add")
     };
 
     saveConfigV2(config, remotes);
-    console.log(`Remote '${name}' added: ${url}`);
+    logger.info(`Remote '${name}' added: ${url}`);
   });
 
 export const remoteRemoveCommand = new Command("remove")
@@ -63,21 +65,21 @@ export const remoteRemoveCommand = new Command("remove")
   .argument("<name>", "Name of the remote to remove")
   .action((name) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfigV2();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
-      console.error(`fatal: No such remote: '${name}'`);
-      process.exit(1);
+      logger.fatal(`No such remote: '${name}'`);
+      process.exit(EXIT_ERROR);
     }
 
     delete remotes[name];
     saveConfigV2(config, remotes);
-    console.log(`Remote '${name}' removed.`);
+    logger.info(`Remote '${name}' removed.`);
   });
 
 export const remoteSetUrlCommand = new Command("set-url")
@@ -86,22 +88,22 @@ export const remoteSetUrlCommand = new Command("set-url")
   .argument("<newurl>", "New URL for the remote")
   .action((name, newurl) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfigV2();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
-      console.error(`fatal: No such remote: '${name}'`);
-      console.error(`Use 'hippo remote add ${name} ${newurl}' to add it.`);
-      process.exit(1);
+      logger.fatal(`No such remote: '${name}'`);
+      logger.error(`Use 'hippo remote add ${name} ${newurl}' to add it.`);
+      process.exit(EXIT_ERROR);
     }
 
     remotes[name].url = newurl;
     saveConfigV2(config, remotes);
-    console.log(`Remote '${name}' URL changed to: ${newurl}`);
+    logger.info(`Remote '${name}' URL changed to: ${newurl}`);
   });
 
 export const remoteShowCommand = new Command("show")
@@ -109,23 +111,23 @@ export const remoteShowCommand = new Command("show")
   .argument("<name>", "Name of the remote")
   .action((name) => {
     if (!isInitialized()) {
-      console.error("fatal: not a hippocampus repository");
-      process.exit(1);
+      logger.fatal("not a hippocampus repository");
+      process.exit(EXIT_CONFIG_ERROR);
     }
 
     const config = loadConfigV2();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
-      console.error(`fatal: No such remote: '${name}'`);
-      process.exit(1);
+      logger.fatal(`No such remote: '${name}'`);
+      process.exit(EXIT_ERROR);
     }
 
     const remote = remotes[name];
-    console.log(`* remote ${name}`);
-    console.log(`  URL: ${remote.url}`);
-    console.log(`  Org ID: ${remote.orgId || "(not set)"}`);
-    console.log(`  Repo ID: ${remote.repoId || "(not set)"}`);
+    logger.info(`* remote ${name}`);
+    logger.info(`  URL: ${remote.url}`);
+    logger.info(`  Org ID: ${remote.orgId || "(not set)"}`);
+    logger.info(`  Repo ID: ${remote.repoId || "(not set)"}`);
   });
 
 remoteCommand.addCommand(remoteAddCommand);

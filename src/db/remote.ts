@@ -21,8 +21,6 @@ import { computeCompositeScore, computeHybridScore } from "../core/recall.js";
 import {
   generateEmbedding,
   embeddingToPgVector,
-  pgVectorToEmbedding,
-  cosineSimilarity,
   serializeEmbedding,
   deserializeEmbedding,
   isOpenAIConfigured,
