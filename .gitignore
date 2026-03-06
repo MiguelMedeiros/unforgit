@@ -12,3 +12,5 @@ src/generated/
 coverage/
 .next/
 web/.next/
+
+.cursor/plans/
