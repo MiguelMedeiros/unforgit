@@ -137,13 +137,13 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
         return;
       }
 
-      if (!process.env.OPENAI_API_KEY) {
-        logger.error("OPENAI_API_KEY environment variable not set.");
-        logger.error(
-          "Set it in your environment or .env file to enable auto-consolidation.",
-        );
+      const openaiKey = process.env.OPENAI_API_KEY || config.openaiApiKey;
+      if (!openaiKey) {
+        logger.error("OpenAI API key not set.");
+        logger.error("Set OPENAI_API_KEY env var or run 'hippo auth openai <key>'.");
         process.exit(EXIT_ERROR);
       }
+      process.env.OPENAI_API_KEY = openaiKey;
 
       const rl = createReadlineInterface();
       let consolidatedCount = 0;

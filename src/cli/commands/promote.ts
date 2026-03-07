@@ -11,6 +11,10 @@ export const promoteCommand = new Command("promote")
   .option("--to <scope>", "Target scope", "repo")
   .option("--source-pr <url>", "Source PR URL")
   .option("--source-commit <sha>", "Source commit SHA")
+  .addHelpText("after", `
+Examples:
+  hippo promote abc123
+  hippo promote abc123 --source-pr https://github.com/org/repo/pull/42`)
   .action(async (id, opts) => {
     const config = loadConfig();
 

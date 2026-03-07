@@ -1,28 +1,9 @@
 import { Command } from "commander";
-import { isInitialized, getConfigPath } from "../config.js";
+import { isInitialized, loadConfig, saveConfig } from "../config.js";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import fs from "node:fs";
-import YAML from "yaml";
+import { maskKey, isJsonMode, outputJson } from "../utils.js";
 import type { HippoConfig } from "../../core/types.js";
-import { maskKey } from "../utils.js";
-
-interface ExtendedHippoConfig extends HippoConfig {
-  openaiApiKey?: string;
-  branches?: string[];
-  currentBranch?: string;
-}
-
-function loadExtendedConfig(): ExtendedHippoConfig {
-  const configPath = getConfigPath();
-  const raw = fs.readFileSync(configPath, "utf-8");
-  return YAML.parse(raw) as ExtendedHippoConfig;
-}
-
-function saveExtendedConfig(config: ExtendedHippoConfig): void {
-  const configPath = getConfigPath();
-  fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
-}
 
 export const configCommand = new Command("config")
   .description("Manage hippocampus configuration");
@@ -37,7 +18,15 @@ configCommand
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadExtendedConfig();
+    const config = loadConfig();
+
+    if (isJsonMode()) {
+      const safeConfig = { ...config };
+      if (safeConfig.remote.apiKey) safeConfig.remote = { ...safeConfig.remote, apiKey: maskKey(safeConfig.remote.apiKey) };
+      if (safeConfig.openaiApiKey) safeConfig.openaiApiKey = maskKey(safeConfig.openaiApiKey);
+      outputJson(safeConfig);
+      return;
+    }
 
     logger.info("Current configuration:\n");
     logger.info(`remote.url = ${config.remote.url || "(not set)"}`);
@@ -59,12 +48,17 @@ configCommand
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadExtendedConfig();
+    const config = loadConfig();
     const value = getConfigValue(config, key);
 
     if (value === undefined) {
       logger.fatal(`key '${key}' not found`);
       process.exit(EXIT_ERROR);
+    }
+
+    if (isJsonMode()) {
+      outputJson({ key, value: key.includes("apiKey") || key.includes("ApiKey") ? maskKey(String(value)) : value });
+      return;
     }
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
@@ -74,20 +68,44 @@ configCommand
     }
   });
 
+const VALID_CONFIG_KEYS = [
+  "remote.url",
+  "remote.orgId",
+  "remote.repoId",
+  "remote.apiKey",
+  "defaults.visibility",
+  "defaults.memoryType",
+  "openaiApiKey",
+  "configVersion",
+] as const;
+
 configCommand
   .command("set")
   .description("Set a configuration value")
   .argument("<key>", "Configuration key")
   .argument("<value>", "Value to set")
+  .addHelpText("after", `
+Valid keys: ${VALID_CONFIG_KEYS.join(", ")}
+
+Examples:
+  hippo config set remote.url http://my-server:3737
+  hippo config set defaults.memoryType semantic`)
   .action((key, value) => {
     if (!isInitialized()) {
       logger.fatal("not a hippocampus repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadExtendedConfig();
+    if (!VALID_CONFIG_KEYS.includes(key as (typeof VALID_CONFIG_KEYS)[number])) {
+      logger.error(
+        `Unknown config key "${key}". Valid keys: ${VALID_CONFIG_KEYS.join(", ")}`,
+      );
+      process.exit(EXIT_ERROR);
+    }
+
+    const config = loadConfig();
     setConfigValue(config, key, value);
-    saveExtendedConfig(config);
+    saveConfig(config);
 
     if (key.includes("apiKey") || key.includes("ApiKey")) {
       logger.info(`${key} = ${maskKey(value)}`);
@@ -106,14 +124,14 @@ configCommand
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadExtendedConfig();
+    const config = loadConfig();
     unsetConfigValue(config, key);
-    saveExtendedConfig(config);
+    saveConfig(config);
 
     logger.info(`Unset ${key}`);
   });
 
-function getConfigValue(config: ExtendedHippoConfig, key: string): unknown {
+function getConfigValue(config: HippoConfig, key: string): unknown {
   const parts = key.split(".");
   let current: unknown = config;
 
@@ -128,7 +146,7 @@ function getConfigValue(config: ExtendedHippoConfig, key: string): unknown {
   return current;
 }
 
-function setConfigValue(config: ExtendedHippoConfig, key: string, value: string): void {
+function setConfigValue(config: HippoConfig, key: string, value: string): void {
   const parts = key.split(".");
 
   if (parts.length === 1) {
@@ -148,7 +166,7 @@ function setConfigValue(config: ExtendedHippoConfig, key: string, value: string)
   current[parts[parts.length - 1]] = value;
 }
 
-function unsetConfigValue(config: ExtendedHippoConfig, key: string): void {
+function unsetConfigValue(config: HippoConfig, key: string): void {
   const parts = key.split(".");
 
   if (parts.length === 1) {

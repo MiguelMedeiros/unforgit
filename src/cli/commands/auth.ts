@@ -3,26 +3,7 @@ import { loadConfig, saveConfig, isInitialized, getConfigPath } from "../config.
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import fs from "node:fs";
-import YAML from "yaml";
-import type { HippoConfig } from "../../core/types.js";
 import { maskKey } from "../utils.js";
-
-interface ExtendedHippoConfig extends HippoConfig {
-  openaiApiKey?: string;
-  branches?: string[];
-  currentBranch?: string;
-}
-
-function loadExtendedConfig(): ExtendedHippoConfig {
-  const configPath = getConfigPath();
-  const raw = fs.readFileSync(configPath, "utf-8");
-  return YAML.parse(raw) as ExtendedHippoConfig;
-}
-
-function saveExtendedConfig(config: ExtendedHippoConfig): void {
-  const configPath = getConfigPath();
-  fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
-}
 
 function checkConfigPermissions(): void {
   if (process.platform === "win32") return;
@@ -37,7 +18,7 @@ function checkConfigPermissions(): void {
       );
     }
   } catch {
-    // ignore — file might not exist yet
+    // file might not exist yet
   }
 }
 
@@ -48,6 +29,10 @@ authCommand
   .command("set")
   .description("Set the API key for remote authentication")
   .argument("<api-key>", "API key to use for authentication")
+  .addHelpText("after", `
+Examples:
+  hippo auth set hk_abc123def456
+  hippo auth status`)
   .action(async (apiKey) => {
     if (!isInitialized()) {
       logger.fatal("not a hippocampus repository");
@@ -96,23 +81,23 @@ authCommand
         try {
           const res = await fetch(`${config.remote.url}/health`);
           if (res.ok) {
-            logger.info("  ✓ Server reachable");
+            logger.info("  [ok] Server reachable");
 
             const authRes = await fetch(`${config.remote.url}/v1/api-keys`, {
               headers: { Authorization: `Bearer ${effectiveApiKey}` },
             });
             if (authRes.ok) {
-              logger.info("  ✓ API key valid");
+              logger.info("  [ok] API key valid");
             } else if (authRes.status === 401) {
-              logger.info("  ✗ API key invalid or expired");
+              logger.info("  [ERR] API key invalid or expired");
             } else {
-              logger.info(`  ? Could not verify API key (HTTP ${authRes.status})`);
+              logger.info(`  [??] Could not verify API key (HTTP ${authRes.status})`);
             }
           } else {
-            logger.info(`  ✗ Server returned HTTP ${res.status}`);
+            logger.info(`  [ERR] Server returned HTTP ${res.status}`);
           }
         } catch (err) {
-          logger.info(`  ✗ Could not connect: ${err instanceof Error ? err.message : err}`);
+          logger.info(`  [ERR] Could not connect: ${err instanceof Error ? err.message : err}`);
         }
       }
     } else {
@@ -147,7 +132,7 @@ authCommand
 
 authCommand
   .command("openai")
-  .description("Set OpenAI API key for auto-consolidation")
+  .description("Set OpenAI API key for auto-consolidation and embeddings")
   .argument("<api-key>", "OpenAI API key (starts with sk-)")
   .action((apiKey) => {
     if (!isInitialized()) {
@@ -159,14 +144,14 @@ authCommand
       logger.warn("OpenAI API key should start with 'sk-'");
     }
 
-    const config = loadExtendedConfig();
+    const config = loadConfig();
     config.openaiApiKey = apiKey;
-    saveExtendedConfig(config);
+    saveConfig(config);
 
     checkConfigPermissions();
     logger.info("OpenAI API key configured successfully!");
     logger.info(`  Key: ${maskKey(apiKey)}`);
-    logger.info("\nYou can now use 'hippo auto-consolidate' for AI-powered consolidation.");
+    logger.info("\nYou can now use 'hippo auto-consolidate' and 'hippo embeddings backfill'.");
   });
 
 authCommand
@@ -178,7 +163,7 @@ authCommand
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadExtendedConfig();
+    const config = loadConfig();
 
     if (!config.openaiApiKey) {
       logger.info("No OpenAI API key configured.");
@@ -186,7 +171,7 @@ authCommand
     }
 
     delete config.openaiApiKey;
-    saveExtendedConfig(config);
+    saveConfig(config);
 
     logger.info("OpenAI API key removed.");
   });

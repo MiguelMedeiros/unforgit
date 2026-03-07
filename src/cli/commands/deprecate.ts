@@ -10,6 +10,10 @@ export const deprecateCommand = new Command("deprecate")
   .argument("<id>", "Memory ID to deprecate")
   .option("--reason <reason>", "Reason for deprecation")
   .option("--remote", "Deprecate on remote")
+  .addHelpText("after", `
+Examples:
+  hippo deprecate abc123 --reason "No longer relevant"
+  hippo deprecate abc123 --remote`)
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();
@@ -31,6 +35,17 @@ export const deprecateCommand = new Command("deprecate")
     const store = new LocalStore(getDbPath());
 
     try {
+      const memory = store.getById(id);
+      if (!memory) {
+        logger.error(`Memory ${id} not found.`);
+        process.exit(EXIT_ERROR);
+      }
+
+      if (memory.status === "deprecated") {
+        logger.warn(`Memory ${id.slice(0, 8)} is already deprecated.`);
+        return;
+      }
+
       const ok = store.deprecate(id, opts.reason);
 
       if (!ok) {

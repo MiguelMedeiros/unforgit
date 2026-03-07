@@ -3,11 +3,16 @@ import { loadConfig, getDbPath, isInitialized } from "../config.js";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
-import { truncate } from "../utils.js";
+import { truncate, isJsonMode, outputJson } from "../utils.js";
 
 export const statusCommand = new Command("status")
   .description("Show the working tree status (pending sync state)")
   .option("-s, --short", "Give the output in short format")
+  .addHelpText("after", `
+Examples:
+  hippo status         Show full sync status
+  hippo status -s      Short format
+  hippo status --json  Machine-readable output`)
   .action((opts) => {
     if (!isInitialized()) {
       logger.fatal("not a hippocampus repository (or any of the parent directories)");
@@ -22,7 +27,6 @@ export const statusCommand = new Command("status")
       const orgId = config.remote.orgId || "local";
       const repoId = config.remote.repoId || "local";
 
-      const branch = "main";
       const remoteUrl = config.remote.url;
       const remoteName = "origin";
 
@@ -31,10 +35,21 @@ export const statusCommand = new Command("status")
       const untracked = store.getUntrackedMemories(orgId, repoId);
       const summary = store.getSyncSummary(orgId, repoId);
 
+      if (isJsonMode()) {
+        outputJson({
+          remote: remoteUrl || null,
+          pendingPush: pendingPush.length,
+          conflicts: conflicts.length,
+          untracked: untracked.length,
+          synced: summary.synced,
+        });
+        return;
+      }
+
       if (opts.short) {
         printShortStatus(pendingPush, conflicts, untracked);
       } else {
-        printLongStatus(branch, remoteName, remoteUrl, pendingPush, conflicts, untracked, summary);
+        printLongStatus(remoteName, remoteUrl, pendingPush, conflicts, untracked, summary);
       }
     } finally {
       store.close();
@@ -58,7 +73,6 @@ function printShortStatus(
 }
 
 function printLongStatus(
-  branch: string,
   remoteName: string,
   remoteUrl: string,
   pendingPush: Array<{ memory: { id: string; text: string; status: string }; syncState: { syncStatus: string } }>,
@@ -66,10 +80,8 @@ function printLongStatus(
   untracked: Array<{ id: string; text: string }>,
   summary: { synced: number; pendingPush: number; pendingPull: number; conflicts: number },
 ): void {
-  logger.info(`On branch ${branch}`);
-  
   if (remoteUrl) {
-    logger.info(`Your remote is '${remoteName}' at ${remoteUrl}`);
+    logger.info(`Remote '${remoteName}' at ${remoteUrl}`);
   } else {
     logger.info("No remote configured. Use 'hippo remote add origin <url>' to add one.");
   }
@@ -118,4 +130,3 @@ function printLongStatus(
   const total = pendingPush.length + conflicts.length + untracked.length;
   logger.info(`${total} change(s) pending`);
 }
-

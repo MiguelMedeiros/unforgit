@@ -72,20 +72,21 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
     );
   }
   const raw = fs.readFileSync(configPath, "utf-8");
-  const parsed = YAML.parse(raw);
+  const parsed = YAML.parse(raw) ?? {};
 
   const migrated = migrateConfig(parsed, configPath);
 
   const result = hippoConfigSchema.safeParse(migrated);
   if (!result.success) {
     const issues = result.error.issues
-      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+      .map((i) => `  - ${(i.path as (string | number)[]).join(".")}: ${i.message}`)
       .join("\n");
     throw new Error(
       `Invalid hippo.yaml configuration:\n${issues}\n\nFix the config at ${configPath} or re-run 'hippo init'.`,
     );
   }
-  return result.data as HippoConfig;
+
+  return { ...migrated, ...result.data } as HippoConfig;
 }
 
 export function saveConfig(

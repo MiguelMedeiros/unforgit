@@ -5,6 +5,7 @@ import { RemoteClient } from "../remote-client.js";
 import type { LinkType } from "../../core/types.js";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
+import { isJsonMode, outputJson } from "../utils.js";
 
 const VALID_LINK_TYPES = [
   "related_to",
@@ -22,11 +23,20 @@ export const linkCommand = new Command("link")
     "Link type (related_to, derived_from, contradicts, depends_on)",
   )
   .option("--remote", "Create link on remote")
+  .addHelpText("after", `
+Examples:
+  hippo link abc123 def456 --type related_to
+  hippo link abc123 def456 --type derived_from --remote`)
   .action(async (sourceId, targetId, opts) => {
     if (!VALID_LINK_TYPES.includes(opts.type)) {
       logger.error(
         `Invalid link type "${opts.type}". Must be one of: ${VALID_LINK_TYPES.join(", ")}`,
       );
+      process.exit(EXIT_ERROR);
+    }
+
+    if (sourceId === targetId) {
+      logger.error("Cannot link a memory to itself.");
       process.exit(EXIT_ERROR);
     }
 
@@ -50,6 +60,26 @@ export const linkCommand = new Command("link")
 
     const store = new LocalStore(getDbPath());
     try {
+      const source = store.getById(sourceId);
+      if (!source) {
+        logger.error(`Source memory ${sourceId} not found.`);
+        process.exit(EXIT_ERROR);
+      }
+      if (source.status === "deleted") {
+        logger.error(`Source memory ${sourceId.slice(0, 8)} is deleted. Restore it first.`);
+        process.exit(EXIT_ERROR);
+      }
+
+      const target = store.getById(targetId);
+      if (!target) {
+        logger.error(`Target memory ${targetId} not found.`);
+        process.exit(EXIT_ERROR);
+      }
+      if (target.status === "deleted") {
+        logger.error(`Target memory ${targetId.slice(0, 8)} is deleted. Restore it first.`);
+        process.exit(EXIT_ERROR);
+      }
+
       const link = store.link({
         sourceId,
         targetId,
@@ -143,6 +173,12 @@ export const linksCommand = new Command("links")
 
       try {
         const result = await client.getLinks(memoryId, opts.type);
+
+        if (isJsonMode()) {
+          outputJson(result);
+          return;
+        }
+
         if (result.links.length === 0) {
           logger.info("No links found.");
           return;
@@ -171,6 +207,18 @@ export const linksCommand = new Command("links")
         memoryId,
         linkType: opts.type as LinkType | undefined,
       });
+
+      if (isJsonMode()) {
+        outputJson({
+          links: links.map((l) => ({
+            id: l.id,
+            sourceId: l.sourceId,
+            targetId: l.targetId,
+            linkType: l.linkType,
+          })),
+        });
+        return;
+      }
 
       if (links.length === 0) {
         logger.info("No links found.");

@@ -5,6 +5,7 @@ import { generateEmbedding } from "../../core/embeddings.js";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { parsePositiveInt } from "../schemas.js";
+import { isJsonMode, outputJson } from "../utils.js";
 
 const cwd = process.cwd();
 
@@ -24,13 +25,15 @@ embeddingsCommand
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const config = loadConfig(cwd);
+    const apiKey = process.env.OPENAI_API_KEY || config.openaiApiKey;
+
     if (!apiKey && !opts.dryRun) {
-      logger.error("OPENAI_API_KEY not set. Required for embedding generation.");
+      logger.error("OpenAI API key not set.");
+      logger.error("Set OPENAI_API_KEY env var or run 'hippo auth openai <key>'.");
       process.exit(EXIT_ERROR);
     }
 
-    const config = loadConfig(cwd);
     const dbPath = getDbPath(cwd);
     const store = new LocalStore(dbPath);
     const orgId = config.remote.orgId || "local";
@@ -126,6 +129,11 @@ embeddingsCommand
         ? ((stats.withEmbedding / stats.total) * 100).toFixed(1)
         : "0";
 
+      if (isJsonMode()) {
+        outputJson({ ...stats, coverage: parseFloat(coverage) });
+        return;
+      }
+
       logger.info("Embedding Statistics");
       logger.info("====================");
       logger.info(`Total memories:     ${stats.total}`);
@@ -161,9 +169,8 @@ embeddingsCommand
     const store = new LocalStore(dbPath);
 
     try {
-      const db = (store as unknown as { db: { exec: (sql: string) => void } }).db;
-      db.exec("DELETE FROM memory_embeddings");
-      logger.info("All embeddings cleared.");
+      const deleted = store.clearEmbeddings();
+      logger.info(`All embeddings cleared (${deleted} removed).`);
     } finally {
       store.close();
     }

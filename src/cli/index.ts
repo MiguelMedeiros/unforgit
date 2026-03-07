@@ -22,15 +22,18 @@ import { pushCommand } from "./commands/push.js";
 import { pullCommand } from "./commands/pull.js";
 import { remoteCommand } from "./commands/remote.js";
 import { logCommand } from "./commands/log.js";
-import { branchCommand, checkoutCommand } from "./commands/branch.js";
 import { diffCommand } from "./commands/diff.js";
 import { keysCommand } from "./commands/keys.js";
 import { authCommand } from "./commands/auth.js";
 import { configCommand } from "./commands/config.js";
 import { embeddingsCommand } from "./commands/embeddings.js";
+import { resetCommand } from "./commands/reset.js";
+import { doctorCommand } from "./commands/doctor.js";
+import { completionCommand } from "./commands/completion.js";
 import { createRequire } from "node:module";
 import { setVerbosity } from "./logger.js";
 import { EXIT_ERROR, EXIT_SIGINT, EXIT_SIGTERM } from "./exit-codes.js";
+import { setJsonMode } from "./utils.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../../package.json");
@@ -71,10 +74,12 @@ program
   .version(pkg.version)
   .option("--verbose", "Enable verbose output")
   .option("--quiet", "Suppress non-essential output")
+  .option("--json", "Output results as JSON (for scripting)")
   .hook("preAction", () => {
     const opts = program.opts();
     if (opts.quiet) setVerbosity(0);
     else if (opts.verbose) setVerbosity(2);
+    if (opts.json) setJsonMode(true);
   });
 
 program.addCommand(initCommand);
@@ -101,13 +106,14 @@ program.addCommand(pushCommand);
 program.addCommand(pullCommand);
 program.addCommand(remoteCommand);
 program.addCommand(logCommand);
-program.addCommand(branchCommand);
-program.addCommand(checkoutCommand);
 program.addCommand(diffCommand);
 program.addCommand(keysCommand);
 program.addCommand(authCommand);
 program.addCommand(configCommand);
 program.addCommand(embeddingsCommand);
+program.addCommand(resetCommand);
+program.addCommand(doctorCommand);
+program.addCommand(completionCommand);
 
 program.parseAsync().catch((err) => {
   console.error(`fatal: ${err instanceof Error ? err.message : err}`);

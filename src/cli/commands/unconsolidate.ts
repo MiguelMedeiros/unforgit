@@ -3,11 +3,17 @@ import { getDbPath, isInitialized } from "../config.js";
 import { LocalStore } from "../../db/local.js";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
+import { confirm } from "../utils.js";
 
 export const unconsolidateCommand = new Command("unconsolidate")
   .description("Revert a consolidation, restoring original memories to active status")
   .argument("<consolidation-id>", "ID of the consolidated memory to revert")
   .option("--dry-run", "Show what would be restored without making changes")
+  .option("--force", "Skip confirmation")
+  .addHelpText("after", `
+Examples:
+  hippo unconsolidate abc123 --dry-run   Preview what would be restored
+  hippo unconsolidate abc123             Revert a consolidation`)
   .action(async (consolidationId: string, opts) => {
     const cwd = process.cwd();
 
@@ -62,6 +68,16 @@ export const unconsolidateCommand = new Command("unconsolidate")
         logger.info("[Dry run - no changes made]");
         logger.info("Run without --dry-run to execute the unconsolidation.");
         return;
+      }
+
+      if (!opts.force) {
+        const confirmed = await confirm(
+          `Revert consolidation ${consolidationId.slice(0, 8)}... and restore ${sourceIds.length} source memories?`,
+        );
+        if (!confirmed) {
+          logger.info("Unconsolidation cancelled.");
+          return;
+        }
       }
 
       const result = store.unconsolidate(consolidationId);

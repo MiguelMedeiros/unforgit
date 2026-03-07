@@ -45,4 +45,14 @@ export async function curateRoutes(
       return reply.send({ ok: true });
     },
   );
+
+  app.post("/v1/memories/reset", async (request, reply) => {
+    const body = request.body as { orgId?: string; repoId?: string } | undefined;
+    if (!body?.orgId || !body?.repoId) {
+      return reply.status(400).send({ error: "orgId and repoId are required" });
+    }
+
+    const result = await store.resetAll(body.orgId, body.repoId);
+    return reply.send(result);
+  });
 }

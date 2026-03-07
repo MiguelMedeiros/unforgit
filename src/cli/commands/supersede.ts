@@ -4,13 +4,34 @@ import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
+import { confirm } from "../utils.js";
 
 export const supersedeCommand = new Command("supersede")
   .description("Mark a memory as superseded by another")
   .argument("<old-id>", "Memory ID being superseded")
   .requiredOption("--with <new-id>", "ID of the new memory that replaces it")
   .option("--remote", "Supersede on remote")
+  .option("--force", "Skip confirmation")
+  .addHelpText("after", `
+Examples:
+  hippo supersede abc123 --with def456
+  hippo supersede abc123 --with def456 --remote`)
   .action(async (oldId, opts) => {
+    if (oldId === opts.with) {
+      logger.error("A memory cannot supersede itself.");
+      process.exit(EXIT_ERROR);
+    }
+
+    if (!opts.force) {
+      const confirmed = await confirm(
+        `Supersede memory ${oldId.slice(0, 8)}... with ${opts.with.slice(0, 8)}...?`,
+      );
+      if (!confirmed) {
+        logger.info("Supersede cancelled.");
+        return;
+      }
+    }
+
     if (opts.remote) {
       const config = loadConfig();
       const client = new RemoteClient(config.remote.url, config.remote.apiKey);

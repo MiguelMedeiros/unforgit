@@ -1886,6 +1886,26 @@ export class LocalStore {
     };
   }
 
+  resetAll(): { memoriesDeleted: number; linksDeleted: number; embeddingsDeleted: number } {
+    const result = this.db.transaction(() => {
+      const embeddingsDeleted = this.db.prepare("DELETE FROM memory_embeddings").run().changes;
+      const linksDeleted = this.db.prepare("DELETE FROM memory_links").run().changes;
+      this.db.prepare("DELETE FROM synced_links").run();
+      this.db.prepare("DELETE FROM sync_state").run();
+      this.db.prepare("DELETE FROM tombstones").run();
+      this.db.prepare("DELETE FROM memory_usage").run();
+      const memoriesDeleted = this.db.prepare("DELETE FROM memories").run().changes;
+      this.db.exec("INSERT INTO memories_fts(memories_fts) VALUES('rebuild')");
+      return { memoriesDeleted, linksDeleted, embeddingsDeleted };
+    })();
+
+    return result;
+  }
+
+  clearEmbeddings(): number {
+    return this.db.prepare("DELETE FROM memory_embeddings").run().changes;
+  }
+
   close(): void {
     this.db.close();
   }

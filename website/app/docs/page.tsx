@@ -539,6 +539,18 @@ export default function DocsPage() {
               ]}
               example="hippo restore abc123"
             />
+
+            <CommandReference
+              name="hippo reset"
+              description="Permanently delete all memories and related data"
+              usage="hippo reset [options]"
+              options={[
+                { flag: "--local", description: "Reset local store only" },
+                { flag: "--remote", description: "Reset remote store only" },
+                { flag: "--force", description: "Skip confirmation prompt" },
+              ]}
+              example="hippo reset --local --force"
+            />
           </div>
         </Subsection>
 
@@ -1767,6 +1779,21 @@ $ docker-compose down`}
               method="POST"
               path="/v1/memory/:id/restore"
               description="Restore a soft-deleted memory."
+            />
+
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memories/reset"
+              description="Permanently delete all memories, links, embeddings, and related data for an org/repo."
+              requestBody={`{
+  "orgId": "your-org",
+  "repoId": "your-repo"
+}`}
+              responseExample={`{
+  "memoriesDeleted": 42,
+  "linksDeleted": 15,
+  "embeddingsDeleted": 38
+}`}
             />
           </div>
         </Subsection>

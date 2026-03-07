@@ -4,14 +4,24 @@ import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
 import { parsePositiveInt, validateMemoryType } from "../schemas.js";
+import { isJsonMode, outputJson, paginate } from "../utils.js";
 
 export const logCommand = new Command("log")
   .description("Show memory history log")
-  .option("-n, --max-count <n>", "Limit the number of memories shown", "10")
+  .option("-n, --max-count <n>", "Limit the number of memories shown", "20")
   .option("--oneline", "Show each memory on a single line")
   .option("--all", "Show all memories including deprecated/superseded")
   .option("--type <type>", "Filter by memory type (episodic|semantic|procedural)")
   .option("--tags <tags>", "Filter by tags (comma-separated)")
+  .option("--page <n>", "Page number for pagination", "1")
+  .option("--per-page <n>", "Items per page", "20")
+  .addHelpText("after", `
+Examples:
+  hippo log                     Show recent memories
+  hippo log --all               Include deprecated/superseded
+  hippo log --type semantic     Filter by type
+  hippo log --oneline           Compact output
+  hippo log --page 2            Second page of results`)
   .action((opts) => {
     if (!isInitialized()) {
       logger.fatal("not a hippocampus repository");
@@ -45,11 +55,6 @@ export const logCommand = new Command("log")
         sortOrder: "desc",
       });
 
-      if (memories.length === 0) {
-        logger.info("No memories found.");
-        return;
-      }
-
       let filteredMemories = memories;
       if (opts.tags) {
         const filterTags = opts.tags.split(",").map((t: string) => t.trim());
@@ -58,20 +63,44 @@ export const logCommand = new Command("log")
         );
       }
 
+      const page = parsePositiveInt(opts.page, "page");
+      const perPage = parsePositiveInt(opts.perPage, "per-page");
+      const paged = paginate(filteredMemories, page, perPage);
+
+      if (isJsonMode()) {
+        outputJson({
+          memories: paged.items.map((m) => ({
+            id: m.id,
+            type: m.memoryType,
+            status: m.status,
+            text: m.text,
+            tags: m.tags,
+            createdAt: m.createdAt.toISOString(),
+          })),
+          page: paged.currentPage,
+          totalPages: paged.totalPages,
+          total: paged.total,
+        });
+        return;
+      }
+
+      if (paged.items.length === 0) {
+        logger.info("No memories found.");
+        return;
+      }
+
       if (opts.oneline) {
-        for (const mem of filteredMemories) {
-          const typeIcon = getTypeIcon(mem.memoryType);
+        for (const mem of paged.items) {
           const text = mem.text.replace(/\n/g, " ").slice(0, 60);
-          logger.info(`${mem.id.slice(0, 7)} ${typeIcon} ${text}${mem.text.length > 60 ? "..." : ""}`);
+          logger.info(`${mem.id.slice(0, 7)} [${mem.memoryType}] ${text}${mem.text.length > 60 ? "..." : ""}`);
         }
       } else {
-        for (const mem of filteredMemories) {
-          const typeIcon = getTypeIcon(mem.memoryType);
+        for (const mem of paged.items) {
           const date = mem.createdAt.toISOString().split("T")[0];
           const time = mem.createdAt.toISOString().split("T")[1].slice(0, 5);
-          
-          logger.info(`\x1b[33mmemory ${mem.id}\x1b[0m`);
-          logger.info(`Type:   ${typeIcon} ${mem.memoryType}`);
+
+          logger.info(`memory ${mem.id}`);
+          logger.info(`Type:   ${mem.memoryType}`);
           logger.info(`Date:   ${date} ${time}`);
           logger.info(`Status: ${mem.status}`);
           if (mem.tags.length > 0) {
@@ -82,20 +111,11 @@ export const logCommand = new Command("log")
           logger.info("");
         }
       }
+
+      if (paged.totalPages > 1) {
+        logger.info(`Page ${paged.currentPage}/${paged.totalPages} (${paged.total} total)`);
+      }
     } finally {
       store.close();
     }
   });
-
-function getTypeIcon(type: string): string {
-  switch (type) {
-    case "episodic":
-      return "📝";
-    case "semantic":
-      return "📚";
-    case "procedural":
-      return "⚙️";
-    default:
-      return "•";
-  }
-}

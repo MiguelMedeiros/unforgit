@@ -128,6 +128,16 @@ hippo deprecate <id> --reason "outdated after migration"
 hippo supersede <old-id> --with <new-id>
 ```
 
+### Reset
+
+```bash
+# Permanently delete ALL memories, links, embeddings, and sync state
+hippo reset                # reset local + remote
+hippo reset --local        # reset local store only
+hippo reset --remote       # reset remote store only
+hippo reset --force        # skip confirmation prompt
+```
+
 ### Merge (Consolidate Memories)
 
 Combine multiple related memories into a single unified memory while preserving the full history — like a Git commit for knowledge.
@@ -327,6 +337,7 @@ curl -H "Authorization: Bearer hk_your_api_key" \
 | POST | `/v1/consolidate` | Consolidate memories |
 | DELETE | `/v1/memory/:id` | Delete a memory |
 | POST | `/v1/memory/:id/restore` | Restore a deleted memory |
+| POST | `/v1/memories/reset` | Reset all memories for org/repo |
 | POST | `/v1/api-keys` | Create API key |
 | GET | `/v1/api-keys` | List API keys |
 | DELETE | `/v1/api-keys/:id` | Revoke API key |
@@ -556,7 +567,7 @@ src/
 ├── mcp/             # MCP server (hippo-mcp)
 │   └── index.ts     # Stdio transport + tools
 ├── cli/             # Commander CLI (hippo)
-│   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede, embeddings
+│   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede, reset, embeddings
 │   └── index.ts     # CLI entry point
 ├── core/            # Shared domain logic
 │   ├── types.ts     # TypeScript types

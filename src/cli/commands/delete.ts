@@ -4,6 +4,7 @@ import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
+import { confirm } from "../utils.js";
 
 export const deleteCommand = new Command("delete")
   .description("Soft delete a memory (can be restored)")
@@ -11,7 +12,23 @@ export const deleteCommand = new Command("delete")
   .option("--hard", "Permanently delete (cannot be restored)")
   .option("--remote", "Delete on remote")
   .option("--by <author>", "Author of the deletion")
+  .option("--force", "Skip confirmation for hard delete")
+  .addHelpText("after", `
+Examples:
+  hippo delete abc12345              Soft delete (can be restored)
+  hippo delete abc12345 --hard       Permanent delete
+  hippo delete abc12345 --remote     Delete on remote server`)
   .action(async (id, opts) => {
+    if (opts.hard && !opts.force) {
+      const confirmed = await confirm(
+        `Permanently delete memory ${id.slice(0, 8)}...? This cannot be undone.`,
+      );
+      if (!confirmed) {
+        logger.info("Delete cancelled.");
+        return;
+      }
+    }
+
     if (opts.remote) {
       const config = loadConfig();
       const client = new RemoteClient(config.remote.url, config.remote.apiKey);

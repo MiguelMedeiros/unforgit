@@ -9,6 +9,7 @@ import {
   parsePositiveInt,
   validateMemoryType,
 } from "../schemas.js";
+import { isJsonMode, outputJson } from "../utils.js";
 
 const cwd = process.cwd();
 
@@ -50,6 +51,22 @@ export const mergeCommand = new Command("merge")
     const store = new LocalStore(getDbPath(cwd));
 
     try {
+      for (const id of ids) {
+        const mem = store.getById(id);
+        if (!mem) {
+          logger.error(`Memory ${id} not found.`);
+          process.exit(EXIT_ERROR);
+        }
+        if (mem.status === "deleted") {
+          logger.error(`Memory ${id.slice(0, 8)} is deleted. Restore it before merging.`);
+          process.exit(EXIT_ERROR);
+        }
+        if (mem.status === "superseded") {
+          logger.error(`Memory ${id.slice(0, 8)} is already superseded. Cannot merge superseded memories.`);
+          process.exit(EXIT_ERROR);
+        }
+      }
+
       const result = store.consolidateMemories({
         orgId: config.remote.orgId || "local",
         repoId: config.remote.repoId || "local",
@@ -146,6 +163,10 @@ export const similarCommand = new Command("similar")
     "Minimum similarity score (0-1)",
     "0.3",
   )
+  .addHelpText("after", `
+Examples:
+  hippo similar abc123
+  hippo similar abc123 --threshold 0.5 -k 5`)
   .action(async (memoryId: string, opts) => {
     if (!isInitialized(cwd)) {
       logger.error("Hippocampus not initialized. Run 'hippo init' first.");
@@ -163,6 +184,19 @@ export const similarCommand = new Command("similar")
         threshold: parseThreshold(opts.threshold),
         k: parsePositiveInt(opts.limit, "limit"),
       });
+
+      if (isJsonMode()) {
+        outputJson({
+          results: similar.map((m) => ({
+            id: m.id,
+            type: m.memoryType,
+            score: m.score,
+            text: m.text,
+            tags: m.tags,
+          })),
+        });
+        return;
+      }
 
       if (similar.length === 0) {
         logger.info("No similar memories found.");

@@ -106,7 +106,7 @@ export const pullCommand = new Command("pull")
 
           created++;
           const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
-          logger.info(`  ↓ ${remoteMem.id.slice(0, 8)}... new memory${statusNote}`);
+          logger.info(`  ${remoteMem.id.slice(0, 8)}... new memory${statusNote}`);
           logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
         } else {
           const syncState = store.getSyncState(remoteMem.id);
@@ -116,7 +116,7 @@ export const pullCommand = new Command("pull")
           if (syncState?.syncStatus === "pending_push" && !opts.force) {
             conflicts++;
             store.markAsConflict(remoteMem.id, remoteVersion + 1);
-            logger.info(`  ⚠ ${remoteMem.id.slice(0, 8)}... conflict (local has unpushed changes)`);
+            logger.info(`  ${remoteMem.id.slice(0, 8)}... conflict (local has unpushed changes)`);
             logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
             continue;
           }
@@ -153,7 +153,7 @@ export const pullCommand = new Command("pull")
             updated++;
             const changeType = statusChanged && !textChanged ? "status updated" : "updated";
             const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
-            logger.info(`  ↓ ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
+            logger.info(`  ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
             logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
           }
         }

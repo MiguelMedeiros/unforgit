@@ -6,6 +6,8 @@ import { RemoteClient } from "../remote-client.js";
 import { mergeAndRank } from "../../core/recall.js";
 import type { MemoryType, RecallResult } from "../../core/types.js";
 import { parsePositiveInt } from "../schemas.js";
+import { EXIT_ERROR } from "../exit-codes.js";
+import { isJsonMode, outputJson, paginate } from "../utils.js";
 
 export const recallCommand = new Command("recall")
   .description("Recall memories matching a query")
@@ -18,12 +20,37 @@ export const recallCommand = new Command("recall")
   .option("-k, --limit <n>", "Max results", "10")
   .option("--remote-only", "Only query remote")
   .option("--local-only", "Only query local")
+  .option("--page <n>", "Page number for pagination", "1")
+  .option("--per-page <n>", "Items per page", "10")
+  .addHelpText("after", `
+Examples:
+  hippo recall "authentication"             Search all memories
+  hippo recall "deploy" --types procedural  Filter by type
+  hippo recall "bug" --tags auth,api        Filter by tags
+  hippo recall "setup" --local-only         Local search only`)
   .action(async (query, opts) => {
+    if (!query || !query.trim()) {
+      logger.error("Search query cannot be empty.");
+      process.exit(EXIT_ERROR);
+    }
+
     const config = loadConfig();
     const k = parsePositiveInt(opts.limit, "limit");
+
+    const VALID_TYPES = ["episodic", "semantic", "procedural"];
     const types = opts.types
       ? (opts.types.split(",").map((t: string) => t.trim()) as MemoryType[])
       : undefined;
+
+    if (types) {
+      const invalid = types.filter((t) => !VALID_TYPES.includes(t));
+      if (invalid.length > 0) {
+        logger.error(
+          `Invalid memory type(s): ${invalid.join(", ")}. Must be one of: ${VALID_TYPES.join(", ")}`,
+        );
+        process.exit(EXIT_ERROR);
+      }
+    }
     const tags = opts.tags
       ? opts.tags.split(",").map((t: string) => t.trim())
       : undefined;
@@ -71,13 +98,34 @@ export const recallCommand = new Command("recall")
 
     const results = mergeAndRank(localResults, remoteResults, k);
 
+    const page = parsePositiveInt(opts.page, "page");
+    const perPage = parsePositiveInt(opts.perPage, "per-page");
+    const paged = paginate(results, page, perPage);
+
+    if (isJsonMode()) {
+      outputJson({
+        results: paged.items.map((r) => ({
+          id: r.id,
+          source: r.source,
+          type: r.memoryType,
+          score: r.score,
+          text: r.text,
+          tags: r.tags,
+        })),
+        page: paged.currentPage,
+        totalPages: paged.totalPages,
+        total: paged.total,
+      });
+      return;
+    }
+
     if (results.length === 0) {
       logger.info("No memories found.");
       return;
     }
 
     logger.info(`Found ${results.length} memories:\n`);
-    for (const r of results) {
+    for (const r of paged.items) {
       const sourceTag = r.source === "local" ? "[local]" : "[remote]";
       logger.info(
         `${sourceTag} [${r.memoryType}] ${r.id.slice(0, 8)}... (score: ${r.score.toFixed(3)})`,
@@ -85,5 +133,9 @@ export const recallCommand = new Command("recall")
       logger.info(`  ${r.text.slice(0, 120)}${r.text.length > 120 ? "..." : ""}`);
       if (r.tags.length > 0) logger.info(`  Tags: ${r.tags.join(", ")}`);
       logger.info("");
+    }
+
+    if (paged.totalPages > 1) {
+      logger.info(`Page ${paged.currentPage}/${paged.totalPages} (${paged.total} total)`);
     }
   });

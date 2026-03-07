@@ -1262,4 +1262,35 @@ export class RemoteStore {
 
     return results;
   }
+
+  async resetAll(
+    orgId: string,
+    repoId: string,
+  ): Promise<{ memoriesDeleted: number; linksDeleted: number; embeddingsDeleted: number }> {
+    const memories = await this.prisma.memory.findMany({
+      where: { orgId, repoId },
+      select: { id: true },
+    });
+    const memoryIds = memories.map((m) => m.id);
+
+    if (memoryIds.length === 0) {
+      return { memoriesDeleted: 0, linksDeleted: 0, embeddingsDeleted: 0 };
+    }
+
+    const [embeddingsResult, linksResult, , , memoriesResult] = await this.prisma.$transaction([
+      this.prisma.memoryEmbedding.deleteMany({ where: { memoryId: { in: memoryIds } } }),
+      this.prisma.memoryLink.deleteMany({
+        where: { OR: [{ sourceId: { in: memoryIds } }, { targetId: { in: memoryIds } }] },
+      }),
+      this.prisma.tombstone.deleteMany({ where: { orgId, repoId } }),
+      this.prisma.memoryUsage.deleteMany({ where: { memoryId: { in: memoryIds } } }),
+      this.prisma.memory.deleteMany({ where: { orgId, repoId } }),
+    ]);
+
+    return {
+      memoriesDeleted: memoriesResult.count,
+      linksDeleted: linksResult.count,
+      embeddingsDeleted: embeddingsResult.count,
+    };
+  }
 }

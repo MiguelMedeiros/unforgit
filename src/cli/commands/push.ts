@@ -64,13 +64,13 @@ export const pushCommand = new Command("push")
         if (supersededToSync.length > 0) {
           logger.info("\nWould sync superseded status:");
           for (const { memory, newId } of supersededToSync) {
-            logger.info(`  ${memory.id.slice(0, 8)}... → superseded by ${newId.slice(0, 8)}...`);
+            logger.info(`  ${memory.id.slice(0, 8)}... -> superseded by ${newId.slice(0, 8)}...`);
           }
         }
         if (linksToSync.length > 0) {
           logger.info("\nWould sync links:");
           for (const { link } of linksToSync) {
-            logger.info(`  ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
+            logger.info(`  ${link.sourceId.slice(0, 8)}... -> ${link.targetId.slice(0, 8)}... (${link.linkType})`);
           }
         }
         logger.info(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length} status updates, ${linksToSync.length} links`);
@@ -113,7 +113,7 @@ export const pushCommand = new Command("push")
         } catch (err) {
           errors++;
           const errorMsg = err instanceof Error ? err.message : String(err);
-          logger.error(`  ✗ ${memory.id.slice(0, 8)}... failed: ${errorMsg}`);
+          logger.error(`  ${memory.id.slice(0, 8)}... failed: ${errorMsg}`);
 
           if (errorMsg.includes("409") || errorMsg.includes("conflict")) {
             if (opts.force) {
@@ -133,12 +133,12 @@ export const pushCommand = new Command("push")
           await client.supersede(memory.id, newId);
           store.markStatusSynced(memory.id);
           supersededSynced++;
-          logger.info(`  ✓ ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          logger.info(`  ${memory.id.slice(0, 8)}... marked as superseded on remote`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
             errors++;
-            logger.error(`  ✗ ${memory.id.slice(0, 8)}... failed to sync superseded status: ${errorMsg}`);
+            logger.error(`  ${memory.id.slice(0, 8)}... failed to sync superseded status: ${errorMsg}`);
           }
         }
       }
@@ -150,12 +150,12 @@ export const pushCommand = new Command("push")
           await client.link(link.sourceId, link.targetId, link.linkType, link.metadata);
           store.markLinkSynced(link.id);
           linksSynced++;
-          logger.info(`  ✓ link ${link.sourceId.slice(0, 8)}... → ${link.targetId.slice(0, 8)}... (${link.linkType})`);
+          logger.info(`  link ${link.sourceId.slice(0, 8)}... -> ${link.targetId.slice(0, 8)}... (${link.linkType})`);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
             errors++;
-            logger.error(`  ✗ link ${link.sourceId.slice(0, 8)}... failed: ${errorMsg}`);
+            logger.error(`  link ${link.sourceId.slice(0, 8)}... failed: ${errorMsg}`);
           }
         }
       }

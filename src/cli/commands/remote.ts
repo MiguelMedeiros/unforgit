@@ -1,20 +1,23 @@
 import { Command } from "commander";
-import { isInitialized, getConfigPath } from "../config.js";
+import { isInitialized, loadConfig, saveConfig } from "../config.js";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import fs from "node:fs";
-import YAML from "yaml";
-import type { HippoConfig, HippoConfigV2, RemoteConfig } from "../../core/types.js";
+import type { HippoConfig, RemoteConfig } from "../../core/types.js";
 
 export const remoteCommand = new Command("remote")
   .description("Manage set of tracked remote repositories")
+  .addHelpText("after", `
+Examples:
+  hippo remote                        List remotes
+  hippo remote add origin <url>       Add a remote
+  hippo remote show origin            Show remote details`)
   .action(() => {
     if (!isInitialized()) {
       logger.fatal("not a hippocampus repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadConfigV2();
+    const config = loadConfig();
     const remotes = getRemotes(config);
 
     if (Object.keys(remotes).length === 0) {
@@ -40,7 +43,7 @@ export const remoteAddCommand = new Command("add")
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadConfigV2();
+    const config = loadConfig();
     const remotes = getRemotes(config);
 
     if (remotes[name]) {
@@ -55,7 +58,7 @@ export const remoteAddCommand = new Command("add")
       repoId: opts.repo || config.remote?.repoId || "",
     };
 
-    saveConfigV2(config, remotes);
+    saveRemotes(config, remotes);
     logger.info(`Remote '${name}' added: ${url}`);
   });
 
@@ -69,7 +72,7 @@ export const remoteRemoveCommand = new Command("remove")
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadConfigV2();
+    const config = loadConfig();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
@@ -78,7 +81,7 @@ export const remoteRemoveCommand = new Command("remove")
     }
 
     delete remotes[name];
-    saveConfigV2(config, remotes);
+    saveRemotes(config, remotes);
     logger.info(`Remote '${name}' removed.`);
   });
 
@@ -92,7 +95,7 @@ export const remoteSetUrlCommand = new Command("set-url")
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadConfigV2();
+    const config = loadConfig();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
@@ -102,7 +105,7 @@ export const remoteSetUrlCommand = new Command("set-url")
     }
 
     remotes[name].url = newurl;
-    saveConfigV2(config, remotes);
+    saveRemotes(config, remotes);
     logger.info(`Remote '${name}' URL changed to: ${newurl}`);
   });
 
@@ -115,7 +118,7 @@ export const remoteShowCommand = new Command("show")
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const config = loadConfigV2();
+    const config = loadConfig();
     const remotes = getRemotes(config);
 
     if (!remotes[name]) {
@@ -135,17 +138,11 @@ remoteCommand.addCommand(remoteRemoveCommand);
 remoteCommand.addCommand(remoteSetUrlCommand);
 remoteCommand.addCommand(remoteShowCommand);
 
-function loadConfigV2(): HippoConfig & Partial<HippoConfigV2> {
-  const configPath = getConfigPath();
-  const raw = fs.readFileSync(configPath, "utf-8");
-  return YAML.parse(raw) as HippoConfig & Partial<HippoConfigV2>;
-}
-
-function getRemotes(config: HippoConfig & Partial<HippoConfigV2>): Record<string, RemoteConfig> {
+function getRemotes(config: HippoConfig): Record<string, RemoteConfig> {
   if (config.remotes) {
-    return config.remotes;
+    return { ...config.remotes };
   }
-  
+
   if (config.remote?.url) {
     return {
       origin: {
@@ -155,29 +152,21 @@ function getRemotes(config: HippoConfig & Partial<HippoConfigV2>): Record<string
       },
     };
   }
-  
+
   return {};
 }
 
-function saveConfigV2(
-  config: HippoConfig & Partial<HippoConfigV2>,
-  remotes: Record<string, RemoteConfig>,
-): void {
-  const configPath = getConfigPath();
-  
-  const newConfig: HippoConfigV2 = {
-    remotes,
-    currentBranch: config.currentBranch || "main",
-    defaults: config.defaults,
-  };
+function saveRemotes(config: HippoConfig, remotes: Record<string, RemoteConfig>): void {
+  config.remotes = remotes;
 
   if (remotes.origin) {
-    (newConfig as HippoConfig & HippoConfigV2).remote = {
+    config.remote = {
+      ...config.remote,
       url: remotes.origin.url,
       orgId: remotes.origin.orgId,
       repoId: remotes.origin.repoId,
     };
   }
 
-  fs.writeFileSync(configPath, YAML.stringify(newConfig), "utf-8");
+  saveConfig(config);
 }

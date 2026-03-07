@@ -28,19 +28,31 @@ export const addCommand = new Command("add")
   .option("--ttl <seconds>", "TTL in seconds")
   .option("--template <name>", "Use a template (decision, gotcha, playbook, etc.)")
   .option("--list-templates", "List available templates")
+  .addHelpText("after", `
+Examples:
+  hippo add "We use UTC timestamps everywhere" -t semantic --tags time,convention
+  hippo add "Found race condition in worker" -t episodic --tags bug
+  hippo add "To deploy: run make release" --template playbook`)
   .action((text, opts) => {
     if (opts.listTemplates) {
       logger.info(formatTemplateList());
       return;
     }
 
+    if (!text || !text.trim()) {
+      logger.error("Memory text cannot be empty.");
+      process.exit(EXIT_ERROR);
+    }
+
     const config = loadConfig();
     const store = new LocalStore(getDbPath());
 
     try {
-      let userTags = opts.tags
-        ? opts.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
-        : [];
+      let userTags: string[] = [...new Set(
+        opts.tags
+          ? opts.tags.split(",").map((t: string) => t.trim()).filter(Boolean) as string[]
+          : [] as string[],
+      )];
 
       if (!validateMemoryType(opts.type)) {
         logger.error(`Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);

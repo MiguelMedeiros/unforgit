@@ -255,4 +255,94 @@ export class RemoteClient {
     }
     return res.json() as Promise<{ success: boolean }>;
   }
+
+  async resetAll(orgId: string, repoId: string): Promise<{
+    memoriesDeleted: number;
+    linksDeleted: number;
+    embeddingsDeleted: number;
+  }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/memories/reset`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ orgId, repoId }),
+      },
+      "resetAll",
+    );
+    if (!res.ok) {
+      this.handleError(res, "resetAll", await res.text());
+    }
+    return res.json() as Promise<{
+      memoriesDeleted: number;
+      linksDeleted: number;
+      embeddingsDeleted: number;
+    }>;
+  }
+
+  async createApiKey(name: string, orgId: string): Promise<{
+    id: string;
+    key: string;
+    name: string;
+    orgId: string;
+  }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/api-keys`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ name, orgId }),
+      },
+      "createApiKey",
+    );
+    if (!res.ok) {
+      this.handleError(res, "createApiKey", await res.text());
+    }
+    return res.json() as Promise<{ id: string; key: string; name: string; orgId: string }>;
+  }
+
+  async listApiKeys(orgId?: string): Promise<{
+    keys: Array<{
+      id: string;
+      name: string;
+      orgId: string;
+      isActive: boolean;
+      createdAt: string;
+      lastUsedAt: string | null;
+    }>;
+  }> {
+    const params = new URLSearchParams();
+    if (orgId) params.set("orgId", orgId);
+    const qs = params.toString();
+    const url = `${this.baseUrl}/v1/api-keys${qs ? `?${qs}` : ""}`;
+
+    const res = await this.fetchWithRetry(url, { headers: this.getHeaders() }, "listApiKeys");
+    if (!res.ok) {
+      this.handleError(res, "listApiKeys", await res.text());
+    }
+    return res.json() as Promise<{
+      keys: Array<{
+        id: string;
+        name: string;
+        orgId: string;
+        isActive: boolean;
+        createdAt: string;
+        lastUsedAt: string | null;
+      }>;
+    }>;
+  }
+
+  async revokeApiKey(id: string): Promise<void> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/api-keys/${id}`,
+      { method: "DELETE", headers: this.getHeaders() },
+      "revokeApiKey",
+    );
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error(`API key '${id}' not found.`);
+      }
+      this.handleError(res, "revokeApiKey", await res.text());
+    }
+  }
 }

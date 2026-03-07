@@ -1,3 +1,5 @@
+import { isJsonMode } from "./utils.js";
+
 type Verbosity = 0 | 1 | 2;
 
 let level: Verbosity = 1;
@@ -12,27 +14,27 @@ export function getVerbosity(): Verbosity {
 
 export const logger = {
   fatal(msg: string): void {
-    console.error(`fatal: ${msg}`);
+    if (!isJsonMode()) console.error(`fatal: ${msg}`);
   },
 
   error(msg: string): void {
-    console.error(`error: ${msg}`);
+    if (!isJsonMode()) console.error(`error: ${msg}`);
   },
 
   warn(msg: string): void {
-    if (level >= 1) console.error(`warning: ${msg}`);
+    if (level >= 1 && !isJsonMode()) console.error(`warning: ${msg}`);
   },
 
   info(msg: string): void {
-    if (level >= 1) console.log(msg);
+    if (level >= 1 && !isJsonMode()) console.log(msg);
   },
 
   debug(msg: string): void {
-    if (level >= 2) console.error(`debug: ${msg}`);
+    if (level >= 2 && !isJsonMode()) console.error(`debug: ${msg}`);
   },
 
   progress(current: number, total: number, label?: string): void {
-    if (level >= 1) {
+    if (level >= 1 && !isJsonMode()) {
       const pct = total > 0 ? Math.round((current / total) * 100) : 0;
       const suffix = label ? ` ${label}` : "";
       process.stdout.write(`\rProcessing ${current}/${total} (${pct}%)${suffix}`);

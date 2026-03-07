@@ -150,6 +150,7 @@ export interface EmbeddingConfig {
 }
 
 export interface HippoConfig {
+  configVersion?: number;
   remote: {
     url: string;
     orgId: string;
@@ -162,6 +163,8 @@ export interface HippoConfig {
   };
   sync?: SyncConfig;
   embeddings?: EmbeddingConfig;
+  openaiApiKey?: string;
+  remotes?: Record<string, RemoteConfig>;
 }
 
 export interface ConsolidateMemoriesInput {
@@ -259,17 +262,7 @@ export interface RemoteConfig {
   apiKey?: string;
 }
 
-export interface HippoConfigV2 {
-  remotes: Record<string, RemoteConfig>;
-  currentBranch: string;
-  defaults: {
-    visibility: Visibility;
-    memoryType: MemoryType;
-  };
-}
-
 export interface StatusSummary {
-  branch: string;
   remote?: {
     name: string;
     url: string;

@@ -20,20 +20,24 @@ export const embeddingConfigSchema = z.object({
   autoGenerate: z.boolean(),
 });
 
+const remoteConfigSchema = z.object({
+  url: z.string(),
+  orgId: z.string(),
+  repoId: z.string(),
+  apiKey: z.string().optional(),
+});
+
 export const hippoConfigSchema = z.object({
   configVersion: z.number().optional(),
-  remote: z.object({
-    url: z.string(),
-    orgId: z.string(),
-    repoId: z.string(),
-    apiKey: z.string().optional(),
-  }),
+  remote: remoteConfigSchema,
   defaults: z.object({
     visibility: z.enum(["private", "repo", "auto"]),
     memoryType: z.enum(["episodic", "semantic", "procedural"]),
   }),
   sync: syncConfigSchema.optional(),
   embeddings: embeddingConfigSchema.optional(),
+  openaiApiKey: z.string().optional(),
+  remotes: z.record(z.string(), remoteConfigSchema).optional(),
 });
 
 const VALID_MEMORY_TYPES = ["episodic", "semantic", "procedural"] as const;
