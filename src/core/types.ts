@@ -55,6 +55,7 @@ export interface RecallQuery {
   timeRange?: { from?: Date; to?: Date };
   k?: number;
   includeDeprecated?: boolean;
+  includeExpired?: boolean;
   expandHistory?: boolean;
   includeConsolidatedSources?: boolean;
 }
@@ -96,6 +97,7 @@ export interface ListQuery {
   visibility?: ("private" | "repo")[];
   tags?: string[];
   search?: string;
+  includeExpired?: boolean;
   offset?: number;
   limit?: number;
   sortBy?: "createdAt" | "updatedAt" | "confidence";
@@ -149,6 +151,39 @@ export interface EmbeddingConfig {
   autoGenerate: boolean;
 }
 
+export interface LifecycleTtlConfig {
+  episodic?: number;
+  semantic?: number;
+  procedural?: number;
+}
+
+export interface LifecycleUsageBoostConfig {
+  enabled: boolean;
+  topKToRecord: number;
+  minUsageCount: number;
+  maxBoost: number;
+  halfLifeDays: number;
+}
+
+export interface LifecycleMaintenanceConfig {
+  staleEpisodicDays: number;
+  consolidationThreshold: number;
+  consolidationMinGroupSize: number;
+  consolidationMaxGroups: number;
+  promoteRecallCount: number;
+  pinRecallCount: number;
+  dryRunDefault: boolean;
+  autoRunOnStore: boolean;
+  autoRunOnRecall: boolean;
+  debounceMs: number;
+}
+
+export interface LifecycleConfig {
+  ttlSecondsByType?: LifecycleTtlConfig;
+  usageBoost?: Partial<LifecycleUsageBoostConfig>;
+  maintenance?: Partial<LifecycleMaintenanceConfig>;
+}
+
 export interface HippoConfig {
   configVersion?: number;
   remote: {
@@ -163,6 +198,7 @@ export interface HippoConfig {
   };
   sync?: SyncConfig;
   embeddings?: EmbeddingConfig;
+  lifecycle?: LifecycleConfig;
   openaiApiKey?: string;
   remotes?: Record<string, RemoteConfig>;
 }

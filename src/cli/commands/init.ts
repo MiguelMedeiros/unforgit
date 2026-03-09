@@ -15,7 +15,7 @@ import { LocalStore } from "../../db/local.js";
 import { CURSOR_RULE_CONTENT } from "../cursor-rule.js";
 
 export const initCommand = new Command("init")
-  .description("Initialize Hippocampus in the current repository")
+  .description("Initialize Unforgit in the current repository")
   .option("--org-id <orgId>", "Override auto-detected organization ID")
   .option("--repo-id <repoId>", "Override auto-detected repository ID")
   .option("--remote-url <url>", "Remote API URL", "http://localhost:3737")
@@ -24,7 +24,7 @@ export const initCommand = new Command("init")
     const cwd = process.cwd();
 
     if (isInitialized(cwd)) {
-      logger.info("Hippocampus is already initialized in this directory.");
+      logger.info("Unforgit is already initialized in this directory.");
       return;
     }
 
@@ -43,7 +43,7 @@ export const initCommand = new Command("init")
     const store = new LocalStore(getDbPath(cwd));
     store.close();
 
-    logger.info(`Initialized Hippocampus at ${hippoDir}`);
+    logger.info(`Initialized Unforgit at ${hippoDir}`);
     logger.info(`  Config: ${getConfigPath(cwd)}`);
     logger.info(`  Local DB: ${getDbPath(cwd)}`);
 
@@ -55,7 +55,7 @@ export const initCommand = new Command("init")
       }
     } else {
       logger.info(
-        "\nTip: Set org_id and repo_id in .hippocampus/hippo.yaml or add a git remote.",
+        "\nTip: Set org_id and repo_id in .unforgit/unforgit.yaml or add a git remote.",
       );
     }
 
@@ -63,7 +63,7 @@ export const initCommand = new Command("init")
       const cursorDir = path.join(cwd, ".cursor");
 
       const rulesDir = path.join(cursorDir, "rules");
-      const rulePath = path.join(rulesDir, "hippocampus-memory.mdc");
+      const rulePath = path.join(rulesDir, "unforgit-memory.mdc");
       if (!fs.existsSync(rulePath)) {
         fs.mkdirSync(rulesDir, { recursive: true });
         fs.writeFileSync(rulePath, CURSOR_RULE_CONTENT, "utf-8");
@@ -76,8 +76,8 @@ export const initCommand = new Command("init")
       if (!fs.existsSync(mcpPath)) {
         const mcpConfig = {
           mcpServers: {
-            hippocampus: {
-              command: "hippo-mcp",
+            unforgit: {
+              command: "unforgit-mcp",
               args: [],
             },
           },
@@ -91,10 +91,10 @@ export const initCommand = new Command("init")
         logger.info(`  MCP config: ${mcpPath}`);
       } else {
         const existing = JSON.parse(fs.readFileSync(mcpPath, "utf-8"));
-        if (!existing.mcpServers?.hippocampus) {
+        if (!existing.mcpServers?.unforgit) {
           existing.mcpServers = existing.mcpServers || {};
-          existing.mcpServers.hippocampus = {
-            command: "hippo-mcp",
+          existing.mcpServers.unforgit = {
+            command: "unforgit-mcp",
             args: [],
           };
           fs.writeFileSync(
@@ -102,7 +102,7 @@ export const initCommand = new Command("init")
             JSON.stringify(existing, null, 2) + "\n",
             "utf-8",
           );
-          logger.info(`  MCP config: added hippocampus to ${mcpPath}`);
+          logger.info(`  MCP config: added unforgit to ${mcpPath}`);
         } else {
           logger.info(`  MCP config: already configured`);
         }

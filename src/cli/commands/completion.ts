@@ -2,15 +2,15 @@ import { Command } from "commander";
 import { logger } from "../logger.js";
 
 const BASH_COMPLETION = `
-_hippo_completions() {
+_unforgit_completions() {
   local cur prev commands
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
-  commands="init add recall promote consolidate deprecate supersede delete restore web link unlink links merge remerge similar history auto-consolidate unconsolidate status push pull remote log diff keys auth config embeddings reset doctor completion"
+  commands="init add recall promote consolidate deprecate supersede delete restore web link unlink links merge remerge similar history auto-consolidate unconsolidate status push pull remote log diff keys auth config embeddings reset doctor curate completion"
 
   case "\${prev}" in
-    hippo)
+    unforgit)
       COMPREPLY=( $(compgen -W "\${commands}" -- "\${cur}") )
       return 0
       ;;
@@ -45,16 +45,16 @@ _hippo_completions() {
     return 0
   fi
 }
-complete -F _hippo_completions hippo
+complete -F _unforgit_completions unforgit
 `.trim();
 
 const ZSH_COMPLETION = `
-#compdef hippo
+#compdef unforgit
 
-_hippo() {
+_unforgit() {
   local -a commands
   commands=(
-    'init:Initialize Hippocampus in the current repository'
+    'init:Initialize Unforgit in the current repository'
     'add:Add a memory'
     'recall:Recall memories matching a query'
     'promote:Promote a local memory to remote'
@@ -85,6 +85,7 @@ _hippo() {
     'embeddings:Manage embeddings'
     'reset:Delete all memories'
     'doctor:Check system health'
+    'curate:Preview or run lifecycle maintenance'
     'completion:Generate shell completions'
   )
 
@@ -104,46 +105,47 @@ _hippo() {
   esac
 }
 
-_hippo "\$@"
+_unforgit "\$@"
 `.trim();
 
 const FISH_COMPLETION = `
-complete -c hippo -f
-complete -c hippo -n '__fish_use_subcommand' -a 'init' -d 'Initialize Hippocampus'
-complete -c hippo -n '__fish_use_subcommand' -a 'add' -d 'Add a memory'
-complete -c hippo -n '__fish_use_subcommand' -a 'recall' -d 'Recall memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'promote' -d 'Promote to remote'
-complete -c hippo -n '__fish_use_subcommand' -a 'consolidate' -d 'Consolidate memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'deprecate' -d 'Deprecate a memory'
-complete -c hippo -n '__fish_use_subcommand' -a 'supersede' -d 'Supersede a memory'
-complete -c hippo -n '__fish_use_subcommand' -a 'delete' -d 'Delete a memory'
-complete -c hippo -n '__fish_use_subcommand' -a 'restore' -d 'Restore a memory'
-complete -c hippo -n '__fish_use_subcommand' -a 'web' -d 'Start web dashboard'
-complete -c hippo -n '__fish_use_subcommand' -a 'link' -d 'Link two memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'unlink' -d 'Unlink memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'links' -d 'List links'
-complete -c hippo -n '__fish_use_subcommand' -a 'merge' -d 'Merge memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'remerge' -d 'Update consolidation'
-complete -c hippo -n '__fish_use_subcommand' -a 'similar' -d 'Find similar memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'history' -d 'Consolidation history'
-complete -c hippo -n '__fish_use_subcommand' -a 'auto-consolidate' -d 'AI consolidation'
-complete -c hippo -n '__fish_use_subcommand' -a 'unconsolidate' -d 'Revert consolidation'
-complete -c hippo -n '__fish_use_subcommand' -a 'status' -d 'Show sync status'
-complete -c hippo -n '__fish_use_subcommand' -a 'push' -d 'Push to remote'
-complete -c hippo -n '__fish_use_subcommand' -a 'pull' -d 'Pull from remote'
-complete -c hippo -n '__fish_use_subcommand' -a 'remote' -d 'Manage remotes'
-complete -c hippo -n '__fish_use_subcommand' -a 'log' -d 'Memory log'
-complete -c hippo -n '__fish_use_subcommand' -a 'diff' -d 'Show differences'
-complete -c hippo -n '__fish_use_subcommand' -a 'keys' -d 'Manage API keys'
-complete -c hippo -n '__fish_use_subcommand' -a 'auth' -d 'Configure auth'
-complete -c hippo -n '__fish_use_subcommand' -a 'config' -d 'Manage config'
-complete -c hippo -n '__fish_use_subcommand' -a 'embeddings' -d 'Manage embeddings'
-complete -c hippo -n '__fish_use_subcommand' -a 'reset' -d 'Delete all memories'
-complete -c hippo -n '__fish_use_subcommand' -a 'doctor' -d 'Check system health'
-complete -c hippo -n '__fish_use_subcommand' -a 'completion' -d 'Generate completions'
-complete -c hippo -l verbose -d 'Enable verbose output'
-complete -c hippo -l quiet -d 'Suppress non-essential output'
-complete -c hippo -l json -d 'Output as JSON'
+complete -c unforgit -f
+complete -c unforgit -n '__fish_use_subcommand' -a 'init' -d 'Initialize Unforgit'
+complete -c unforgit -n '__fish_use_subcommand' -a 'add' -d 'Add a memory'
+complete -c unforgit -n '__fish_use_subcommand' -a 'recall' -d 'Recall memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'promote' -d 'Promote to remote'
+complete -c unforgit -n '__fish_use_subcommand' -a 'consolidate' -d 'Consolidate memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'deprecate' -d 'Deprecate a memory'
+complete -c unforgit -n '__fish_use_subcommand' -a 'supersede' -d 'Supersede a memory'
+complete -c unforgit -n '__fish_use_subcommand' -a 'delete' -d 'Delete a memory'
+complete -c unforgit -n '__fish_use_subcommand' -a 'restore' -d 'Restore a memory'
+complete -c unforgit -n '__fish_use_subcommand' -a 'web' -d 'Start web dashboard'
+complete -c unforgit -n '__fish_use_subcommand' -a 'link' -d 'Link two memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'unlink' -d 'Unlink memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'links' -d 'List links'
+complete -c unforgit -n '__fish_use_subcommand' -a 'merge' -d 'Merge memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'remerge' -d 'Update consolidation'
+complete -c unforgit -n '__fish_use_subcommand' -a 'similar' -d 'Find similar memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'history' -d 'Consolidation history'
+complete -c unforgit -n '__fish_use_subcommand' -a 'auto-consolidate' -d 'AI consolidation'
+complete -c unforgit -n '__fish_use_subcommand' -a 'unconsolidate' -d 'Revert consolidation'
+complete -c unforgit -n '__fish_use_subcommand' -a 'status' -d 'Show sync status'
+complete -c unforgit -n '__fish_use_subcommand' -a 'push' -d 'Push to remote'
+complete -c unforgit -n '__fish_use_subcommand' -a 'pull' -d 'Pull from remote'
+complete -c unforgit -n '__fish_use_subcommand' -a 'remote' -d 'Manage remotes'
+complete -c unforgit -n '__fish_use_subcommand' -a 'log' -d 'Memory log'
+complete -c unforgit -n '__fish_use_subcommand' -a 'diff' -d 'Show differences'
+complete -c unforgit -n '__fish_use_subcommand' -a 'keys' -d 'Manage API keys'
+complete -c unforgit -n '__fish_use_subcommand' -a 'auth' -d 'Configure auth'
+complete -c unforgit -n '__fish_use_subcommand' -a 'config' -d 'Manage config'
+complete -c unforgit -n '__fish_use_subcommand' -a 'embeddings' -d 'Manage embeddings'
+complete -c unforgit -n '__fish_use_subcommand' -a 'reset' -d 'Delete all memories'
+complete -c unforgit -n '__fish_use_subcommand' -a 'doctor' -d 'Check system health'
+complete -c unforgit -n '__fish_use_subcommand' -a 'curate' -d 'Preview or run lifecycle maintenance'
+complete -c unforgit -n '__fish_use_subcommand' -a 'completion' -d 'Generate completions'
+complete -c unforgit -l verbose -d 'Enable verbose output'
+complete -c unforgit -l quiet -d 'Suppress non-essential output'
+complete -c unforgit -l json -d 'Output as JSON'
 `.trim();
 
 export const completionCommand = new Command("completion")
@@ -151,9 +153,9 @@ export const completionCommand = new Command("completion")
   .argument("<shell>", "Shell type (bash, zsh, fish)")
   .addHelpText("after", `
 Examples:
-  hippo completion bash >> ~/.bashrc
-  hippo completion zsh >> ~/.zshrc
-  hippo completion fish > ~/.config/fish/completions/hippo.fish`)
+  unforgit completion bash >> ~/.bashrc
+  unforgit completion zsh >> ~/.zshrc
+  unforgit completion fish > ~/.config/fish/completions/unforgit.fish`)
   .action((shell: string) => {
     switch (shell.toLowerCase()) {
       case "bash":

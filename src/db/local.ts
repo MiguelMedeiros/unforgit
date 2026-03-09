@@ -23,6 +23,10 @@ import type {
 } from "../core/types.js";
 import { computeCompositeScore, computeHybridScore } from "../core/recall.js";
 import {
+  applyLifecycleDefaults,
+  computeUsageBoost,
+} from "../core/lifecycle.js";
+import {
   generateEmbedding,
   serializeEmbedding,
   deserializeEmbedding,
@@ -191,6 +195,11 @@ function rowToTombstone(row: Record<string, unknown>): Tombstone {
   };
 }
 
+function nonExpiredMemoryClause(alias?: string): string {
+  const prefix = alias ? `${alias}.` : "";
+  return `(${prefix}status != 'active' OR ${prefix}ttl_seconds IS NULL OR datetime(${prefix}created_at, '+' || ${prefix}ttl_seconds || ' seconds') >= datetime('now'))`;
+}
+
 export class LocalStore {
   private db: Database.Database;
 
@@ -307,12 +316,13 @@ export class LocalStore {
   }
 
   store(input: CreateMemoryInput): Memory {
+    const resolvedInput = applyLifecycleDefaults(input);
     const id = uuid();
     const now = new Date().toISOString();
     const visibility =
-      input.visibility === "auto" || !input.visibility
+      resolvedInput.visibility === "auto" || !resolvedInput.visibility
         ? "private"
-        : input.visibility;
+        : resolvedInput.visibility;
 
     this.db
       .prepare(
@@ -322,18 +332,18 @@ export class LocalStore {
       )
       .run(
         id,
-        input.orgId,
-        input.repoId,
-        input.memoryType,
+        resolvedInput.orgId,
+        resolvedInput.repoId,
+        resolvedInput.memoryType,
         visibility,
-        input.text,
-        input.summary ?? null,
-        JSON.stringify(input.tags ?? []),
-        input.sourceRefs ? JSON.stringify(input.sourceRefs) : null,
-        input.confidence ?? null,
-        input.ttlSeconds ?? null,
-        input.authorId ?? null,
-        input.authorName ?? null,
+        resolvedInput.text,
+        resolvedInput.summary ?? null,
+        JSON.stringify(resolvedInput.tags ?? []),
+        resolvedInput.sourceRefs ? JSON.stringify(resolvedInput.sourceRefs) : null,
+        resolvedInput.confidence ?? null,
+        resolvedInput.ttlSeconds ?? null,
+        resolvedInput.authorId ?? null,
+        resolvedInput.authorName ?? null,
         now,
         now,
       );
@@ -360,6 +370,10 @@ export class LocalStore {
 
     if (!query.includeDeprecated) {
       conditions.push("m.status = 'active'");
+    }
+
+    if (!query.includeExpired) {
+      conditions.push(nonExpiredMemoryClause("m"));
     }
 
     if (query.types && query.types.length > 0) {
@@ -446,6 +460,9 @@ export class LocalStore {
       >;
     }
 
+    const usageStats = this.getUsageStats(query.orgId, query.repoId);
+    const usageMap = new Map(usageStats.map((stat) => [stat.memoryId, stat]));
+
     let results = rows.map((row) => {
       const memory = rowToMemory(row);
       const textScore = ftsQuery
@@ -453,6 +470,11 @@ export class LocalStore {
         : 0.5;
 
       const consolidationBoost = memory.isConsolidation ? 0.1 : 0;
+      const usage = usageMap.get(memory.id);
+      const usageBoost = computeUsageBoost(
+        usage?.count ?? 0,
+        usage?.lastUsed,
+      );
 
       const result: RecallResult = {
         id: memory.id,
@@ -465,6 +487,7 @@ export class LocalStore {
           textScore + consolidationBoost,
           memory.createdAt,
           memory.confidence,
+          usageBoost,
         ),
         source: "local" as const,
         status: memory.status,
@@ -505,6 +528,10 @@ export class LocalStore {
   list(query: ListQuery): Memory[] {
     const conditions: string[] = ["org_id = ?", "repo_id = ?"];
     const params: unknown[] = [query.orgId, query.repoId];
+
+    if (!query.includeExpired) {
+      conditions.push(nonExpiredMemoryClause());
+    }
 
     if (query.types && query.types.length > 0) {
       conditions.push(
@@ -566,6 +593,10 @@ export class LocalStore {
   count(query: ListQuery): number {
     const conditions: string[] = ["org_id = ?", "repo_id = ?"];
     const params: unknown[] = [query.orgId, query.repoId];
+
+    if (!query.includeExpired) {
+      conditions.push(nonExpiredMemoryClause());
+    }
 
     if (query.types && query.types.length > 0) {
       conditions.push(
@@ -684,15 +715,46 @@ export class LocalStore {
     return result.changes > 0;
   }
 
-  purgeExpired(): number {
-    const result = this.db
+  expireExpiredMemories(
+    orgId?: string,
+    repoId?: string,
+    deletedBy = "system:ttl-expiry",
+  ): number {
+    const conditions = [
+      "status = 'active'",
+      "ttl_seconds IS NOT NULL",
+      "datetime(created_at, '+' || ttl_seconds || ' seconds') < datetime('now')",
+    ];
+    const params: unknown[] = [];
+
+    if (orgId) {
+      conditions.push("org_id = ?");
+      params.push(orgId);
+    }
+
+    if (repoId) {
+      conditions.push("repo_id = ?");
+      params.push(repoId);
+    }
+
+    const rows = this.db
       .prepare(
-        `DELETE FROM memories
-         WHERE ttl_seconds IS NOT NULL
-           AND datetime(created_at, '+' || ttl_seconds || ' seconds') < datetime('now')`,
+        `SELECT id FROM memories WHERE ${conditions.join(" AND ")}`,
       )
-      .run();
-    return result.changes;
+      .all(...params) as Array<{ id: string }>;
+
+    let expired = 0;
+    for (const row of rows) {
+      if (this.softDelete({ id: row.id, deletedBy })) {
+        expired += 1;
+      }
+    }
+
+    return expired;
+  }
+
+  purgeExpired(): number {
+    return this.expireExpiredMemories();
   }
 
   link(input: CreateLinkInput): MemoryLink {
@@ -1721,6 +1783,8 @@ export class LocalStore {
 
     const ftsIds = new Set(ftsResults.map((r) => r.id));
     const k = query.k ?? 10;
+    const usageStats = this.getUsageStats(query.orgId, query.repoId);
+    const usageMap = new Map(usageStats.map((stat) => [stat.memoryId, stat]));
 
     const sortedByEmbedding = Array.from(embeddingScores.entries())
       .filter(([id]) => !ftsIds.has(id))
@@ -1731,7 +1795,19 @@ export class LocalStore {
     for (const [memoryId, similarity] of sortedByEmbedding) {
       if (similarity < 0.3) continue;
       const memory = this.getById(memoryId);
-      if (!memory || memory.status !== "active") continue;
+      if (
+        !memory ||
+        memory.status !== "active" ||
+        (!query.includeExpired && memory.ttlSeconds && memory.createdAt.getTime() + memory.ttlSeconds * 1000 <= Date.now())
+      ) {
+        continue;
+      }
+
+      const usage = usageMap.get(memory.id);
+      const usageBoost = computeUsageBoost(
+        usage?.count ?? 0,
+        usage?.lastUsed,
+      );
 
       additionalMemories.push({
         id: memory.id,
@@ -1740,7 +1816,7 @@ export class LocalStore {
         summary: memory.summary,
         tags: memory.tags,
         sourceRefs: memory.sourceRefs,
-        score: computeHybridScore(0, similarity, memory.createdAt, memory.confidence),
+        score: computeHybridScore(0, similarity, memory.createdAt, memory.confidence, usageBoost),
         source: "local",
         status: memory.status,
         supersedesId: memory.supersedesId,
@@ -1753,10 +1829,15 @@ export class LocalStore {
       const embScore = embeddingScores.get(r.id) ?? 0;
       const memory = this.getById(r.id);
       if (!memory) return r;
+      const usage = usageMap.get(r.id);
+      const usageBoost = computeUsageBoost(
+        usage?.count ?? 0,
+        usage?.lastUsed,
+      );
 
       return {
         ...r,
-        score: computeHybridScore(r.score, embScore, memory.createdAt, memory.confidence),
+        score: computeHybridScore(r.score, embScore, memory.createdAt, memory.confidence, usageBoost),
       };
     });
 

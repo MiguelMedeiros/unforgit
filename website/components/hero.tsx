@@ -8,7 +8,7 @@ import { ParticlesBackground } from "./particles-background";
 
 export function Hero() {
   const [copied, setCopied] = useState(false);
-  const installCommand = "npm install -g hippocampus";
+  const installCommand = "npm install -g unforgit";
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -59,17 +59,17 @@ export function Hero() {
         }}
       />
 
-      <div className="absolute inset-0 bg-gradient-to-b from-dracula-purple/10 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-b from-white/[0.03] via-transparent to-transparent" />
 
       <motion.div
-        className="absolute top-20 left-10 w-72 h-72 bg-dracula-purple/20 rounded-full blur-3xl"
+        className="absolute top-20 left-10 w-72 h-72 bg-white/[0.04] rounded-full blur-3xl"
         style={{
           x: circle1X,
           y: circle1Y,
         }}
         animate={{
           scale: [1, 1.1, 1],
-          opacity: [0.2, 0.3, 0.2],
+          opacity: [0.04, 0.08, 0.04],
         }}
         transition={{
           duration: 4,
@@ -78,14 +78,14 @@ export function Hero() {
         }}
       />
       <motion.div
-        className="absolute bottom-20 right-10 w-96 h-96 bg-dracula-pink/10 rounded-full blur-3xl"
+        className="absolute bottom-20 right-10 w-96 h-96 bg-white/[0.03] rounded-full blur-3xl"
         style={{
           x: circle2X,
           y: circle2Y,
         }}
         animate={{
           scale: [1, 1.15, 1],
-          opacity: [0.1, 0.2, 0.1],
+          opacity: [0.03, 0.06, 0.03],
         }}
         transition={{
           duration: 5,
@@ -99,11 +99,11 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-purple/30 mb-8"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-comment/30 mb-8"
         >
-          <Brain className="w-4 h-4 text-dracula-purple" />
+          <Brain className="w-4 h-4 text-dracula-foreground/70" />
           <span className="text-sm text-dracula-foreground/80">
-            Open Source Memory
+            Local-First Repository Memory
           </span>
         </motion.div>
 
@@ -120,7 +120,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25 }}
-          className="text-5xl md:text-8xl font-black mb-8 tracking-tight text-dracula-purple"
+          className="text-5xl md:text-8xl font-black mb-8 tracking-tight text-dracula-foreground"
         >
           We fix that.
         </motion.h2>
@@ -131,8 +131,8 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-xl md:text-2xl text-dracula-foreground/90 max-w-2xl mx-auto mb-8"
         >
-          Long-term memory for AI agents.<br />
-          <span className="text-dracula-foreground">Shared across your entire team.</span>
+          Long-term memory for AI agents and developer workflows.<br />
+          <span className="text-dracula-foreground">Capture locally, rank by reuse, share when it matters.</span>
         </motion.p>
 
         <motion.div
@@ -144,7 +144,7 @@ export function Hero() {
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            href="#install"
+            href="#get-started"
             onClick={(e) => {
               e.preventDefault();
               const element = document.getElementById("install");
@@ -154,8 +154,8 @@ export function Hero() {
             }}
             className={cn(
               "inline-flex items-center gap-2 px-6 py-3 rounded-lg",
-              "bg-dracula-purple text-dracula-background font-semibold",
-              "hover:bg-dracula-purple/90 transition-all duration-200",
+              "bg-dracula-foreground text-dracula-background font-semibold",
+              "hover:bg-dracula-foreground/90 transition-all duration-200",
               "glow"
             )}
           >
@@ -165,10 +165,10 @@ export function Hero() {
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            href="#features"
+            href="#mcp-integrations"
             onClick={(e) => {
               e.preventDefault();
-              const element = document.getElementById("features");
+              const element = document.getElementById("mcp-integrations");
               if (element) {
                 element.scrollIntoView({ behavior: "smooth" });
               }
@@ -194,12 +194,12 @@ export function Hero() {
             className="relative"
           >
             <div className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-dracula-current/40 border border-dracula-comment/30">
-              <Terminal className="w-4 h-4 text-dracula-green shrink-0" />
+              <Terminal className="w-4 h-4 text-dracula-comment shrink-0" />
               <code className="text-dracula-foreground font-mono text-sm tracking-wide whitespace-nowrap">
                 <span className="text-dracula-comment">$</span>{" "}
-                <span className="text-dracula-cyan">npm</span>{" "}
+                <span className="text-dracula-foreground">npm</span>{" "}
                 <span className="text-dracula-foreground">install -g</span>{" "}
-                <span className="text-dracula-purple font-semibold">hippocampus</span>
+                <span className="text-dracula-foreground font-semibold">unforgit</span>
               </code>
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -209,9 +209,9 @@ export function Hero() {
                 aria-label="Copy to clipboard"
               >
                 {copied ? (
-                  <Check className="w-4 h-4 text-dracula-green" />
+                  <Check className="w-4 h-4 text-dracula-foreground" />
                 ) : (
-                  <Copy className="w-4 h-4 text-dracula-comment hover:text-dracula-purple transition-colors" />
+                  <Copy className="w-4 h-4 text-dracula-comment hover:text-dracula-foreground transition-colors" />
                 )}
               </motion.button>
             </div>
@@ -221,7 +221,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm text-dracula-green font-medium"
+              className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm text-dracula-foreground font-medium"
             >
               Copied to clipboard!
             </motion.span>
@@ -230,14 +230,14 @@ export function Hero() {
       </div>
 
       <motion.a
-        href="#features"
+        href="#mcp-integrations"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-dracula-foreground/50 hover:text-dracula-purple transition-colors cursor-pointer z-10"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-dracula-foreground/50 hover:text-dracula-foreground transition-colors cursor-pointer z-10"
         onClick={(e) => {
           e.preventDefault();
-          const element = document.getElementById("features");
+          const element = document.getElementById("mcp-integrations");
           if (element) {
             element.scrollIntoView({ behavior: "smooth" });
           }

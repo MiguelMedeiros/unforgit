@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hippocampus",
+  title: "Unforgit",
   description: "Repository memory system for agents and developers",
 };
 

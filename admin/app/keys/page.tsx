@@ -52,7 +52,7 @@ export default function KeysPage() {
               <div>
                 <h1 className="text-[24px] font-bold tracking-tight">API Keys</h1>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Manage API keys for your Hippocampus server
+                  Manage API keys for your Unforgit server
                 </p>
               </div>
               <div className="flex items-center gap-3">

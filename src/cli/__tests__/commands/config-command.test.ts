@@ -55,7 +55,7 @@ describe("config command", () => {
 
   it("throws on invalid config", () => {
     fs.writeFileSync(tmpDir.configPath, YAML.stringify({ invalid: true }), "utf-8");
-    expect(() => loadConfig(tmpDir.dir)).toThrow("Invalid hippo.yaml");
+    expect(() => loadConfig(tmpDir.dir)).toThrow("Invalid unforgit.yaml");
   });
 
   it("throws when not initialized", () => {

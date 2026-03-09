@@ -15,9 +15,9 @@ export const deleteCommand = new Command("delete")
   .option("--force", "Skip confirmation for hard delete")
   .addHelpText("after", `
 Examples:
-  hippo delete abc12345              Soft delete (can be restored)
-  hippo delete abc12345 --hard       Permanent delete
-  hippo delete abc12345 --remote     Delete on remote server`)
+  unforgit delete abc12345              Soft delete (can be restored)
+  unforgit delete abc12345 --hard       Permanent delete
+  unforgit delete abc12345 --remote     Delete on remote server`)
   .action(async (id, opts) => {
     if (opts.hard && !opts.force) {
       const confirmed = await confirm(
@@ -64,7 +64,7 @@ Examples:
       const action = opts.hard ? "Hard deleted" : "Soft deleted";
       logger.info(`${action} local memory ${id.slice(0, 8)}...`);
       if (!opts.hard) {
-        logger.info("  This memory can be restored with 'hippo restore'.");
+        logger.info("  This memory can be restored with 'unforgit restore'.");
       }
     } finally {
       store.close();

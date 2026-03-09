@@ -1,4 +1,4 @@
-const SYNC_SETTINGS_KEY = "hippocampus-sync-settings";
+const SYNC_SETTINGS_KEY = "unforgit-sync-settings";
 
 export interface SyncSettings {
   autoSyncEnabled: boolean;

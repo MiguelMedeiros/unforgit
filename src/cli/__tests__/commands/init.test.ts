@@ -5,7 +5,7 @@ import os from "node:os";
 import YAML from "yaml";
 import { LocalStore } from "../../../db/local.js";
 
-describe("hippo init logic", () => {
+describe("unforgit init logic", () => {
   const dirs: string[] = [];
 
   function makeTempDir(): string {
@@ -21,9 +21,9 @@ describe("hippo init logic", () => {
     dirs.length = 0;
   });
 
-  it("creates .hippocampus directory with config and db", () => {
+  it("creates .unforgit directory with config and db", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".hippocampus");
+    const hippoDir = path.join(dir, ".unforgit");
     fs.mkdirSync(hippoDir, { recursive: true });
 
     const config = {
@@ -33,7 +33,7 @@ describe("hippo init logic", () => {
       embeddings: { enabled: true, model: "text-embedding-3-small", autoGenerate: true },
     };
 
-    const configPath = path.join(hippoDir, "hippo.yaml");
+    const configPath = path.join(hippoDir, "unforgit.yaml");
     fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
     const dbPath = path.join(hippoDir, "local.db");
@@ -51,7 +51,7 @@ describe("hippo init logic", () => {
 
   it("loads config after initialization", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".hippocampus");
+    const hippoDir = path.join(dir, ".unforgit");
     fs.mkdirSync(hippoDir, { recursive: true });
 
     const config = {
@@ -59,7 +59,7 @@ describe("hippo init logic", () => {
       defaults: { visibility: "auto", memoryType: "episodic" },
     };
 
-    const configPath = path.join(hippoDir, "hippo.yaml");
+    const configPath = path.join(hippoDir, "unforgit.yaml");
     fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
     const loaded = YAML.parse(fs.readFileSync(configPath, "utf-8"));
@@ -69,7 +69,7 @@ describe("hippo init logic", () => {
 
   it("creates valid SQLite database", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".hippocampus");
+    const hippoDir = path.join(dir, ".unforgit");
     fs.mkdirSync(hippoDir, { recursive: true });
 
     const dbPath = path.join(hippoDir, "local.db");

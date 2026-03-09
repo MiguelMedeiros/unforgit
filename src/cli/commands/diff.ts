@@ -12,12 +12,12 @@ export const diffCommand = new Command("diff")
   .option("--stat", "Show only statistics")
   .addHelpText("after", `
 Examples:
-  hippo diff              Show all differences
-  hippo diff --stat       Show difference statistics only
-  hippo diff abc12345     Diff a specific memory`)
+  unforgit diff              Show all differences
+  unforgit diff --stat       Show difference statistics only
+  unforgit diff abc12345     Diff a specific memory`)
   .action(async (memoryId, opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -181,7 +181,7 @@ async function diffAll(
     logger.info(`${pendingPush.length} memories to push`);
     logger.info(`${conflicts.length} conflicts`);
     if (remoteOnlyCount > 0) {
-      logger.info(`${remoteOnlyCount} remote-only memories (use 'hippo pull')`);
+      logger.info(`${remoteOnlyCount} remote-only memories (use 'unforgit pull')`);
     }
     return;
   }
@@ -206,7 +206,7 @@ async function diffAll(
   }
 
   if (remoteOnlyCount > 0) {
-    logger.info(`${remoteOnlyCount} remote-only memories (run 'hippo pull' to fetch)`);
+    logger.info(`${remoteOnlyCount} remote-only memories (run 'unforgit pull' to fetch)`);
     logger.info("");
   }
 

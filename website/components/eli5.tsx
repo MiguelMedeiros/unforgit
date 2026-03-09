@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 
 const faqs = [
   {
@@ -10,7 +9,7 @@ const faqs = [
       "Every time you start a new chat with an AI agent, it forgets everything. You have to explain the same things over and over again.",
   },
   {
-    question: "What does Hippocampus do?",
+    question: "What does Unforgit do?",
     answer:
       "It gives AI agents a memory. Like how your brain's hippocampus helps you remember things, this tool helps AI remember what happened in your project.",
   },
@@ -28,14 +27,14 @@ const faqs = [
 
 export function ELI5() {
   return (
-    <section id="eli5" className="py-32 px-6">
+    <section id="eli5" className="py-40 px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-10"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             <span className="text-gradient">Explain Like I&apos;m 5</span>
@@ -45,36 +44,20 @@ export function ELI5() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5 }}
-          className="mb-16"
-        >
-          <div className="rounded-xl overflow-hidden border border-dracula-current/30">
-            <Image
-              src="/eli5-cartoon.png"
-              alt="Illustration showing AI memory concept"
-              width={1024}
-              height={512}
-              className="w-full h-auto"
-              priority
-            />
-          </div>
-        </motion.div>
-
-        <div className="space-y-8">
+        <div className="space-y-6">
           {faqs.map((item, index) => (
             <motion.div
               key={item.question}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              className="pb-8 border-b border-dracula-current/20 last:border-0"
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ x: 4 }}
+              className="group p-6 rounded-xl border border-transparent hover:border-dracula-current/40 hover:bg-dracula-current/10 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold mb-2">{item.question}</h3>
+              <h3 className="text-lg font-semibold mb-2 group-hover:text-dracula-foreground transition-colors">
+                {item.question}
+              </h3>
               <p className="text-muted-foreground leading-relaxed">
                 {item.answer}
               </p>
@@ -90,7 +73,7 @@ export function ELI5() {
           className="mt-12 text-center text-muted-foreground"
         >
           <span className="font-medium text-foreground">TL;DR:</span>{" "}
-          Hippocampus = long-term memory for AI agents.
+          Unforgit = long-term memory for AI agents.
         </motion.p>
       </div>
     </section>

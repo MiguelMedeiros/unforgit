@@ -16,17 +16,43 @@ import { healthRoutes } from "./routes/health.js";
 import { adminRoutes } from "./routes/admin.js";
 import { registerAuthMiddleware } from "./middleware/auth.js";
 import { isOpenAIConfigured } from "../core/embeddings.js";
+import { resolveLifecycleConfig } from "../core/lifecycle.js";
+import { runRemoteLifecycleMaintenance } from "../core/lifecycle-maintenance.js";
+import { LifecycleScheduler } from "../core/lifecycle-scheduler.js";
 
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });
   await app.register(cors);
 
   const store = new RemoteStore(connectionString);
+  const maintenanceConfig = resolveLifecycleConfig().maintenance;
+  const lifecycleScheduler = new LifecycleScheduler(
+    async (orgId, repoId) => {
+      await runRemoteLifecycleMaintenance(store, orgId, repoId, {
+        dryRun: false,
+        preserveOriginals: true,
+      });
+    },
+    {
+      debounceMs: maintenanceConfig.debounceMs,
+      onError: (error, context) => {
+        app.log.error(
+          `Lifecycle hook failed for ${context.orgId}/${context.repoId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      },
+    },
+  );
+  const scheduleLifecycleOnStore = maintenanceConfig.autoRunOnStore
+    ? (orgId: string, repoId: string) => lifecycleScheduler.schedule(orgId, repoId)
+    : undefined;
+  const scheduleLifecycleOnRecall = maintenanceConfig.autoRunOnRecall
+    ? (orgId: string, repoId: string) => lifecycleScheduler.schedule(orgId, repoId)
+    : undefined;
 
   registerAuthMiddleware(app, store);
 
-  await memoryRoutes(app, store);
-  await recallRoutes(app, store);
+  await memoryRoutes(app, store, scheduleLifecycleOnStore);
+  await recallRoutes(app, store, scheduleLifecycleOnRecall);
   await curateRoutes(app, store);
   await consolidateRoutes(app, store);
   await linkRoutes(app, store);
@@ -49,6 +75,7 @@ export async function buildApp(connectionString: string) {
   }));
 
   app.addHook("onClose", async () => {
+    lifecycleScheduler.dispose();
     await store.disconnect();
   });
 

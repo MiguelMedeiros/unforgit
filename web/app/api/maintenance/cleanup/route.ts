@@ -6,7 +6,7 @@ export async function POST() {
 
   if (!config) {
     return NextResponse.json(
-      { error: "Hippocampus not initialized" },
+      { error: "Unforgit not initialized" },
       { status: 500 },
     );
   }
@@ -32,7 +32,7 @@ export async function GET() {
 
   if (!config) {
     return NextResponse.json(
-      { error: "Hippocampus not initialized" },
+      { error: "Unforgit not initialized" },
       { status: 500 },
     );
   }

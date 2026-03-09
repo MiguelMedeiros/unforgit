@@ -22,7 +22,7 @@ describe("config", () => {
   });
 
   describe("isInitialized", () => {
-    it("returns true when .hippocampus dir and config exist", () => {
+    it("returns true when .unforgit dir and config exist", () => {
       expect(isInitialized(tmp.dir)).toBe(true);
     });
 
@@ -41,7 +41,7 @@ describe("config", () => {
     });
 
     it("getConfigPath returns correct path", () => {
-      expect(getConfigPath(tmp.dir)).toContain("hippo.yaml");
+      expect(getConfigPath(tmp.dir)).toContain("unforgit.yaml");
     });
   });
 
@@ -51,6 +51,9 @@ describe("config", () => {
       expect(config.remote.orgId).toBe("test-org");
       expect(config.remote.repoId).toBe("test-repo");
       expect(config.defaults.visibility).toBe("auto");
+      expect(config.lifecycle?.ttlSecondsByType?.episodic).toBe(30 * 24 * 60 * 60);
+      expect(config.lifecycle?.maintenance?.autoRunOnStore).toBe(true);
+      expect(config.lifecycle?.maintenance?.autoRunOnRecall).toBe(true);
     });
 
     it("throws when not initialized", () => {
@@ -63,7 +66,7 @@ describe("config", () => {
       writeConfig(tmp.configPath, {
         remote: { url: "http://localhost" },
       });
-      expect(() => loadConfig(tmp.dir)).toThrow("Invalid hippo.yaml");
+      expect(() => loadConfig(tmp.dir)).toThrow("Invalid unforgit.yaml");
     });
 
     it("throws on completely malformed YAML", () => {
@@ -90,6 +93,8 @@ describe("config", () => {
       expect(config.remote.url).toBe("http://localhost:3737");
       expect(config.defaults.visibility).toBe("auto");
       expect(config.defaults.memoryType).toBe("episodic");
+      expect(config.lifecycle?.usageBoost?.topKToRecord).toBe(5);
+      expect(config.lifecycle?.maintenance?.debounceMs).toBe(30_000);
     });
   });
 });

@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hippocampus Admin",
-  description: "Admin panel for Hippocampus MCP server",
+  title: "Unforgit Admin",
+  description: "Admin panel for Unforgit MCP server",
 };
 
 export default function RootLayout({

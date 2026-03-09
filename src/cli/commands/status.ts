@@ -10,13 +10,13 @@ export const statusCommand = new Command("status")
   .option("-s, --short", "Give the output in short format")
   .addHelpText("after", `
 Examples:
-  hippo status         Show full sync status
-  hippo status -s      Short format
-  hippo status --json  Machine-readable output`)
+  unforgit status         Show full sync status
+  unforgit status -s      Short format
+  unforgit status --json  Machine-readable output`)
   .action((opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository (or any of the parent directories)");
-      logger.fatal("Run 'hippo init' to initialize.");
+      logger.fatal("not an unforgit repository (or any of the parent directories)");
+      logger.fatal("Run 'unforgit init' to initialize.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -83,7 +83,7 @@ function printLongStatus(
   if (remoteUrl) {
     logger.info(`Remote '${remoteName}' at ${remoteUrl}`);
   } else {
-    logger.info("No remote configured. Use 'hippo remote add origin <url>' to add one.");
+    logger.info("No remote configured. Use 'unforgit remote add origin <url>' to add one.");
   }
   logger.info("");
 
@@ -97,7 +97,7 @@ function printLongStatus(
 
   if (pendingPush.length > 0) {
     logger.info("Changes to be pushed:");
-    logger.info('  (use "hippo push" to sync with remote)');
+    logger.info('  (use "unforgit push" to sync with remote)');
     logger.info("");
     for (const { memory } of pendingPush) {
       const action = memory.status === "active" ? "new memory" : "modified";
@@ -108,7 +108,7 @@ function printLongStatus(
 
   if (conflicts.length > 0) {
     logger.info("Conflicts:");
-    logger.info('  (use "hippo push --force" to overwrite remote or "hippo pull --force" to accept remote)');
+    logger.info('  (use "unforgit push --force" to overwrite remote or "unforgit pull --force" to accept remote)');
     logger.info("");
     for (const { memory } of conflicts) {
       logger.info(`        conflict:  ${memory.id.slice(0, 8)}... "${truncate(memory.text, 40)}"`);
@@ -119,7 +119,7 @@ function printLongStatus(
   if (untracked.length > 0) {
     logger.info("Untracked memories:");
     logger.info('  (these memories were created before sync tracking was enabled)');
-    logger.info('  (use "hippo push" to sync them)');
+    logger.info('  (use "unforgit push" to sync them)');
     logger.info("");
     for (const memory of untracked) {
       logger.info(`        ${memory.id.slice(0, 8)}... "${truncate(memory.text, 40)}"`);

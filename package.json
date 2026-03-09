@@ -1,12 +1,12 @@
 {
-  "name": "hippocampus",
+  "name": "unforgit",
   "version": "0.1.0",
   "description": "Repository memory system — shared + local knowledge for agents and developers",
   "type": "module",
   "main": "dist/server/index.js",
   "bin": {
-    "hippo": "dist/cli/index.js",
-    "hippo-mcp": "dist/mcp/index.js"
+    "unforgit": "dist/cli/index.js",
+    "unforgit-mcp": "dist/mcp/index.js"
   },
   "scripts": {
     "dev:server": "tsx watch src/server/index.ts",
@@ -44,11 +44,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/MiguelMedeiros/hippocampus.git"
+    "url": "https://github.com/MiguelMedeiros/unforgit.git"
   },
-  "homepage": "https://github.com/MiguelMedeiros/hippocampus",
+  "homepage": "https://github.com/MiguelMedeiros/unforgit",
   "bugs": {
-    "url": "https://github.com/MiguelMedeiros/hippocampus/issues"
+    "url": "https://github.com/MiguelMedeiros/unforgit/issues"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

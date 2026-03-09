@@ -30,6 +30,7 @@ import { embeddingsCommand } from "./commands/embeddings.js";
 import { resetCommand } from "./commands/reset.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { completionCommand } from "./commands/completion.js";
+import { curateCommand } from "./commands/curate.js";
 import { createRequire } from "node:module";
 import { setVerbosity } from "./logger.js";
 import { EXIT_ERROR, EXIT_SIGINT, EXIT_SIGTERM } from "./exit-codes.js";
@@ -69,8 +70,8 @@ process.on("unhandledRejection", (err) => {
 const program = new Command();
 
 program
-  .name("hippo")
-  .description("Hippocampus — repository memory for agents and developers")
+  .name("unforgit")
+  .description("Unforgit — repository memory for agents and developers")
   .version(pkg.version)
   .option("--verbose", "Enable verbose output")
   .option("--quiet", "Suppress non-essential output")
@@ -113,6 +114,7 @@ program.addCommand(configCommand);
 program.addCommand(embeddingsCommand);
 program.addCommand(resetCommand);
 program.addCommand(doctorCommand);
+program.addCommand(curateCommand);
 program.addCommand(completionCommand);
 
 program.parseAsync().catch((err) => {

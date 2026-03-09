@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const config = getConfig();
   if (!config) {
     return NextResponse.json(
-      { error: "Hippocampus not initialized" },
+      { error: "Unforgit not initialized" },
       { status: 500 },
     );
   }
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         reason: `These memories are ${Math.round(pair.similarity * 100)}% similar and could be merged`,
         confidence: pair.similarity,
         action: {
-          command: `hippo merge ${pair.id1} ${pair.id2}`,
+          command: `unforgit merge ${pair.id1} ${pair.id2}`,
           description: "Merge these memories into one",
         },
       });
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         reason: "No recalls in 90+ days",
         confidence: 0.7,
         action: {
-          command: `hippo deprecate ${memory.id}`,
+          command: `unforgit deprecate ${memory.id}`,
           description: "Mark as deprecated",
         },
       });
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
         reason: `${untagged.length} memories have no tags`,
         confidence: 0.9,
         action: {
-          command: "hippo web",
+          command: "unforgit web",
           description: "Open dashboard to add tags",
         },
       });
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
         reason: `${unlinked.length} memories are isolated (no links)`,
         confidence: 0.8,
         action: {
-          command: "hippo web",
+          command: "unforgit web",
           description: "Open graph view to create links",
         },
       });
@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
         reason: `${withoutEmbedding.length} memories lack embeddings for semantic search`,
         confidence: 1.0,
         action: {
-          command: "hippo embeddings backfill",
+          command: "unforgit embeddings backfill",
           description: "Generate embeddings for all memories",
         },
       });
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
         reason: `Private memory with ${d.recallCount} recalls - consider sharing with team`,
         confidence: 0.75,
         action: {
-          command: `hippo promote ${d.memory.id}`,
+          command: `unforgit promote ${d.memory.id}`,
           description: "Promote to shared visibility",
         },
       });

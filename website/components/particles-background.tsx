@@ -47,10 +47,10 @@ export const ParticlesBackground = memo(function ParticlesBackground({ id = "tsp
       },
       particles: {
         color: {
-          value: "#bd93f9",
+          value: "#71717a",
         },
         links: {
-          color: "#bd93f9",
+          color: "#71717a",
           distance: 150,
           enable: true,
           opacity: 0.3,

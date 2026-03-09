@@ -1,6 +1,16 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { deprecateSchema, supersedeSchema } from "../../core/schemas.js";
+import { runRemoteLifecycleMaintenance } from "../../core/lifecycle-maintenance.js";
 import type { RemoteStore } from "../../db/remote.js";
+
+const lifecycleRunSchema = z.object({
+  orgId: z.string().min(1),
+  repoId: z.string().min(1),
+  dryRun: z.boolean().optional(),
+  model: z.string().optional(),
+  preserveOriginals: z.boolean().optional(),
+});
 
 export async function curateRoutes(
   app: FastifyInstance,
@@ -54,5 +64,29 @@ export async function curateRoutes(
 
     const result = await store.resetAll(body.orgId, body.repoId);
     return reply.send(result);
+  });
+
+  app.post("/v1/lifecycle/run", async (request, reply) => {
+    const parsed = lifecycleRunSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues });
+    }
+
+    const { orgId, repoId, ...options } = parsed.data;
+
+    try {
+      const result = await runRemoteLifecycleMaintenance(
+        store,
+        orgId,
+        repoId,
+        options,
+      );
+      return reply.send(result);
+    } catch (error) {
+      return reply.status(500).send({
+        error: "Lifecycle maintenance failed",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 }

@@ -4,6 +4,7 @@ import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
 import { LocalStore } from "../../db/local.js";
 import { resolveVisibility } from "../../core/policy.js";
+import { applyLifecycleDefaults } from "../../core/lifecycle.js";
 import type { MemoryType } from "../../core/types.js";
 import { getTemplate, applyTemplate, formatTemplateList } from "../../core/templates.js";
 import { validateMemoryType, parseConfidence, parseTtl } from "../schemas.js";
@@ -14,13 +15,11 @@ export const addCommand = new Command("add")
   .option(
     "-t, --type <type>",
     "Memory type (episodic|semantic|procedural)",
-    "episodic",
   )
   .option("--tags <tags>", "Comma-separated tags", "")
   .option(
     "--visibility <visibility>",
     "Visibility (private|repo|auto)",
-    "auto",
   )
   .option("--source-pr <url>", "Source PR URL")
   .option("--source-commit <sha>", "Source commit SHA")
@@ -30,9 +29,9 @@ export const addCommand = new Command("add")
   .option("--list-templates", "List available templates")
   .addHelpText("after", `
 Examples:
-  hippo add "We use UTC timestamps everywhere" -t semantic --tags time,convention
-  hippo add "Found race condition in worker" -t episodic --tags bug
-  hippo add "To deploy: run make release" --template playbook`)
+  unforgit add "We use UTC timestamps everywhere" -t semantic --tags time,convention
+  unforgit add "Found race condition in worker" -t episodic --tags bug
+  unforgit add "To deploy: run make release" --template playbook`)
   .action((text, opts) => {
     if (opts.listTemplates) {
       logger.info(formatTemplateList());
@@ -54,14 +53,14 @@ Examples:
           : [] as string[],
       )];
 
-      if (!validateMemoryType(opts.type)) {
+      if (opts.type && !validateMemoryType(opts.type)) {
         logger.error(`Invalid memory type "${opts.type}". Must be one of: episodic, semantic, procedural`);
         process.exit(EXIT_ERROR);
       }
 
-      let memoryType = opts.type as MemoryType;
+      let memoryType = (opts.type ?? config.defaults.memoryType) as MemoryType;
       let memoryText = text;
-      let visibility = opts.visibility;
+      let visibility = opts.visibility ?? config.defaults.visibility;
 
       if (opts.template) {
         const template = getTemplate(opts.template);
@@ -86,7 +85,7 @@ Examples:
       if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
       if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
 
-      const input = {
+      const input = applyLifecycleDefaults({
         orgId: config.remote.orgId || "local",
         repoId: config.remote.repoId || "local",
         memoryType,
@@ -96,7 +95,7 @@ Examples:
         confidence: opts.confidence ? parseConfidence(opts.confidence) : undefined,
         ttlSeconds: opts.ttl ? parseTtl(opts.ttl) : undefined,
         visibility,
-      };
+      }, config.lifecycle);
 
       const policy = resolveVisibility(input);
       const memory = store.store({
@@ -112,7 +111,7 @@ Examples:
       if (policy.suggestion === "promote") {
         logger.info(
           "\n  Hint: This memory might be useful for the team. " +
-            `Use 'hippo promote ${memory.id}' to share it.`,
+            `Use 'unforgit promote ${memory.id}' to share it.`,
         );
       }
     } finally {

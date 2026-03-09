@@ -31,12 +31,12 @@ authCommand
   .argument("<api-key>", "API key to use for authentication")
   .addHelpText("after", `
 Examples:
-  hippo auth set hk_abc123def456
-  hippo auth status`)
+  unforgit auth set hk_abc123def456
+  unforgit auth status`)
   .action(async (apiKey) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
-      logger.error("Run 'hippo init' first.");
+      logger.fatal("not an unforgit repository");
+      logger.error("Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -59,7 +59,7 @@ authCommand
   .description("Check authentication status")
   .action(async () => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -70,10 +70,10 @@ authCommand
     logger.info(`  Org ID: ${config.remote.orgId || "(not configured)"}`);
     logger.info(`  Repo ID: ${config.remote.repoId || "(not configured)"}`);
 
-    const effectiveApiKey = config.remote.apiKey || process.env.HIPPO_API_KEY;
+    const effectiveApiKey = config.remote.apiKey || process.env.UNFORGIT_API_KEY;
 
     if (effectiveApiKey) {
-      const source = config.remote.apiKey ? "config" : "env (HIPPO_API_KEY)";
+      const source = config.remote.apiKey ? "config" : "env (UNFORGIT_API_KEY)";
       logger.info(`  API Key: ${maskKey(effectiveApiKey)} (from ${source})`);
 
       if (config.remote.url) {
@@ -102,7 +102,7 @@ authCommand
       }
     } else {
       logger.info("  API Key: (not configured)");
-      logger.info("\nRun 'hippo auth set <api-key>' or set HIPPO_API_KEY env var.");
+      logger.info("\nRun 'unforgit auth set <api-key>' or set UNFORGIT_API_KEY env var.");
     }
 
     checkConfigPermissions();
@@ -113,7 +113,7 @@ authCommand
   .description("Remove the configured API key")
   .action(async () => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -136,7 +136,7 @@ authCommand
   .argument("<api-key>", "OpenAI API key (starts with sk-)")
   .action((apiKey) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -151,7 +151,7 @@ authCommand
     checkConfigPermissions();
     logger.info("OpenAI API key configured successfully!");
     logger.info(`  Key: ${maskKey(apiKey)}`);
-    logger.info("\nYou can now use 'hippo auto-consolidate' and 'hippo embeddings backfill'.");
+    logger.info("\nYou can now use 'unforgit auto-consolidate' and 'unforgit embeddings backfill'.");
   });
 
 authCommand
@@ -159,7 +159,7 @@ authCommand
   .description("Remove the OpenAI API key")
   .action(() => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

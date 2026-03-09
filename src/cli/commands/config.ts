@@ -6,7 +6,7 @@ import { maskKey, isJsonMode, outputJson } from "../utils.js";
 import type { HippoConfig } from "../../core/types.js";
 
 export const configCommand = new Command("config")
-  .description("Manage hippocampus configuration");
+  .description("Manage unforgit configuration");
 
 configCommand
   .command("list")
@@ -14,7 +14,7 @@ configCommand
   .description("List all configuration values")
   .action(() => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -36,6 +36,21 @@ configCommand
     logger.info(`openaiApiKey = ${config.openaiApiKey ? maskKey(config.openaiApiKey) : "(not set)"}`);
     logger.info(`defaults.visibility = ${config.defaults.visibility}`);
     logger.info(`defaults.memoryType = ${config.defaults.memoryType}`);
+    logger.info(`lifecycle.ttlSecondsByType.episodic = ${config.lifecycle?.ttlSecondsByType?.episodic ?? "(none)"}`);
+    logger.info(`lifecycle.usageBoost.topKToRecord = ${config.lifecycle?.usageBoost?.topKToRecord ?? "(not set)"}`);
+    logger.info(`lifecycle.usageBoost.minUsageCount = ${config.lifecycle?.usageBoost?.minUsageCount ?? "(not set)"}`);
+    logger.info(`lifecycle.usageBoost.maxBoost = ${config.lifecycle?.usageBoost?.maxBoost ?? "(not set)"}`);
+    logger.info(`lifecycle.usageBoost.halfLifeDays = ${config.lifecycle?.usageBoost?.halfLifeDays ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.staleEpisodicDays = ${config.lifecycle?.maintenance?.staleEpisodicDays ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.consolidationThreshold = ${config.lifecycle?.maintenance?.consolidationThreshold ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.consolidationMinGroupSize = ${config.lifecycle?.maintenance?.consolidationMinGroupSize ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.consolidationMaxGroups = ${config.lifecycle?.maintenance?.consolidationMaxGroups ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.promoteRecallCount = ${config.lifecycle?.maintenance?.promoteRecallCount ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.pinRecallCount = ${config.lifecycle?.maintenance?.pinRecallCount ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.dryRunDefault = ${config.lifecycle?.maintenance?.dryRunDefault ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.autoRunOnStore = ${config.lifecycle?.maintenance?.autoRunOnStore ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.autoRunOnRecall = ${config.lifecycle?.maintenance?.autoRunOnRecall ?? "(not set)"}`);
+    logger.info(`lifecycle.maintenance.debounceMs = ${config.lifecycle?.maintenance?.debounceMs ?? "(not set)"}`);
   });
 
 configCommand
@@ -44,7 +59,7 @@ configCommand
   .argument("<key>", "Configuration key (e.g., remote.url, openaiApiKey)")
   .action((key) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -75,6 +90,24 @@ const VALID_CONFIG_KEYS = [
   "remote.apiKey",
   "defaults.visibility",
   "defaults.memoryType",
+  "lifecycle.ttlSecondsByType.episodic",
+  "lifecycle.ttlSecondsByType.semantic",
+  "lifecycle.ttlSecondsByType.procedural",
+  "lifecycle.usageBoost.enabled",
+  "lifecycle.usageBoost.topKToRecord",
+  "lifecycle.usageBoost.minUsageCount",
+  "lifecycle.usageBoost.maxBoost",
+  "lifecycle.usageBoost.halfLifeDays",
+  "lifecycle.maintenance.staleEpisodicDays",
+  "lifecycle.maintenance.consolidationThreshold",
+  "lifecycle.maintenance.consolidationMinGroupSize",
+  "lifecycle.maintenance.consolidationMaxGroups",
+  "lifecycle.maintenance.promoteRecallCount",
+  "lifecycle.maintenance.pinRecallCount",
+  "lifecycle.maintenance.dryRunDefault",
+  "lifecycle.maintenance.autoRunOnStore",
+  "lifecycle.maintenance.autoRunOnRecall",
+  "lifecycle.maintenance.debounceMs",
   "openaiApiKey",
   "configVersion",
 ] as const;
@@ -88,11 +121,11 @@ configCommand
 Valid keys: ${VALID_CONFIG_KEYS.join(", ")}
 
 Examples:
-  hippo config set remote.url http://my-server:3737
-  hippo config set defaults.memoryType semantic`)
+  unforgit config set remote.url http://my-server:3737
+  unforgit config set defaults.memoryType semantic`)
   .action((key, value) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -120,7 +153,7 @@ configCommand
   .argument("<key>", "Configuration key to remove")
   .action((key) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -163,7 +196,7 @@ function setConfigValue(config: HippoConfig, key: string, value: string): void {
     current = current[part] as Record<string, unknown>;
   }
 
-  current[parts[parts.length - 1]] = value;
+  current[parts[parts.length - 1]] = coerceConfigValue(value);
 }
 
 function unsetConfigValue(config: HippoConfig, key: string): void {
@@ -184,4 +217,15 @@ function unsetConfigValue(config: HippoConfig, key: string): void {
   }
 
   delete current[parts[parts.length - 1]];
+}
+
+function coerceConfigValue(value: string): string | number | boolean {
+  if (value === "true") return true;
+  if (value === "false") return false;
+
+  if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+    return Number(value);
+  }
+
+  return value;
 }

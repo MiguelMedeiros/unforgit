@@ -7,26 +7,26 @@ import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 
 export const webCommand = new Command("web")
-  .description("Start the Hippocampus web dashboard")
+  .description("Start the Unforgit web dashboard")
   .option("-p, --port <port>", "Port to run on", "3838")
   .option("--no-open", "Don't open browser automatically")
   .action(async (opts) => {
     const cwd = process.cwd();
 
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized in this directory. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized in this directory. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
     const webDir = findWebDir();
     if (!webDir) {
-      logger.error("Web dashboard not found. Make sure hippocampus is installed correctly.");
+      logger.error("Web dashboard not found. Make sure unforgit is installed correctly.");
       process.exit(EXIT_ERROR);
     }
 
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
-      HIPPO_WORKSPACE: cwd,
+      UNFORGIT_WORKSPACE: cwd,
       PORT: opts.port,
     };
 
@@ -41,7 +41,7 @@ export const webCommand = new Command("web")
       }
     }
 
-    logger.info(`Starting Hippocampus web dashboard on port ${opts.port}...`);
+    logger.info(`Starting Unforgit web dashboard on port ${opts.port}...`);
     logger.info(`Workspace: ${cwd}`);
 
     const hasNextBuild = fs.existsSync(path.join(webDir, ".next"));

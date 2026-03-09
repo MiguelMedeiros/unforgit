@@ -1,17 +1,21 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Terminal, TerminalInline } from "@/components/terminal";
+import { Terminal } from "@/components/terminal";
 import { CommandReference } from "@/components/command-reference";
 import { ApiEndpoint } from "@/components/api-endpoint";
 import {
   Brain,
   Database,
-  Server,
+  Search,
+  Sparkles,
   Terminal as TerminalIcon,
-  ArrowRight,
-  Cpu,
+  Server,
+  Settings,
+  Link2,
+  GitMerge,
 } from "lucide-react";
+import Link from "next/link";
 
 function Section({
   id,
@@ -30,7 +34,7 @@ function Section({
         viewport={{ once: true }}
         className="text-2xl font-bold text-dracula-foreground mb-6 flex items-center gap-3"
       >
-        <span className="w-1 h-6 bg-dracula-purple rounded-full" />
+        <span className="w-1 h-6 bg-dracula-foreground rounded-full" />
         {title}
       </motion.h2>
       {children}
@@ -57,10 +61,23 @@ function Subsection({
   );
 }
 
+const templates = [
+  "decision",
+  "adr",
+  "gotcha",
+  "bug",
+  "playbook",
+  "deploy",
+  "convention",
+  "api",
+  "workaround",
+  "perf",
+  "security",
+];
+
 export default function DocsPage() {
   return (
     <div>
-      {/* Overview Section */}
       <Section id="overview" title="Overview">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -68,1391 +85,866 @@ export default function DocsPage() {
           className="prose prose-invert max-w-none"
         >
           <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
-            Hippocampus is a repository memory system for AI agents and
-            developers. It provides persistent knowledge across sessions with
-            local private memory and shared team knowledge.
+            Unforgit is a local-first repository memory system for agents and
+            developers. It stores private workspace memory in SQLite, can sync
+            shared memory to a remote API, and now exposes a full lifecycle
+            loop: capture broadly, strengthen reused knowledge, consolidate
+            overlaps, and expire stale episodic noise safely.
           </p>
 
-          {/* Architecture Diagram */}
-          <div className="rounded-xl border border-dracula-current/50 bg-dracula-current/10 p-6 mb-8">
-            <h4 className="text-sm font-semibold text-dracula-comment uppercase tracking-wider mb-4">
-              Architecture
-            </h4>
-            <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">
-              {/* Local */}
-              <div className="flex-1 rounded-lg border border-dracula-cyan/30 bg-dracula-background p-4">
-                <div className="text-xs text-dracula-cyan font-semibold mb-3 uppercase tracking-wider">
-                  Local Machine
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Cpu className="w-4 h-4 text-dracula-purple" />
-                    <span>Cursor IDE</span>
-                    <ArrowRight className="w-3 h-3 text-dracula-comment" />
-                    <span className="text-dracula-green">hippo-mcp</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <TerminalIcon className="w-4 h-4 text-dracula-orange" />
-                    <span>hippo CLI</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Database className="w-4 h-4 text-dracula-pink" />
-                    <span>local.db (SQLite)</span>
-                  </div>
-                </div>
+          <div className="grid lg:grid-cols-3 gap-4 mb-8">
+            <div className="rounded-xl border border-dracula-comment/20 bg-dracula-background p-5">
+              <div className="flex items-center gap-2 text-dracula-foreground mb-3">
+                <Database className="w-5 h-5" />
+                <h4 className="font-semibold">Local Store</h4>
               </div>
-
-              {/* Arrow */}
-              <div className="hidden lg:flex flex-col items-center gap-1">
-                <ArrowRight className="w-6 h-6 text-dracula-purple" />
-                <span className="text-xs text-dracula-comment">HTTP</span>
+              <p className="text-sm text-dracula-foreground/70">
+                SQLite with FTS5, embeddings, usage tracking, link graphs,
+                tombstones, and sync state in <code>.unforgit/local.db</code>.
+              </p>
+            </div>
+            <div className="rounded-xl border border-dracula-comment/20 bg-dracula-background p-5">
+              <div className="flex items-center gap-2 text-dracula-foreground mb-3">
+                <TerminalIcon className="w-5 h-5" />
+                <h4 className="font-semibold">Agent Interfaces</h4>
               </div>
-
-              {/* Remote */}
-              <div className="flex-1 rounded-lg border border-dracula-orange/30 bg-dracula-background p-4">
-                <div className="text-xs text-dracula-orange font-semibold mb-3 uppercase tracking-wider">
-                  Remote Server (Docker)
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Server className="w-4 h-4 text-dracula-cyan" />
-                    <span>API Server :3737</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Database className="w-4 h-4 text-dracula-green" />
-                    <span>PostgreSQL</span>
-                  </div>
-                </div>
+              <p className="text-sm text-dracula-foreground/70">
+                The CLI, MCP server, and programmatic tools all speak the same
+                memory model and can trigger lifecycle maintenance after store
+                and recall events.
+              </p>
+            </div>
+            <div className="rounded-xl border border-dracula-comment/20 bg-dracula-background p-5">
+              <div className="flex items-center gap-2 text-dracula-foreground mb-3">
+                <Server className="w-5 h-5" />
+                <h4 className="font-semibold">Remote Team Store</h4>
               </div>
+              <p className="text-sm text-dracula-foreground/70">
+                Fastify + PostgreSQL for shared memory, link APIs, conflict-aware
+                sync, server-side AI recall, auto-consolidation, suggestions,
+                and repo health reporting.
+              </p>
             </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
             <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-              <h4 className="font-semibold text-dracula-green mb-2">
+              <h4 className="font-semibold text-dracula-foreground mb-2">
                 Memory Types
               </h4>
               <ul className="text-sm text-dracula-foreground/70 space-y-1">
                 <li>
-                  <code className="text-dracula-cyan">episodic</code> - Events,
-                  observations
+                  <code className="text-dracula-foreground/80">episodic</code> for notes,
+                  bugs, observations, and short-lived context
                 </li>
                 <li>
-                  <code className="text-dracula-cyan">semantic</code> - Facts,
-                  decisions
+                  <code className="text-dracula-foreground/80">semantic</code> for
+                  decisions, facts, conventions, and durable knowledge
                 </li>
                 <li>
-                  <code className="text-dracula-cyan">procedural</code> -
-                  Playbooks, how-tos
+                  <code className="text-dracula-foreground/80">procedural</code> for
+                  playbooks, deploy flows, and repeatable workflows
                 </li>
               </ul>
             </div>
             <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-              <h4 className="font-semibold text-dracula-orange mb-2">Scopes</h4>
+              <h4 className="font-semibold text-dracula-foreground mb-2">
+                Visibility
+              </h4>
               <ul className="text-sm text-dracula-foreground/70 space-y-1">
                 <li>
-                  <code className="text-dracula-cyan">private</code> - Local
-                  only
+                  <code className="text-dracula-foreground/80">private</code> keeps
+                  memory local
                 </li>
                 <li>
-                  <code className="text-dracula-cyan">repo</code> - Shared with
-                  team
+                  <code className="text-dracula-foreground/80">repo</code> shares memory
+                  through the remote server
                 </li>
                 <li>
-                  <code className="text-dracula-cyan">auto</code> - System
-                  decides
+                  <code className="text-dracula-foreground/80">auto</code> applies the
+                  policy engine: sensitive stays private, stable sourced
+                  knowledge is promoted toward shared memory
                 </li>
               </ul>
             </div>
             <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-              <h4 className="font-semibold text-dracula-pink mb-2">Statuses</h4>
+              <h4 className="font-semibold text-dracula-foreground mb-2">
+                Lifecycle Signals
+              </h4>
               <ul className="text-sm text-dracula-foreground/70 space-y-1">
-                <li>
-                  <code className="text-dracula-cyan">active</code> - Current
-                </li>
-                <li>
-                  <code className="text-dracula-cyan">deprecated</code> -
-                  Outdated
-                </li>
-                <li>
-                  <code className="text-dracula-cyan">superseded</code> -
-                  Replaced
-                </li>
+                <li>TTL for episodic memory</li>
+                <li>Reuse-based ranking boost</li>
+                <li>Consolidation candidates and history</li>
+                <li>Soft deletion through tombstones</li>
+                <li>Automatic debounced maintenance hooks</li>
               </ul>
             </div>
           </div>
         </motion.div>
       </Section>
 
-      {/* Semantic Search Section */}
-      <Section id="semantic-search" title="Semantic Search">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="prose prose-invert max-w-none"
-        >
-          <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
-            Hippocampus uses AI embeddings for semantic search, finding memories by meaning rather than just keywords.
-            This means searching for "deployment process" will find memories about "release workflow" even without exact word matches.
+      <Section id="getting-started" title="Getting Started">
+        <Subsection id="init-flow" title="Install And First Flow">
+          <p className="text-dracula-foreground/70 mb-4">
+            The default setup is local-first. <code>unforgit init</code> creates
+            the local database, config file, Cursor rule, and MCP config. Org
+            and repo are auto-detected from your git remote when available.
           </p>
-
-          <Subsection id="embeddings-overview" title="How It Works">
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
-              <ol className="text-sm text-dracula-foreground/70 space-y-2 list-decimal list-inside">
-                <li>When you add a memory, Hippocampus generates a vector embedding using OpenAI's <code className="text-dracula-cyan">text-embedding-3-small</code> model</li>
-                <li>Embeddings are stored alongside the memory (SQLite locally, pgvector in PostgreSQL for teams)</li>
-                <li>On recall, both text search (FTS5) and embedding similarity are combined for best results</li>
-              </ol>
-            </div>
-          </Subsection>
-
-          <Subsection id="embeddings-commands" title="CLI Commands">
-            <div className="space-y-4">
-              <Terminal
-                title="Generate embeddings for existing memories"
-                code="$ hippo embeddings backfill"
-              />
-              <Terminal
-                title="Check embedding coverage"
-                code="$ hippo embeddings stats"
-              />
-            </div>
-          </Subsection>
-
-          <Subsection id="hybrid-scoring" title="Hybrid Scoring">
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-              <p className="text-sm text-dracula-foreground/70 mb-3">
-                Results are ranked using a hybrid scoring algorithm:
-              </p>
-              <ul className="text-sm text-dracula-foreground/70 space-y-1">
-                <li><span className="text-dracula-purple font-bold">50%</span> - Semantic similarity (embeddings)</li>
-                <li><span className="text-dracula-cyan font-bold">20%</span> - Text match (FTS5)</li>
-                <li><span className="text-dracula-green font-bold">15%</span> - Recency</li>
-                <li><span className="text-dracula-orange font-bold">15%</span> - Confidence score</li>
-              </ul>
-            </div>
-          </Subsection>
-        </motion.div>
-      </Section>
-
-      {/* Curation & Health Section */}
-      <Section id="curation" title="Curation & Health">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="prose prose-invert max-w-none"
-        >
-          <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
-            Keep your memory base healthy with AI-powered curation suggestions, quality scoring, and memory templates.
-          </p>
-
-          <Subsection id="quality-score" title="Quality Score">
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
-              <p className="text-sm text-dracula-foreground/70 mb-3">
-                Each memory gets a quality score (0-100%) based on:
-              </p>
-              <ul className="text-sm text-dracula-foreground/70 space-y-1">
-                <li><span className="text-dracula-purple">Text Quality</span> - Length and clarity</li>
-                <li><span className="text-dracula-cyan">Usage</span> - How often it's recalled</li>
-                <li><span className="text-dracula-green">Links</span> - Connections to other memories</li>
-                <li><span className="text-dracula-orange">Tags</span> - Discoverability</li>
-                <li><span className="text-dracula-pink">Embeddings</span> - Semantic search ready</li>
-                <li><span className="text-dracula-yellow">Age</span> - Recent use vs. stale</li>
-              </ul>
-            </div>
-          </Subsection>
-
-          <Subsection id="suggestions" title="AI Suggestions">
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
-              <p className="text-sm text-dracula-foreground/70 mb-3">
-                Hippocampus proactively suggests improvements:
-              </p>
-              <ul className="text-sm text-dracula-foreground/70 space-y-1">
-                <li><span className="text-dracula-purple">Consolidate</span> - Merge similar memories (&gt;70% similarity)</li>
-                <li><span className="text-dracula-red">Deprecate</span> - Old memories with no recalls</li>
-                <li><span className="text-dracula-cyan">Add Tags</span> - Improve discoverability</li>
-                <li><span className="text-dracula-green">Promote</span> - Share popular private memories with team</li>
-                <li><span className="text-dracula-orange">Generate Embeddings</span> - Enable semantic search</li>
-              </ul>
-            </div>
+          <div className="space-y-4">
             <Terminal
-              title="MCP Tool"
-              code="hippo_suggestions  # Get AI-powered curation suggestions"
+              title="Install"
+              code="$ npm install -g unforgit"
             />
-          </Subsection>
+            <Terminal
+              title="Initialize in a repository"
+              code="$ unforgit init --remote-url http://localhost:3737"
+            />
+            <Terminal
+              title="Capture a memory"
+              code={`$ unforgit add "Decision: use UUIDs for external resource IDs" --template decision
+$ unforgit add "OAuth callback needs HTTPS in production" --template gotcha --tags auth`}
+            />
+            <Terminal
+              title="Recall it later"
+              code={`$ unforgit recall "external IDs"
+$ unforgit recall "oauth https" --local-only`}
+            />
+          </div>
+        </Subsection>
 
-          <Subsection id="templates" title="Memory Templates">
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
-              <p className="text-sm text-dracula-foreground/70 mb-3">
-                Templates auto-configure memory type and tags:
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><code className="text-dracula-green">decision</code> - Technical decisions</div>
-                <div><code className="text-dracula-orange">gotcha</code> - Non-obvious issues</div>
-                <div><code className="text-dracula-cyan">playbook</code> - Step-by-step guides</div>
-                <div><code className="text-dracula-red">bug</code> - Bug fixes</div>
-                <div><code className="text-dracula-purple">adr</code> - Architecture decisions</div>
-                <div><code className="text-dracula-pink">convention</code> - Coding standards</div>
-                <div><code className="text-dracula-yellow">workaround</code> - Temporary fixes</div>
-                <div><code className="text-dracula-green">perf</code> - Performance notes</div>
+        <Subsection id="lifecycle-loop" title="Lifecycle Loop">
+          <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-4">
+            <ul className="text-sm text-dracula-foreground/70 space-y-2">
+              <li>
+                <span className="text-dracula-foreground font-semibold">
+                  Capture broadly
+                </span>{" "}
+                with low-friction episodic notes.
+              </li>
+              <li>
+                <span className="text-dracula-foreground font-semibold">
+                  Strengthen reuse
+                </span>{" "}
+                by recording recall activity and boosting proven memories.
+              </li>
+              <li>
+                <span className="text-dracula-foreground font-semibold">
+                  Consolidate
+                </span>{" "}
+                repeated episodic fragments into denser semantic or procedural
+                memory.
+              </li>
+              <li>
+                <span className="text-dracula-foreground font-semibold">
+                  Forget safely
+                </span>{" "}
+                by hiding expired TTL-based memories and deleting through
+                tombstones instead of unsafe hard resets.
+              </li>
+            </ul>
+          </div>
+          <Terminal
+            title="Preview or execute lifecycle maintenance"
+            code={`$ unforgit curate
+$ unforgit curate --execute
+$ unforgit curate --remote --execute --model gpt-4o-mini`}
+          />
+        </Subsection>
+
+        <Subsection id="templates" title="Templates">
+          <p className="text-dracula-foreground/70 mb-4">
+            Templates set the memory type, default tags, and preferred
+            visibility for common repository knowledge patterns.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            {templates.map((template) => (
+              <div
+                key={template}
+                className="rounded-lg border border-dracula-current/40 bg-dracula-background px-3 py-2 text-sm text-dracula-foreground/80"
+              >
+                <code className="text-dracula-foreground/80">{template}</code>
               </div>
-            </div>
-            <Terminal
-              title="Using templates"
-              code={`$ hippo add --template decision "Using PostgreSQL for JSON support"\n$ hippo add --template gotcha "OAuth needs HTTPS in prod"`}
-            />
-          </Subsection>
-        </motion.div>
+            ))}
+          </div>
+          <Terminal
+            title="Use templates"
+            code={`$ unforgit add --template playbook "To release: run pnpm build && kubectl apply -f k8s/"
+$ unforgit add --template security "Never commit OAuth client secrets into repo config"`}
+          />
+        </Subsection>
       </Section>
 
-      {/* CLI Reference Section */}
+      <Section id="recall" title="Recall & Ranking">
+        <Subsection id="recall-behavior" title="How Recall Works">
+          <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+            <ul className="text-sm text-dracula-foreground/70 space-y-2">
+              <li>
+                Local recall uses SQLite FTS5 with a fallback string search when
+                needed.
+              </li>
+              <li>
+                The CLI merges local recall with remote recall and re-ranks the
+                combined result set.
+              </li>
+              <li>
+                Remote <code>/v1/recall</code> becomes hybrid when the server
+                has <code>OPENAI_API_KEY</code> configured.
+              </li>
+              <li>
+                Ranking factors include text match, embedding similarity when
+                available, recency, confidence, and bounded reuse boost from
+                prior recalls.
+              </li>
+              <li>
+                Consolidated memories are intentionally favored, and MCP recall
+                can expand the source history behind them.
+              </li>
+            </ul>
+          </div>
+        </Subsection>
+
+        <Subsection id="embeddings" title="Embeddings And Hybrid Search">
+          <p className="text-dracula-foreground/70 mb-4">
+            OpenAI is optional. Without it, Unforgit still works with local
+            FTS recall, sync, links, lifecycle, and manual consolidation. With
+            OpenAI, you unlock embeddings, server-side hybrid recall, and
+            LLM-based consolidation flows.
+          </p>
+          <div className="space-y-4">
+            <Terminal
+              title="Recall examples"
+              code={`$ unforgit recall "deploy" --types procedural,semantic --page 1 --per-page 5
+$ unforgit recall "auth" --remote-only
+$ unforgit recall "race condition" --local-only`}
+            />
+            <Terminal
+              title="Embedding maintenance"
+              code={`$ unforgit embeddings backfill
+$ unforgit embeddings stats
+$ unforgit embeddings clear --yes`}
+            />
+          </div>
+        </Subsection>
+      </Section>
+
       <Section id="cli" title="CLI Reference">
         <p className="text-dracula-foreground/70 mb-6">
-          The <code className="text-dracula-cyan">hippo</code> CLI is the
-          primary interface for managing memories. Install globally with{" "}
-          <code className="text-dracula-cyan">npm i -g hippocampus</code>.
+          The <code className="text-dracula-foreground/80">unforgit</code> CLI is the main
+          user interface for repository memory. The commands below reflect the
+          current implementation, including lifecycle, links, diagnostics, and
+          shell completion.
         </p>
 
         <Subsection id="cli-core" title="Core Commands">
           <div className="space-y-4">
             <CommandReference
-              name="hippo init"
-              description="Initialize Hippocampus in the current repository"
-              usage="hippo init [options]"
+              name="unforgit init"
+              description="Initialize Unforgit in the current repository"
+              usage="unforgit init [options]"
               options={[
-                { flag: "--org-id <orgId>", description: "Organization ID" },
-                { flag: "--repo-id <repoId>", description: "Repository ID" },
+                { flag: "--org-id <orgId>", description: "Override detected org ID" },
+                { flag: "--repo-id <repoId>", description: "Override detected repo ID" },
                 {
                   flag: "--remote-url <url>",
-                  description: "Remote server URL",
+                  description: "Remote API URL",
                   default: "http://localhost:3737",
                 },
                 {
                   flag: "--no-cursor-rule",
-                  description: "Skip Cursor IDE integration",
+                  description: "Skip Cursor rule + MCP bootstrap",
                 },
               ]}
-              example="hippo init --org-id my-org --repo-id my-repo"
+              example="unforgit init --org-id my-org --repo-id my-repo"
             />
 
             <CommandReference
-              name="hippo add"
-              description="Add a new memory to the local store"
-              usage="hippo add <text> [options]"
+              name="unforgit add"
+              description="Create a memory locally using types, tags, and templates"
+              usage="unforgit add <text> [options]"
               args={[
-                {
-                  name: "text",
-                  description: "The memory content",
-                  required: true,
-                },
+                { name: "text", description: "Memory content", required: true },
               ]}
               options={[
                 {
                   flag: "-t, --type <type>",
-                  description: "Memory type (episodic|semantic|procedural)",
+                  description: "episodic | semantic | procedural",
                   default: "episodic",
                 },
                 { flag: "--tags <tags>", description: "Comma-separated tags" },
                 {
                   flag: "--template <name>",
-                  description: "Use template (decision, gotcha, playbook, bug, adr, convention, workaround, perf, security, api)",
+                  description:
+                    "decision | adr | gotcha | bug | playbook | deploy | convention | api | workaround | perf | security",
                 },
                 {
                   flag: "--visibility <visibility>",
-                  description: "Visibility (private|repo|auto)",
+                  description: "private | repo | auto",
                   default: "auto",
                 },
                 { flag: "--source-pr <url>", description: "Source PR URL" },
-                {
-                  flag: "--source-commit <sha>",
-                  description: "Source commit SHA",
-                },
-                {
-                  flag: "--confidence <n>",
-                  description: "Confidence score (0-1)",
-                },
-                { flag: "--ttl <seconds>", description: "Time to live" },
-                { flag: "--list-templates", description: "List available templates" },
+                { flag: "--source-commit <sha>", description: "Source commit SHA" },
+                { flag: "--confidence <n>", description: "Confidence from 0 to 1" },
+                { flag: "--ttl <seconds>", description: "Override TTL" },
+                { flag: "--list-templates", description: "List template metadata" },
               ]}
-              example='hippo add --template decision "Using PostgreSQL for better JSON support"'
+              example='unforgit add --template decision "Use opaque IDs in public APIs"'
             />
 
             <CommandReference
-              name="hippo recall"
-              description="Search memories by query"
-              usage="hippo recall <query> [options]"
+              name="unforgit recall"
+              description="Search local and remote memory, then merge and rank results"
+              usage="unforgit recall <query> [options]"
               args={[
-                {
-                  name: "query",
-                  description: "Search query",
-                  required: true,
-                },
+                { name: "query", description: "Search query", required: true },
               ]}
               options={[
-                {
-                  flag: "--types <types>",
-                  description: "Filter by memory types",
-                },
-                { flag: "--tags <tags>", description: "Filter by tags" },
-                {
-                  flag: "-k, --limit <n>",
-                  description: "Number of results",
-                  default: "10",
-                },
-                {
-                  flag: "--remote-only",
-                  description: "Search remote only",
-                },
-                { flag: "--local-only", description: "Search local only" },
+                { flag: "--types <types>", description: "Filter types" },
+                { flag: "--tags <tags>", description: "Filter tags" },
+                { flag: "-k, --limit <n>", description: "Top-k results", default: "10" },
+                { flag: "--remote-only", description: "Skip local recall" },
+                { flag: "--local-only", description: "Skip remote recall" },
+                { flag: "--page <n>", description: "Page number", default: "1" },
+                { flag: "--per-page <n>", description: "Items per page", default: "10" },
               ]}
-              example="hippo recall 'how to deploy' --types procedural,semantic -k 5"
+              example='unforgit recall "release flow" --types procedural,semantic --page 1'
             />
 
             <CommandReference
-              name="hippo promote"
-              description="Promote a local memory to shared (remote)"
-              usage="hippo promote <id> [options]"
+              name="unforgit promote"
+              description="Promote a local memory to shared repo memory"
+              usage="unforgit promote <id> [options]"
               args={[
-                {
-                  name: "id",
-                  description: "Memory ID to promote",
-                  required: true,
-                },
+                { name: "id", description: "Local memory ID", required: true },
               ]}
               options={[
-                {
-                  flag: "--to <scope>",
-                  description: "Target scope",
-                  default: "repo",
-                },
-                { flag: "--source-pr <url>", description: "Source PR URL" },
-                {
-                  flag: "--source-commit <sha>",
-                  description: "Source commit SHA",
-                },
+                { flag: "--source-pr <url>", description: "Attach source PR" },
+                { flag: "--source-commit <sha>", description: "Attach source commit" },
               ]}
-              example='hippo promote abc123 --source-pr "https://github.com/org/repo/pull/99"'
+              example='unforgit promote abc123 --source-pr "https://github.com/org/repo/pull/42"'
             />
           </div>
         </Subsection>
 
-        <Subsection id="cli-lifecycle" title="Memory Lifecycle">
+        <Subsection id="cli-lifecycle" title="Lifecycle And Consolidation">
           <div className="space-y-4">
-            <CommandReference
-              name="hippo consolidate"
-              description="Consolidate episodic memories to semantic/procedural (server-side)"
-              usage="hippo consolidate [options]"
-              options={[
-                { flag: "--from-pr <url>", description: "Filter by PR URL" },
-                {
-                  flag: "--from-commit <sha>",
-                  description: "Filter by commit",
-                },
-                {
-                  flag: "--last-n <n>",
-                  description: "Last N memories to consider",
-                },
-              ]}
-              example='hippo consolidate --from-pr "https://github.com/org/repo/pull/100"'
+            <Terminal
+              title="Maintenance and curation"
+              code={`$ unforgit curate
+$ unforgit curate --execute
+$ unforgit curate --remote --execute`}
             />
-
-            <CommandReference
-              name="hippo deprecate"
-              description="Mark a memory as deprecated"
-              usage="hippo deprecate <id> [options]"
-              args={[
-                {
-                  name: "id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "--reason <reason>",
-                  description: "Deprecation reason",
-                },
-                {
-                  flag: "--remote",
-                  description: "Apply to remote memory",
-                },
-              ]}
-              example='hippo deprecate abc123 --reason "outdated after migration"'
+            <Terminal
+              title="Server and local consolidation flows"
+              code={`$ unforgit consolidate --from-pr "https://github.com/org/repo/pull/100"
+$ unforgit auto-consolidate --threshold 0.5 --dry-run
+$ unforgit merge id1 id2 -t "Unified deployment checklist"
+$ unforgit remerge <consolidation-id> -t "Updated guide" --add "<new-id>"
+$ unforgit unconsolidate <consolidation-id> --dry-run`}
             />
-
-            <CommandReference
-              name="hippo supersede"
-              description="Mark a memory as superseded by another"
-              usage="hippo supersede <old-id> --with <new-id> [options]"
-              args={[
-                {
-                  name: "old-id",
-                  description: "Memory to supersede",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "--with <new-id>",
-                  description: "Superseding memory ID (required)",
-                },
-                {
-                  flag: "--remote",
-                  description: "Apply to remote",
-                },
-              ]}
-              example="hippo supersede old123 --with new456"
-            />
-
-            <CommandReference
-              name="hippo delete"
-              description="Soft delete a memory (restorable)"
-              usage="hippo delete <id> [options]"
-              args={[
-                {
-                  name: "id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                { flag: "--hard", description: "Permanent delete" },
-                { flag: "--remote", description: "Delete from remote" },
-                { flag: "--by <author>", description: "Author of deletion" },
-              ]}
-              example="hippo delete abc123 --hard"
-            />
-
-            <CommandReference
-              name="hippo restore"
-              description="Restore a soft-deleted memory"
-              usage="hippo restore <id> [options]"
-              args={[
-                {
-                  name: "id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                { flag: "--remote", description: "Restore from remote" },
-              ]}
-              example="hippo restore abc123"
-            />
-
-            <CommandReference
-              name="hippo reset"
-              description="Permanently delete all memories and related data"
-              usage="hippo reset [options]"
-              options={[
-                { flag: "--local", description: "Reset local store only" },
-                { flag: "--remote", description: "Reset remote store only" },
-                { flag: "--force", description: "Skip confirmation prompt" },
-              ]}
-              example="hippo reset --local --force"
+            <Terminal
+              title="State transitions"
+              code={`$ unforgit deprecate <id> --reason "outdated after migration"
+$ unforgit supersede <old-id> --with <new-id>
+$ unforgit delete <id>
+$ unforgit delete <id> --hard --force
+$ unforgit restore <id>`}
             />
           </div>
         </Subsection>
 
-        <Subsection id="cli-links" title="Links">
+        <Subsection id="cli-links" title="Links And History">
           <div className="space-y-4">
-            <CommandReference
-              name="hippo link"
-              description="Create a link between two memories"
-              usage="hippo link <source-id> <target-id> --type <link-type> [options]"
-              args={[
-                {
-                  name: "source-id",
-                  description: "Source memory",
-                  required: true,
-                },
-                {
-                  name: "target-id",
-                  description: "Target memory",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "--type <link-type>",
-                  description:
-                    "Link type: related_to|derived_from|contradicts|depends_on (required)",
-                },
-                { flag: "--remote", description: "Create on remote" },
-              ]}
-              example="hippo link abc123 def456 --type derived_from"
+            <Terminal
+              title="Relationship commands"
+              code={`$ unforgit link <source-id> <target-id> --type related_to
+$ unforgit unlink <source-id> <target-id> --type related_to
+$ unforgit links <memory-id>
+$ unforgit similar <memory-id> --threshold 0.5
+$ unforgit history <memory-id>`}
             />
-
-            <CommandReference
-              name="hippo unlink"
-              description="Remove a link between memories"
-              usage="hippo unlink <source-id> <target-id> --type <link-type> [options]"
-              args={[
-                {
-                  name: "source-id",
-                  description: "Source memory",
-                  required: true,
-                },
-                {
-                  name: "target-id",
-                  description: "Target memory",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "--type <link-type>",
-                  description: "Link type (required)",
-                },
-                { flag: "--remote", description: "Remove from remote" },
-              ]}
-              example="hippo unlink abc123 def456 --type related_to"
-            />
-
-            <CommandReference
-              name="hippo links"
-              description="List links for a memory"
-              usage="hippo links <memory-id> [options]"
-              args={[
-                {
-                  name: "memory-id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                { flag: "--type <link-type>", description: "Filter by type" },
-                { flag: "--remote", description: "List from remote" },
-              ]}
-              example="hippo links abc123 --type derived_from"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-consolidation" title="Consolidation">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo merge"
-              description="Merge multiple memories into one (local)"
-              usage="hippo merge <id1> <id2> [id3...] -t <text> [options]"
-              args={[
-                {
-                  name: "ids",
-                  description: "Memory IDs to merge (min 2)",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "-t, --text <text>",
-                  description: "Merged text (required)",
-                },
-                { flag: "--type <type>", description: "Memory type" },
-                { flag: "--tags <tags>", description: "Tags" },
-                {
-                  flag: "--no-supersede",
-                  description: "Keep originals active",
-                },
-              ]}
-              example='hippo merge id1 id2 id3 -t "Unified deployment guide"'
-            />
-
-            <CommandReference
-              name="hippo remerge"
-              description="Update an existing merged memory"
-              usage="hippo remerge <consolidation-id> -t <text> [options]"
-              args={[
-                {
-                  name: "consolidation-id",
-                  description: "Existing consolidation ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "-t, --text <text>",
-                  description: "New text (required)",
-                },
-                {
-                  flag: "--add <ids>",
-                  description: "Add more source memories",
-                },
-                { flag: "--tags <tags>", description: "Update tags" },
-              ]}
-              example='hippo remerge abc123 -t "Updated guide" --add newid'
-            />
-
-            <CommandReference
-              name="hippo similar"
-              description="Find similar memories (merge candidates)"
-              usage="hippo similar <memory-id> [options]"
-              args={[
-                {
-                  name: "memory-id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              options={[
-                {
-                  flag: "-k, --limit <n>",
-                  description: "Number of results",
-                  default: "10",
-                },
-                {
-                  flag: "--threshold <score>",
-                  description: "Similarity threshold",
-                  default: "0.3",
-                },
-              ]}
-              example="hippo similar abc123 --threshold 0.5"
-            />
-
-            <CommandReference
-              name="hippo history"
-              description="Show consolidation history for a memory"
-              usage="hippo history <memory-id>"
-              args={[
-                {
-                  name: "memory-id",
-                  description: "Memory ID",
-                  required: true,
-                },
-              ]}
-              example="hippo history abc123"
-            />
-
-            <CommandReference
-              name="hippo auto-consolidate"
-              description="AI-driven consolidation of similar memories"
-              usage="hippo auto-consolidate [options]"
-              options={[
-                {
-                  flag: "--threshold <score>",
-                  description: "Similarity threshold",
-                  default: "0.4",
-                },
-                {
-                  flag: "--min-group <n>",
-                  description: "Min group size",
-                  default: "2",
-                },
-                {
-                  flag: "--max-groups <n>",
-                  description: "Max groups to process",
-                  default: "10",
-                },
-                { flag: "--type <type>", description: "Filter by type" },
-                { flag: "--dry-run", description: "Preview only" },
-                { flag: "-y, --yes", description: "Skip confirmation" },
-                {
-                  flag: "--model <model>",
-                  description: "OpenAI model",
-                  default: "gpt-4o-mini",
-                },
-                {
-                  flag: "--no-preserve",
-                  description: "Don't keep originals",
-                },
-              ]}
-              example="hippo auto-consolidate --threshold 0.5 --dry-run"
-            />
-
-            <CommandReference
-              name="hippo unconsolidate"
-              description="Undo a consolidation (restore original memories)"
-              usage="hippo unconsolidate <consolidation-id> [options]"
-              args={[
-                {
-                  name: "consolidation-id",
-                  description: "Consolidation ID",
-                  required: true,
-                },
-              ]}
-              options={[{ flag: "--dry-run", description: "Preview only" }]}
-              example="hippo unconsolidate abc123 --dry-run"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-sync" title="Sync">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo status"
-              description="Show working tree status (pending sync)"
-              usage="hippo status [options]"
-              options={[
-                { flag: "-s, --short", description: "Short format" },
-              ]}
-              example="hippo status -s"
-            />
-
-            <CommandReference
-              name="hippo push"
-              description="Push local memories to remote"
-              usage="hippo push [remote] [options]"
-              args={[
-                {
-                  name: "remote",
-                  description: "Remote name",
-                  required: false,
-                },
-              ]}
-              options={[
-                { flag: "-f, --force", description: "Force push" },
-                { flag: "--dry-run", description: "Preview only" },
-                { flag: "-a, --all", description: "Push all" },
-              ]}
-              example="hippo push origin --dry-run"
-            />
-
-            <CommandReference
-              name="hippo pull"
-              description="Pull remote memories to local"
-              usage="hippo pull [remote] [options]"
-              args={[
-                {
-                  name: "remote",
-                  description: "Remote name",
-                  required: false,
-                },
-              ]}
-              options={[
-                { flag: "-f, --force", description: "Force pull" },
-                { flag: "--dry-run", description: "Preview only" },
-              ]}
-              example="hippo pull origin"
-            />
-
-            <CommandReference
-              name="hippo diff"
-              description="Show differences between local and remote"
-              usage="hippo diff [memoryId] [options]"
-              args={[
-                {
-                  name: "memoryId",
-                  description: "Specific memory",
-                  required: false,
-                },
-              ]}
-              options={[
-                { flag: "--stat", description: "Show stats only" },
-              ]}
-              example="hippo diff --stat"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-remote" title="Remote Config">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo remote"
-              description="List configured remotes"
-              usage="hippo remote"
-              example="hippo remote"
-            />
-
-            <CommandReference
-              name="hippo remote add"
-              description="Add a new remote"
-              usage="hippo remote add <name> <url> [options]"
-              args={[
-                { name: "name", description: "Remote name", required: true },
-                { name: "url", description: "Remote URL", required: true },
-              ]}
-              options={[
-                { flag: "--org <orgId>", description: "Organization ID" },
-                { flag: "--repo <repoId>", description: "Repository ID" },
-              ]}
-              example="hippo remote add origin https://hippo.example.com --org my-org"
-            />
-
-            <CommandReference
-              name="hippo remote remove"
-              description="Remove a remote"
-              usage="hippo remote remove <name>"
-              args={[
-                { name: "name", description: "Remote name", required: true },
-              ]}
-              example="hippo remote remove origin"
-            />
-
-            <CommandReference
-              name="hippo remote set-url"
-              description="Change remote URL"
-              usage="hippo remote set-url <name> <newurl>"
-              args={[
-                { name: "name", description: "Remote name", required: true },
-                { name: "newurl", description: "New URL", required: true },
-              ]}
-              example="hippo remote set-url origin https://new-hippo.example.com"
-            />
-
-            <CommandReference
-              name="hippo remote show"
-              description="Show remote info"
-              usage="hippo remote show <name>"
-              args={[
-                { name: "name", description: "Remote name", required: true },
-              ]}
-              example="hippo remote show origin"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-branches" title="Branches">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo branch"
-              description="List or manage branches"
-              usage="hippo branch [branchName] [options]"
-              args={[
-                {
-                  name: "branchName",
-                  description: "Branch name",
-                  required: false,
-                },
-              ]}
-              options={[
-                { flag: "-d, --delete", description: "Delete branch" },
-                { flag: "-a, --all", description: "List all branches" },
-              ]}
-              example="hippo branch -a"
-            />
-
-            <CommandReference
-              name="hippo checkout"
-              description="Switch branches"
-              usage="hippo checkout <branchName> [options]"
-              args={[
-                {
-                  name: "branchName",
-                  description: "Branch name",
-                  required: true,
-                },
-              ]}
-              options={[
-                { flag: "-b", description: "Create and checkout" },
-              ]}
-              example="hippo checkout -b feature/new-memory"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-viewing" title="Viewing">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo log"
-              description="Show memory history log"
-              usage="hippo log [options]"
-              options={[
-                {
-                  flag: "-n, --max-count <n>",
-                  description: "Max entries",
-                  default: "10",
-                },
-                { flag: "--oneline", description: "One line per entry" },
-                { flag: "--all", description: "Include deleted" },
-                { flag: "--type <type>", description: "Filter by type" },
-                { flag: "--tags <tags>", description: "Filter by tags" },
-              ]}
-              example="hippo log --oneline --type semantic"
-            />
-
-            <CommandReference
-              name="hippo web"
-              description="Start the web dashboard"
-              usage="hippo web [options]"
-              options={[
-                {
-                  flag: "-p, --port <port>",
-                  description: "Port",
-                  default: "3838",
-                },
-                { flag: "--no-open", description: "Don't open browser" },
-              ]}
-              example="hippo web -p 4000"
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="cli-auth" title="Auth & Config">
-          <div className="space-y-4">
-            <CommandReference
-              name="hippo keys create"
-              description="Create a new API key"
-              usage="hippo keys create [options]"
-              options={[
-                { flag: "--name <name>", description: "Key name" },
-                {
-                  flag: "--org <orgId>",
-                  description: "Organization ID (required)",
-                },
-              ]}
-              example='hippo keys create --name "CI Key" --org my-org'
-            />
-
-            <CommandReference
-              name="hippo keys list"
-              description="List all API keys"
-              usage="hippo keys list [options]"
-              options={[
-                { flag: "--org <orgId>", description: "Filter by org" },
-              ]}
-              example="hippo keys list --org my-org"
-            />
-
-            <CommandReference
-              name="hippo keys revoke"
-              description="Revoke an API key"
-              usage="hippo keys revoke <id>"
-              args={[
-                { name: "id", description: "Key ID", required: true },
-              ]}
-              example="hippo keys revoke key123"
-            />
-
-            <CommandReference
-              name="hippo auth set"
-              description="Set the remote API key for this repository"
-              usage="hippo auth set <api-key>"
-              args={[
-                { name: "api-key", description: "API key", required: true },
-              ]}
-              example="hippo auth set hk_your_api_key_here"
-            />
-
-            <CommandReference
-              name="hippo auth status"
-              description="Check authentication status"
-              usage="hippo auth status"
-              example="hippo auth status"
-            />
-
-            <CommandReference
-              name="hippo auth remove"
-              description="Remove the API key"
-              usage="hippo auth remove"
-              example="hippo auth remove"
-            />
-
-            <CommandReference
-              name="hippo auth openai"
-              description="Set OpenAI API key for auto-consolidation"
-              usage="hippo auth openai <api-key>"
-              args={[
-                {
-                  name: "api-key",
-                  description: "OpenAI API key",
-                  required: true,
-                },
-              ]}
-              example="hippo auth openai sk-your-openai-key"
-            />
-
-            <CommandReference
-              name="hippo config list"
-              description="List all configuration values"
-              usage="hippo config list"
-              example="hippo config list"
-            />
-
-            <CommandReference
-              name="hippo config get"
-              description="Get a configuration value"
-              usage="hippo config get <key>"
-              args={[
-                { name: "key", description: "Config key", required: true },
-              ]}
-              example="hippo config get remote.url"
-            />
-
-            <CommandReference
-              name="hippo config set"
-              description="Set a configuration value"
-              usage="hippo config set <key> <value>"
-              args={[
-                { name: "key", description: "Config key", required: true },
-                { name: "value", description: "Config value", required: true },
-              ]}
-              example="hippo config set remote.url https://hippo.example.com"
-            />
-
-            <CommandReference
-              name="hippo config unset"
-              description="Remove a configuration value"
-              usage="hippo config unset <key>"
-              args={[
-                { name: "key", description: "Config key", required: true },
-              ]}
-              example="hippo config unset remote.url"
-            />
-          </div>
-        </Subsection>
-      </Section>
-
-      {/* MCP Server Section */}
-      <Section id="mcp" title="MCP Server">
-        <p className="text-dracula-foreground/70 mb-6">
-          The MCP (Model Context Protocol) server provides native integration
-          with Cursor IDE. The AI agent gets direct access to memory tools
-          without shell commands.
-        </p>
-
-        <Subsection id="mcp-setup" title="Setup in Cursor">
-          <div className="space-y-4">
-            <div className="rounded-lg border border-dracula-green/30 bg-dracula-green/5 p-4">
-              <h4 className="text-dracula-green font-semibold mb-2">
-                Automatic Setup (Recommended)
-              </h4>
-              <p className="text-sm text-dracula-foreground/70 mb-3">
-                Running <code className="text-dracula-cyan">hippo init</code>{" "}
-                automatically creates the MCP configuration.
-              </p>
-              <Terminal code="$ hippo init" title="Terminal" />
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-dracula-orange font-semibold">
-                Manual Configuration
-              </h4>
-              <p className="text-sm text-dracula-foreground/70">
-                Create{" "}
-                <code className="text-dracula-cyan">.cursor/mcp.json</code> in
-                your project:
-              </p>
-              <Terminal
-                code={`{
-  "mcpServers": {
-    "hippocampus": {
-      "command": "hippo-mcp",
-      "args": [],
-      "cwd": "/absolute/path/to/your/project"
-    }
-  }
-}`}
-                title=".cursor/mcp.json"
-                language="json"
-              />
-              <p className="text-xs text-dracula-comment">
-                After adding the config, restart Cursor.
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-              <h4 className="text-dracula-foreground font-semibold mb-2">
-                Prerequisites
-              </h4>
-              <ol className="text-sm text-dracula-foreground/70 space-y-2 list-decimal list-inside">
-                <li>
-                  Install Hippocampus:{" "}
-                  <code className="text-dracula-cyan">
-                    npm i -g hippocampus
-                  </code>
-                </li>
-                <li>
-                  Initialize in project:{" "}
-                  <code className="text-dracula-cyan">hippo init</code>
-                </li>
-                <li>
-                  Ensure <code className="text-dracula-cyan">hippo-mcp</code> is
-                  on PATH
-                </li>
-                <li>Restart Cursor IDE</li>
-              </ol>
-            </div>
-          </div>
-        </Subsection>
-
-        <Subsection id="mcp-tools" title="Available Tools">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dracula-current/50">
-                  <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                    Tool
-                  </th>
-                  <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                    Description
-                  </th>
-                  <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                    Parameters
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-dracula-current/30">
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_recall</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Search local memories
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    query, types?, tags?, k?, expandHistory?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_add</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Store a new memory
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    text, type?, tags?, template?, autoLink?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_link</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Link two memories
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    sourceId, targetId, linkType, metadata?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_unlink</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Remove a link
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    sourceId, targetId, linkType
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_links</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    List links for a memory
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    memoryId, linkType?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_consolidate</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Merge memories into one
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    sourceIds, consolidatedText, memoryType?, tags?,
-                    preserveOriginals?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">
-                      hippo_reconsolidate
-                    </code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Update existing consolidation
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    existingConsolidationId, newText, additionalSourceIds?,
-                    tags?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_find_similar</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Find similar memories
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    memoryId, threshold?, k?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_history</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Consolidation history
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    memoryId
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_delete</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Soft or hard delete
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    memoryId, reason?, hardDelete?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_restore</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Restore deleted memory
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    memoryId
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">hippo_list_deleted</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    List soft-deleted memories
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    -
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">
-                      hippo_unconsolidate
-                    </code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Revert a consolidation
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    consolidationId, dryRun?
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-green">
-                      hippo_auto_consolidate
-                    </code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    AI consolidation
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    threshold?, minGroupSize?, maxGroups?, types?, dryRun?,
-                    execute?, model?
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_embedding_recall</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Semantic search with embeddings
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    query, types?, tags?, k?
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_sync_status</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Sync status & embedding coverage
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    -
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_suggestions</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    AI curation suggestions
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    maxSuggestions?
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_health</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Repository health report
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    -
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_notifications</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    Pending notifications
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    -
-                  </td>
-                </tr>
-                <tr className="bg-dracula-purple/10">
-                  <td className="py-3 px-4">
-                    <code className="text-dracula-purple">hippo_templates</code>
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/70">
-                    List memory templates
-                  </td>
-                  <td className="py-3 px-4 text-dracula-foreground/60 font-mono text-xs">
-                    -
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Subsection>
-
-        <Subsection id="mcp-cursor-rule" title="Cursor Rule">
-          <p className="text-sm text-dracula-foreground/70 mb-4">
-            <code className="text-dracula-cyan">hippo init</code> creates{" "}
-            <code className="text-dracula-cyan">
-              .cursor/rules/hippocampus-memory.mdc
-            </code>{" "}
-            which instructs the AI agent to:
-          </p>
-          <ul className="text-sm text-dracula-foreground/70 space-y-2 list-disc list-inside mb-4">
-            <li>Recall relevant memories at the start of every conversation</li>
-            <li>
-              Save noteworthy decisions, bugs, and procedures during the
-              conversation
-            </li>
-            <li>Use meaningful tags for discoverability</li>
-            <li>Prefer semantic for stable facts, procedural for how-tos</li>
-          </ul>
-          <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
-            <p className="text-xs text-dracula-comment">
-              The MCP server works with the local SQLite store only (no remote
-              dependency). It reads config from{" "}
-              <code className="text-dracula-cyan">.hippocampus/hippo.yaml</code>
-              .
+            <p className="text-sm text-dracula-foreground/70">
+              Supported link types are{" "}
+              <code className="text-dracula-foreground/80">related_to</code>,{" "}
+              <code className="text-dracula-foreground/80">derived_from</code>,{" "}
+              <code className="text-dracula-foreground/80">contradicts</code>, and{" "}
+              <code className="text-dracula-foreground/80">depends_on</code>.
             </p>
           </div>
         </Subsection>
+
+        <Subsection id="cli-sync" title="Sync, Remotes, And Inspection">
+          <div className="space-y-4">
+            <Terminal
+              title="Sync and remotes"
+              code={`$ unforgit status -s
+$ unforgit push origin --dry-run
+$ unforgit pull origin
+$ unforgit diff --stat
+$ unforgit remote
+$ unforgit remote add staging https://unforgit.example.com --org my-org --repo my-repo`}
+            />
+            <Terminal
+              title="Inspection and diagnostics"
+              code={`$ unforgit log --all --page 2
+$ unforgit doctor
+$ unforgit completion zsh >> ~/.zshrc
+$ unforgit auth status
+$ unforgit auth openai-remove`}
+            />
+          </div>
+        </Subsection>
       </Section>
 
-      {/* Docker Section */}
-      <Section id="docker" title="Docker Deployment">
+      <Section id="mcp" title="MCP Server">
         <p className="text-dracula-foreground/70 mb-6">
-          The API server and PostgreSQL database can be deployed using Docker.
-          Note that the MCP server runs locally via stdio and does not run in
-          Docker.
+          The MCP server gives your IDE&apos;s AI agent direct access to local
+          repository memory without shelling out. We have a dedicated setup
+          guide covering Cursor, Claude Desktop, Windsurf, VS Code, API keys,
+          and remote server configuration.
+        </p>
+        <Link href="/docs/mcp">
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="p-6 rounded-xl bg-dracula-foreground/5 border border-dracula-comment/30 flex items-center justify-between gap-4 cursor-pointer group transition-all duration-300"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-dracula-foreground/10 group-hover:bg-dracula-foreground/15 transition-colors">
+                <Server className="w-6 h-6 text-dracula-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-dracula-foreground">
+                  MCP Server Setup Guide
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  IDE integrations, API keys, remote setup, tools reference, and
+                  troubleshooting
+                </p>
+              </div>
+            </div>
+            <span className="text-dracula-foreground group-hover:translate-x-1 transition-transform">
+              &rarr;
+            </span>
+          </motion.div>
+        </Link>
+      </Section>
+
+      <Section id="api" title="API Reference">
+        <p className="text-dracula-foreground/70 mb-6">
+          The remote API defaults to port <code>3737</code>. Everything except{" "}
+          <code>/health</code> requires Bearer authentication.
         </p>
 
-        <Subsection id="docker-services" title="Services">
-          <div className="overflow-x-auto">
+        <Subsection id="api-auth" title="Authentication">
+          <Terminal
+            title="Authenticated recall request"
+            code={`curl -X POST http://localhost:3737/v1/recall \\
+  -H "Authorization: Bearer hk_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"orgId":"org","repoId":"repo","query":"release flow"}'`}
+          />
+        </Subsection>
+
+        <Subsection id="api-memory" title="Memory Endpoints">
+          <div className="space-y-3">
+            <ApiEndpoint
+              method="GET"
+              path="/health"
+              description="Server health check."
+              auth={false}
+              responseExample={`{
+  "status": "ok",
+  "capabilities": {
+    "semanticSearch": true,
+    "autoConsolidation": true,
+    "autoEmbedding": true
+  }
+}`}
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/memories"
+              description="List memories with filters, paging, and sorting."
+              requestBody={`Query params:
+  orgId, repoId (required)
+  types?, status?, visibility?, tags?
+  search?, limit?, offset?
+  sortBy? = createdAt | updatedAt | confidence
+  sortOrder? = asc | desc`}
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/memory/:id"
+              description="Get one memory by ID."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory"
+              description="Create a memory."
+              requestBody={`{
+  "orgId": "org",
+  "repoId": "repo",
+  "memoryType": "semantic",
+  "text": "Use UTC timestamps for persisted audit fields",
+  "tags": ["convention"],
+  "sourceRefs": { "pr_url": "https://github.com/org/repo/pull/42" },
+  "visibility": "repo",
+  "confidence": 0.9
+}`}
+              responseExample={`{ "id": "new-memory-uuid" }`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/recall"
+              description="Recall memory. Returns searchType as fts or hybrid."
+              requestBody={`{
+  "orgId": "org",
+  "repoId": "repo",
+  "query": "how do we deploy",
+  "types": ["procedural", "semantic"],
+  "tags": ["deploy"],
+  "k": 10
+}`}
+              responseExample={`{
+  "results": [
+    {
+      "id": "uuid",
+      "memoryType": "procedural",
+      "text": "Deploy: run pnpm build, then kubectl apply",
+      "score": 0.94,
+      "source": "remote"
+    }
+  ],
+  "searchType": "hybrid"
+}`}
+            />
+          </div>
+        </Subsection>
+
+        <Subsection id="api-lifecycle" title="Lifecycle And Curation Endpoints">
+          <div className="space-y-3">
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory/:id/deprecate"
+              description="Mark a memory as deprecated."
+              requestBody={`{ "reason": "outdated after migration" }`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory/:id/supersede"
+              description="Point one memory at its replacement."
+              requestBody={`{ "newId": "replacement-memory-id" }`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory/:id/pin"
+              description="Pin a memory by adding the persistent signal used in lifecycle flows."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/consolidate"
+              description="Create a semantic consolidation from recent episodic memory selected by source filters or window."
+              requestBody={`{
+  "orgId": "org",
+  "repoId": "repo",
+  "lastN": 50,
+  "source": { "prUrl": "https://github.com/org/repo/pull/100" }
+}`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/lifecycle/run"
+              description="Preview or execute the remote lifecycle loop."
+              requestBody={`{
+  "orgId": "org",
+  "repoId": "repo",
+  "dryRun": true,
+  "preserveOriginals": true,
+  "model": "gpt-4o-mini"
+}`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memories/reset"
+              description="Delete all memory, links, embeddings, and sync data for one org/repo."
+              requestBody={`{ "orgId": "org", "repoId": "repo" }`}
+            />
+          </div>
+        </Subsection>
+
+        <Subsection id="api-links" title="Links Endpoints">
+          <div className="space-y-3">
+            <ApiEndpoint
+              method="GET"
+              path="/v1/links"
+              description="List all links for an org/repo."
+              requestBody={`Query params: orgId, repoId`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory/:id/link"
+              description="Create a relationship from one memory to another."
+              requestBody={`{
+  "targetId": "other-memory-id",
+  "linkType": "derived_from",
+  "metadata": { "reason": "consolidation" }
+}`}
+            />
+            <ApiEndpoint
+              method="DELETE"
+              path="/v1/memory/:id/link"
+              description="Remove a relationship."
+              requestBody={`{
+  "targetId": "other-memory-id",
+  "linkType": "derived_from"
+}`}
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/memory/:id/links"
+              description="List links for one memory, optionally filtered by type."
+            />
+          </div>
+        </Subsection>
+
+        <Subsection id="api-ai" title="Embeddings, Auto-Consolidation, Suggestions, And Health">
+          <div className="space-y-3">
+            <ApiEndpoint
+              method="POST"
+              path="/v1/embeddings/generate/:memoryId"
+              description="Generate one missing embedding."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/embeddings/backfill"
+              description="Backfill embeddings in batches."
+              requestBody={`{
+  "orgId": "org",
+  "repoId": "repo",
+  "batchSize": 10,
+  "limit": 200
+}`}
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/embeddings/stats"
+              description="Embedding coverage statistics."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/auto-consolidate/preview"
+              description="Find consolidation groups without executing."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/auto-consolidate"
+              description="Run LLM-based consolidation across candidate groups."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/auto-consolidate/execute"
+              description="Execute consolidation for a specific set of source IDs."
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/suggestions"
+              description="Return curation suggestions such as add_tags, generate_embedding, consolidate, deprecate, and promote."
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/health/repo"
+              description="Return repo-level memory health, metrics, and recommendations."
+            />
+          </div>
+        </Subsection>
+
+        <Subsection id="api-sync" title="Sync Endpoints">
+          <div className="space-y-3">
+            <ApiEndpoint
+              method="GET"
+              path="/v1/sync/pull"
+              description="Pull memories modified since an optional timestamp."
+              requestBody={`Query params: orgId, repoId, since?`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/sync/push"
+              description="Push one local memory payload to the remote store."
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/sync/tombstones"
+              description="Pull tombstones for deletions."
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/sync/tombstones"
+              description="Push one tombstone."
+            />
+            <ApiEndpoint
+              method="GET"
+              path="/v1/sync/links"
+              description="Pull all remote links for sync."
+            />
+            <ApiEndpoint
+              method="DELETE"
+              path="/v1/memory/:id"
+              description="Soft delete by default, or hard delete with hardDelete=true."
+              requestBody={`{ "deletedBy": "cli:user", "hardDelete": false }`}
+            />
+            <ApiEndpoint
+              method="POST"
+              path="/v1/memory/:id/restore"
+              description="Restore a soft-deleted memory."
+            />
+          </div>
+        </Subsection>
+      </Section>
+
+      <Section id="config" title="Configuration">
+        <Subsection id="config-yaml" title="unforgit.yaml">
+          <p className="text-sm text-dracula-foreground/70 mb-4">
+            The repository config lives at{" "}
+            <code className="text-dracula-foreground/80">.unforgit/unforgit.yaml</code>.
+            It controls the default remote, lifecycle tuning, and optional
+            OpenAI usage.
+          </p>
+          <Terminal
+            title=".unforgit/unforgit.yaml"
+            language="yaml"
+            code={`configVersion: 1
+
+remote:
+  url: http://localhost:3737
+  orgId: your-org
+  repoId: your-repo
+  apiKey: hk_your_api_key_here
+
+remotes:
+  origin:
+    url: http://localhost:3737
+    orgId: your-org
+    repoId: your-repo
+
+defaults:
+  visibility: auto
+  memoryType: episodic
+
+openaiApiKey: sk-your-openai-key
+
+lifecycle:
+  ttlSecondsByType:
+    episodic: 2592000
+  usageBoost:
+    enabled: true
+    topKToRecord: 5
+    minUsageCount: 2
+    maxBoost: 0.15
+    halfLifeDays: 30
+  maintenance:
+    staleEpisodicDays: 30
+    consolidationThreshold: 0.5
+    consolidationMinGroupSize: 2
+    consolidationMaxGroups: 5
+    promoteRecallCount: 5
+    pinRecallCount: 8
+    dryRunDefault: true
+    autoRunOnStore: true
+    autoRunOnRecall: true
+    debounceMs: 30000
+
+sync:
+  enabled: true
+  intervalMs: 60000
+  debounceMs: 5000
+  autoResolveConflicts: last_write_wins
+
+embeddings:
+  enabled: true
+  model: text-embedding-3-small
+  autoGenerate: true`}
+          />
+          <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+            <ul className="text-sm text-dracula-foreground/70 space-y-2">
+              <li>
+                <code className="text-dracula-foreground/80">remote.*</code> controls the
+                default shared server used by CLI and tools.
+              </li>
+              <li>
+                <code className="text-dracula-foreground/80">remotes</code> stores named
+                additional remotes managed by <code>unforgit remote</code>.
+              </li>
+              <li>
+                <code className="text-dracula-foreground/80">lifecycle.*</code> tunes TTL,
+                reuse boost, consolidation thresholds, and automatic maintenance
+                scheduling.
+              </li>
+              <li>
+                <code className="text-dracula-foreground/80">openaiApiKey</code> is used
+                by local embedding backfill and AI consolidation flows.
+              </li>
+            </ul>
+          </div>
+        </Subsection>
+
+        <Subsection id="config-env" title="Environment Variables">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+              <div className="flex items-center gap-2 mb-3 text-dracula-foreground">
+                <Settings className="w-4 h-4" />
+                <h4 className="font-semibold">CLI / MCP</h4>
+              </div>
+              <ul className="text-sm text-dracula-foreground/70 space-y-2">
+                <li>
+                  <code className="text-dracula-foreground/80">UNFORGIT_DEBUG</code> enables
+                  MCP debug logs to stderr.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">UNFORGIT_API_KEY</code> is the
+                  remote auth fallback when no key is stored in config.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">OPENAI_API_KEY</code> is
+                  the local fallback for embeddings and auto-consolidation.
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+              <div className="flex items-center gap-2 mb-3 text-dracula-foreground">
+                <Server className="w-4 h-4" />
+                <h4 className="font-semibold">API Server</h4>
+              </div>
+              <ul className="text-sm text-dracula-foreground/70 space-y-2">
+                <li>
+                  <code className="text-dracula-foreground/80">DATABASE_URL</code> is
+                  required for PostgreSQL.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">PORT</code> and{" "}
+                  <code className="text-dracula-foreground/80">HOST</code> control the
+                  listener.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">OPENAI_API_KEY</code>{" "}
+                  enables hybrid recall and LLM consolidation.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">AUTO_EMBEDDING_ENABLED</code>{" "}
+                  auto-generates embeddings on memory creation.
+                </li>
+                <li>
+                  <code className="text-dracula-foreground/80">CONSOLIDATION_MODEL</code>{" "}
+                  selects the default model for server-side consolidation.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Subsection>
+      </Section>
+
+      <Section id="deployment" title="Deployment & AI">
+        <Subsection id="deployment-docker" title="Docker Services">
+          <div className="overflow-x-auto mb-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-dracula-current/50">
@@ -1470,732 +962,72 @@ export default function DocsPage() {
               <tbody className="divide-y divide-dracula-current/30">
                 <tr>
                   <td className="py-3 px-4">
-                    <code className="text-dracula-green">postgres</code>
+                    <code className="text-dracula-foreground">postgres</code>
                   </td>
                   <td className="py-3 px-4 text-dracula-foreground/70">5432</td>
                   <td className="py-3 px-4 text-dracula-foreground/70">
-                    PostgreSQL database for shared memories
+                    Shared memory, links, sync state, and embeddings
                   </td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4">
-                    <code className="text-dracula-cyan">api</code>
+                    <code className="text-dracula-foreground/80">api</code>
                   </td>
                   <td className="py-3 px-4 text-dracula-foreground/70">3737</td>
                   <td className="py-3 px-4 text-dracula-foreground/70">
-                    HTTP API server (Fastify)
+                    Fastify API for memory, lifecycle, sync, health, and AI
                   </td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4">
-                    <code className="text-dracula-pink">website</code>
+                    <code className="text-dracula-foreground">website</code>
                   </td>
                   <td className="py-3 px-4 text-dracula-foreground/70">3000</td>
                   <td className="py-3 px-4 text-dracula-foreground/70">
-                    Marketing website
+                    Public docs and product site
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </Subsection>
-
-        <Subsection id="docker-env" title="Environment Variables">
-          <div className="space-y-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dracula-current/50">
-                    <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                      Variable
-                    </th>
-                    <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                      Required
-                    </th>
-                    <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                      Default
-                    </th>
-                    <th className="text-left py-3 px-4 text-dracula-comment font-semibold">
-                      Purpose
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dracula-current/30">
-                  <tr>
-                    <td className="py-3 px-4">
-                      <code className="text-dracula-orange">DATABASE_URL</code>
-                    </td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">Yes</td>
-                    <td className="py-3 px-4 text-dracula-foreground/60">-</td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">
-                      PostgreSQL connection string
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4">
-                      <code className="text-dracula-cyan">PORT</code>
-                    </td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">No</td>
-                    <td className="py-3 px-4 text-dracula-foreground/60">3737</td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">
-                      API server port
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4">
-                      <code className="text-dracula-cyan">HOST</code>
-                    </td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">No</td>
-                    <td className="py-3 px-4 text-dracula-foreground/60">
-                      0.0.0.0
-                    </td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">
-                      Listen host
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4">
-                      <code className="text-dracula-cyan">OPENAI_API_KEY</code>
-                    </td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">No</td>
-                    <td className="py-3 px-4 text-dracula-foreground/60">-</td>
-                    <td className="py-3 px-4 text-dracula-foreground/70">
-                      For auto-consolidation feature
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-dracula-foreground mb-2">
-                Example .env file
-              </h4>
-              <Terminal
-                code={`# Required for server-side AI features
-OPENAI_API_KEY=sk-your-openai-key
-
-# Optional: auto-generate embeddings on memory creation
-AUTO_EMBEDDING_ENABLED=true
-
-# Note: DATABASE_URL is already set in docker-compose.yml
-# Only add if running without Docker:
-# DATABASE_URL=postgresql://user:pass@localhost:5432/hippocampus`}
-                title=".env"
-                language="yaml"
-              />
-            </div>
-          </div>
-        </Subsection>
-
-        <Subsection id="docker-commands" title="Commands">
-          <div className="space-y-4">
-            <Terminal
-              code={`# Start all services
-$ docker-compose up -d
-
-# Run database migrations
+          <Terminal
+            title="Common commands"
+            code={`$ docker-compose up -d
 $ pnpm run db:migrate
-
-# View logs
 $ docker-compose logs -f api
-
-# Stop services
 $ docker-compose down`}
-              title="Docker Commands"
-            />
-
-            <div className="rounded-lg border border-dracula-orange/30 bg-dracula-orange/5 p-4">
-              <p className="text-sm text-dracula-orange">
-                <strong>Note:</strong> The MCP server (hippo-mcp) runs locally
-                via stdio and does NOT run in Docker. It uses the local SQLite
-                database at <code>.hippocampus/local.db</code>.
-              </p>
-            </div>
-          </div>
-        </Subsection>
-      </Section>
-
-      {/* API Reference Section */}
-      <Section id="api" title="API Reference">
-        <p className="text-dracula-foreground/70 mb-6">
-          The HTTP API runs on port 3737 by default. All endpoints except{" "}
-          <code className="text-dracula-cyan">/health</code> require
-          authentication.
-        </p>
-
-        <Subsection id="api-auth" title="Authentication">
-          <div className="space-y-4">
-            <p className="text-sm text-dracula-foreground/70">
-              All protected endpoints require an{" "}
-              <code className="text-dracula-cyan">Authorization</code> header
-              with a Bearer token:
-            </p>
-            <Terminal
-              code={`$ curl -H "Authorization: Bearer hk_your_api_key" \\
-       -H "Content-Type: application/json" \\
-       http://localhost:3737/v1/recall \\
-       -d '{"orgId":"org","repoId":"repo","query":"test"}'`}
-              title="API Request"
-            />
-          </div>
+          />
         </Subsection>
 
-        <Subsection id="api-memory" title="Memory Endpoints">
-          <div className="space-y-3">
-            <ApiEndpoint
-              method="GET"
-              path="/health"
-              description="Health check endpoint. Returns server status."
-              auth={false}
-              responseExample={`{ "status": "ok" }`}
-            />
-
-            <ApiEndpoint
-              method="GET"
-              path="/v1/memories"
-              description="List all memories for an organization and repository."
-              requestBody={`Query params:
-  orgId: string (required)
-  repoId: string (required)
-  types?: string (comma-separated)
-  tags?: string (comma-separated)
-  limit?: number`}
-              responseExample={`{
-  "memories": [
-    {
-      "id": "uuid",
-      "text": "Memory content",
-      "memoryType": "semantic",
-      "tags": ["tag1"],
-      "status": "active",
-      "createdAt": "2024-01-01T00:00:00Z"
-    }
-  ]
-}`}
-            />
-
-            <ApiEndpoint
-              method="GET"
-              path="/v1/memory/:id"
-              description="Get a specific memory by ID."
-              responseExample={`{
-  "id": "uuid",
-  "text": "Memory content",
-  "memoryType": "semantic",
-  "tags": ["tag1"],
-  "status": "active",
-  "createdAt": "2024-01-01T00:00:00Z"
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/memory"
-              description="Create a new memory."
-              requestBody={`{
-  "orgId": "uuid",
-  "repoId": "my-repo",
-  "memoryType": "semantic",
-  "text": "Always use UTC timestamps",
-  "tags": ["convention"],
-  "sourceRefs": { "pr_url": "https://..." },
-  "confidence": 0.9
-}`}
-              responseExample={`{
-  "id": "new-uuid",
-  "text": "Always use UTC timestamps",
-  "memoryType": "semantic",
-  "status": "active"
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/recall"
-              description="Search memories by query with semantic matching."
-              requestBody={`{
-  "orgId": "uuid",
-  "repoId": "my-repo",
-  "query": "how do timestamps work",
-  "types": ["semantic", "procedural"],
-  "tags": ["convention"],
-  "k": 10
-}`}
-              responseExample={`{
-  "memories": [
-    {
-      "id": "uuid",
-      "text": "Always use UTC timestamps",
-      "score": 0.95,
-      "memoryType": "semantic"
-    }
-  ]
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/consolidate"
-              description="Consolidate multiple memories into one."
-              requestBody={`{
-  "orgId": "uuid",
-  "repoId": "my-repo",
-  "sourceIds": ["id1", "id2"],
-  "text": "Consolidated content",
-  "memoryType": "semantic"
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/curate/:id/deprecate"
-              description="Mark a memory as deprecated."
-              requestBody={`{
-  "reason": "outdated after migration"
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/curate/:id/supersede"
-              description="Mark a memory as superseded by another."
-              requestBody={`{
-  "supersededById": "new-memory-id"
-}`}
-            />
-
-            <ApiEndpoint
-              method="DELETE"
-              path="/v1/memory/:id"
-              description="Delete a memory (soft delete by default)."
-              requestBody={`{
-  "hard": false,
-  "reason": "no longer needed"
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/memory/:id/restore"
-              description="Restore a soft-deleted memory."
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/memories/reset"
-              description="Permanently delete all memories, links, embeddings, and related data for an org/repo."
-              requestBody={`{
-  "orgId": "your-org",
-  "repoId": "your-repo"
-}`}
-              responseExample={`{
-  "memoriesDeleted": 42,
-  "linksDeleted": 15,
-  "embeddingsDeleted": 38
-}`}
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="api-sync" title="Sync Endpoints">
-          <div className="space-y-3">
-            <ApiEndpoint
-              method="GET"
-              path="/v1/sync/pull"
-              description="Pull memories from remote (used by CLI)."
-              requestBody={`Query params:
-  orgId: string (required)
-  repoId: string (required)
-  since?: ISO date string`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/sync/push"
-              description="Push local memories to remote."
-              requestBody={`{
-  "orgId": "uuid",
-  "repoId": "my-repo",
-  "memories": [...]
-}`}
-            />
-
-            <ApiEndpoint
-              method="POST"
-              path="/v1/sync/tombstones"
-              description="Push deletion tombstones to remote."
-              requestBody={`{
-  "orgId": "uuid",
-  "repoId": "my-repo",
-  "tombstones": [...]
-}`}
-            />
-
-            <ApiEndpoint
-              method="GET"
-              path="/v1/sync/diff"
-              description="Get diff between local and remote."
-              requestBody={`Query params:
-  orgId: string (required)
-  repoId: string (required)`}
-            />
-          </div>
-        </Subsection>
-
-        <Subsection id="api-keys" title="API Keys">
-          <div className="space-y-3">
-            <ApiEndpoint
-              method="POST"
-              path="/v1/api-keys"
-              description="Create a new API key."
-              requestBody={`{
-  "name": "My API Key",
-  "orgId": "my-org"
-}`}
-              responseExample={`{
-  "id": "key-uuid",
-  "key": "hk_xxxxxxxxxxxxx",
-  "name": "My API Key"
-}`}
-            />
-
-            <ApiEndpoint
-              method="GET"
-              path="/v1/api-keys"
-              description="List all API keys for an organization."
-              requestBody={`Query params:
-  orgId?: string`}
-            />
-
-            <ApiEndpoint
-              method="DELETE"
-              path="/v1/api-keys/:id"
-              description="Revoke an API key."
-            />
-          </div>
-        </Subsection>
-      </Section>
-
-      {/* Configuration Section */}
-      <Section id="config" title="Configuration">
-        <Subsection id="config-yaml" title="hippo.yaml">
-          <p className="text-sm text-dracula-foreground/70 mb-4">
-            The main configuration file is located at{" "}
-            <code className="text-dracula-cyan">.hippocampus/hippo.yaml</code>:
+        <Subsection id="deployment-ai" title="Server-Side AI">
+          <p className="text-dracula-foreground/70 mb-4">
+            Configure AI once on the server to give every developer hybrid
+            recall, embedding backfill, auto-consolidation, suggestions, and
+            health reporting.
           </p>
           <Terminal
-            code={`remote:
-  url: http://localhost:3737
-  orgId: your-org
-  repoId: your-repo
-  apiKey: hk_your_api_key_here
-
-openaiApiKey: sk-your-openai-key
-
-defaults:
-  visibility: auto
-  memoryType: episodic
-
-sync:
-  enabled: true
-  intervalMs: 60000           # Sync every 60 seconds
-  debounceMs: 5000            # Wait 5s after changes
-  autoResolveConflicts: last_write_wins  # local_wins, remote_wins, manual
-
-embeddings:
-  enabled: true
-  model: text-embedding-3-small
-  autoGenerate: true`}
-            title=".hippocampus/hippo.yaml"
-            language="yaml"
-            showLineNumbers
+            title="Server .env"
+            code={`OPENAI_API_KEY=sk-your-team-api-key
+AUTO_EMBEDDING_ENABLED=true
+CONSOLIDATION_MODEL=gpt-4o-mini`}
           />
-
-          <div className="mt-4 space-y-2">
-            <h4 className="text-sm font-semibold text-dracula-foreground">
-              Configuration Fields
-            </h4>
-            <ul className="text-sm text-dracula-foreground/70 space-y-1 list-disc list-inside">
+          <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+            <ul className="text-sm text-dracula-foreground/70 space-y-2">
               <li>
-                <code className="text-dracula-cyan">remote.url</code> - API
-                server URL
+                <code className="text-dracula-foreground/80">POST /v1/recall</code>{" "}
+                returns <code>searchType: "hybrid"</code> when embeddings are
+                active.
               </li>
               <li>
-                <code className="text-dracula-cyan">remote.orgId</code> -
-                Organization identifier
+                <code className="text-dracula-foreground/80">POST /v1/embeddings/backfill</code>{" "}
+                and <code>GET /v1/embeddings/stats</code> keep coverage visible.
               </li>
               <li>
-                <code className="text-dracula-cyan">remote.repoId</code> -
-                Repository identifier
-              </li>
-              <li>
-                <code className="text-dracula-cyan">remote.apiKey</code> - API
-                key for authentication
-              </li>
-              <li>
-                <code className="text-dracula-cyan">openaiApiKey</code> - For
-                auto-consolidation
-              </li>
-              <li>
-                <code className="text-dracula-cyan">defaults.visibility</code> -
-                Default visibility for new memories
-              </li>
-              <li>
-                <code className="text-dracula-cyan">defaults.memoryType</code> -
-                Default memory type
-              </li>
-              <li>
-                <code className="text-dracula-cyan">sync.enabled</code> -
-                Enable/disable automatic sync
-              </li>
-              <li>
-                <code className="text-dracula-cyan">sync.intervalMs</code> -
-                Sync interval in milliseconds
-              </li>
-              <li>
-                <code className="text-dracula-cyan">sync.autoResolveConflicts</code> -
-                Conflict resolution strategy
-              </li>
-              <li>
-                <code className="text-dracula-cyan">embeddings.enabled</code> -
-                Enable semantic search
-              </li>
-              <li>
-                <code className="text-dracula-cyan">embeddings.autoGenerate</code> -
-                Auto-generate embeddings on add
+                <code className="text-dracula-foreground/80">GET /v1/health/repo</code>{" "}
+                reports score, stale memory, consolidation ratio, and server
+                capabilities.
               </li>
             </ul>
-          </div>
-        </Subsection>
-
-        <Subsection id="config-env" title="Environment Variables">
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-dracula-foreground">
-              MCP Server
-            </h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dracula-current/50">
-                    <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                      Variable
-                    </th>
-                    <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                      Purpose
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dracula-current/30">
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">HIPPO_DEBUG</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      Set to 1 for debug logs to stderr
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">OPENAI_API_KEY</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      For hippo_auto_consolidate with execute=true
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h4 className="text-sm font-semibold text-dracula-foreground mt-6">
-              API Server
-            </h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dracula-current/50">
-                    <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                      Variable
-                    </th>
-                    <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                      Purpose
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-dracula-current/30">
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-orange">DATABASE_URL</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      PostgreSQL connection string (required)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">PORT</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      Server port (default: 3737)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">HOST</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      Listen host (default: 0.0.0.0)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">OPENAI_API_KEY</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      For server-side semantic search & auto-consolidation
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">AUTO_EMBEDDING_ENABLED</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      Auto-generate embeddings on memory creation (true/false)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3">
-                      <code className="text-dracula-cyan">CONSOLIDATION_MODEL</code>
-                    </td>
-                    <td className="py-2 px-3 text-dracula-foreground/70">
-                      LLM model for consolidation (default: gpt-4o-mini)
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </Subsection>
-      </Section>
-
-      <Section id="server-ai" title="Server-Side AI (Teams)">
-        <p className="text-dracula-foreground/80 mb-6">
-          For team deployments, configure the server with a single OpenAI API key
-          to provide semantic search and auto-consolidation for all developers.
-        </p>
-
-        <Subsection id="server-ai-config" title="Configuration">
-          <Terminal code={`# .env on server
-OPENAI_API_KEY=sk-your-team-api-key
-AUTO_EMBEDDING_ENABLED=true
-CONSOLIDATION_MODEL=gpt-4o-mini`} title="Environment" />
-          <p className="text-sm text-dracula-foreground/70 mt-4">
-            With these settings, every memory created via the API automatically gets an embedding,
-            and all search requests use hybrid semantic + FTS scoring.
-          </p>
-        </Subsection>
-
-        <Subsection id="server-ai-endpoints" title="AI Endpoints">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dracula-current/50">
-                  <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                    Endpoint
-                  </th>
-                  <th className="text-left py-2 px-3 text-dracula-comment font-semibold">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-dracula-current/30">
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">POST /v1/recall</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Hybrid search (semantic + FTS) when OpenAI key is set
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">POST /v1/embeddings/backfill</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Generate embeddings for all memories without one
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">GET /v1/embeddings/stats</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Embedding coverage statistics
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">POST /v1/auto-consolidate/preview</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Find consolidation candidates without executing
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">POST /v1/auto-consolidate</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Auto-consolidate with LLM
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">GET /v1/suggestions</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    AI-powered curation suggestions
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3">
-                    <code className="text-dracula-cyan">GET /v1/health/repo</code>
-                  </td>
-                  <td className="py-2 px-3 text-dracula-foreground/70">
-                    Repository health report with recommendations
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Subsection>
-
-        <Subsection id="server-ai-example" title="Example: Health Check">
-          <Terminal code={`curl "http://localhost:3737/v1/health/repo?orgId=org&repoId=repo" \\
-  -H "Authorization: Bearer hk_xxx"`} title="Terminal" />
-          <p className="text-sm text-dracula-foreground/70 mt-4">
-            Returns overall health score, embedding coverage, consolidation ratio,
-            and recommendations for improving memory quality.
-          </p>
-          <div className="rounded-lg bg-dracula-current/30 p-4 mt-4 overflow-x-auto">
-            <pre className="text-sm text-dracula-foreground/90 font-mono">{`{
-  "overall": "healthy",
-  "score": 85,
-  "metrics": {
-    "totalMemories": 150,
-    "embeddingCoverage": 92,
-    "consolidationRatio": 15,
-    "staleCount": 5
-  },
-  "recommendations": [
-    "Consider consolidating similar memories"
-  ],
-  "serverCapabilities": {
-    "semanticSearch": true,
-    "autoConsolidation": true,
-    "autoEmbedding": true
-  }
-}`}</pre>
           </div>
         </Subsection>
       </Section>

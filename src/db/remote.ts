@@ -19,6 +19,11 @@ import type {
 } from "../core/types.js";
 import { computeCompositeScore, computeHybridScore } from "../core/recall.js";
 import {
+  applyLifecycleDefaults,
+  computeUsageBoost,
+  isMemoryExpired,
+} from "../core/lifecycle.js";
+import {
   generateEmbedding,
   embeddingToPgVector,
   serializeEmbedding,
@@ -63,6 +68,32 @@ function prismaRowToTombstone(row: Record<string, unknown>): Tombstone {
   };
 }
 
+function filterExpiredMemories<T extends Pick<Memory, "createdAt" | "ttlSeconds" | "status">>(
+  memories: T[],
+  includeExpired?: boolean,
+): T[] {
+  if (includeExpired) {
+    return memories;
+  }
+
+  return memories.filter((memory) => !isMemoryExpired(memory));
+}
+
+function isMissingTableError(error: unknown, tableName: string): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? error.code : undefined;
+  const message = "message" in error ? String(error.message) : "";
+  const unqualifiedTableName = tableName.split(".").at(-1) ?? tableName;
+
+  return code === "P2021" && (
+    message.includes(`\`${tableName}\``) ||
+    message.includes(`\`${unqualifiedTableName}\``)
+  );
+}
+
 export interface RemoteStoreOptions {
   autoEmbeddingEnabled?: boolean;
 }
@@ -79,42 +110,43 @@ export class RemoteStore {
   }
 
   async store(input: CreateMemoryInput): Promise<Memory> {
+    const resolvedInput = applyLifecycleDefaults(input);
     const visibility =
-      input.visibility === "auto" || !input.visibility
+      resolvedInput.visibility === "auto" || !resolvedInput.visibility
         ? "repo"
-        : input.visibility;
+        : resolvedInput.visibility;
 
     const data: Record<string, unknown> = {
-      orgId: input.orgId,
-      repoId: input.repoId,
-      memoryType: input.memoryType,
+      orgId: resolvedInput.orgId,
+      repoId: resolvedInput.repoId,
+      memoryType: resolvedInput.memoryType,
       visibility,
-      text: input.text,
-      summary: input.summary,
-      tags: input.tags ?? [],
-      sourceRefs: (input.sourceRefs as Record<string, string>) ?? undefined,
-      confidence: input.confidence,
-      ttlSeconds: input.ttlSeconds,
+      text: resolvedInput.text,
+      summary: resolvedInput.summary,
+      tags: resolvedInput.tags ?? [],
+      sourceRefs: (resolvedInput.sourceRefs as Record<string, string>) ?? undefined,
+      confidence: resolvedInput.confidence,
+      ttlSeconds: resolvedInput.ttlSeconds,
     };
 
     let memory: Memory;
 
-    if (input.id) {
+    if (resolvedInput.id) {
       const row = await this.prisma.memory.upsert({
-        where: { id: input.id },
+        where: { id: resolvedInput.id },
         create: {
-          id: input.id,
+          id: resolvedInput.id,
           ...data,
         } as Parameters<typeof this.prisma.memory.create>[0]["data"],
         update: {
-          memoryType: input.memoryType,
+          memoryType: resolvedInput.memoryType,
           visibility,
-          text: input.text,
-          summary: input.summary,
-          tags: input.tags ?? [],
-          sourceRefs: (input.sourceRefs as Record<string, string>) ?? undefined,
-          confidence: input.confidence,
-          ttlSeconds: input.ttlSeconds,
+          text: resolvedInput.text,
+          summary: resolvedInput.summary,
+          tags: resolvedInput.tags ?? [],
+          sourceRefs: (resolvedInput.sourceRefs as Record<string, string>) ?? undefined,
+          confidence: resolvedInput.confidence,
+          ttlSeconds: resolvedInput.ttlSeconds,
         },
       });
 
@@ -170,6 +202,9 @@ export class RemoteStore {
       if (Object.keys(createdAt).length > 0) where.createdAt = createdAt;
     }
 
+    const usageStats = await this.getUsageStats(query.orgId, query.repoId);
+    const usageMap = new Map(usageStats.map((stat) => [stat.memoryId, stat]));
+
     const sanitizedQuery = query.query.replace(/[^\w\s]/g, " ").trim();
 
     if (sanitizedQuery) {
@@ -185,6 +220,11 @@ export class RemoteStore {
            AND m.org_id = $2
            AND m.repo_id = $3
            AND m.status = $4
+           AND (
+             m.status != 'active'
+             OR m.ttl_seconds IS NULL
+             OR m.created_at + (m.ttl_seconds * INTERVAL '1 second') >= NOW()
+           )
          ORDER BY fts_rank DESC
          LIMIT $5`,
         sanitizedQuery,
@@ -199,6 +239,11 @@ export class RemoteStore {
           1,
           (row.fts_rank as number) * 2,
         );
+        const usage = usageMap.get(row.id as string);
+        const usageBoost = computeUsageBoost(
+          usage?.count ?? 0,
+          usage?.lastUsed,
+        );
         return {
           id: row.id as string,
           memoryType: row.memory_type as Memory["memoryType"],
@@ -210,6 +255,7 @@ export class RemoteStore {
             textScore,
             new Date(row.created_at as string),
             row.confidence as number | undefined,
+            usageBoost,
           ),
           source: "remote" as const,
           status: row.status as Memory["status"],
@@ -221,25 +267,40 @@ export class RemoteStore {
     const rows = await this.prisma.memory.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      take: k,
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      memoryType: row.memoryType as Memory["memoryType"],
-      text: row.text,
-      summary: row.summary ?? undefined,
-      tags: row.tags,
-      sourceRefs: row.sourceRefs as Record<string, unknown> | undefined,
-      score: computeCompositeScore(
-        0.5,
-        row.createdAt,
-        row.confidence ?? undefined,
+    return filterExpiredMemories(
+      rows.map((row) =>
+        prismaRowToMemory(row as unknown as Record<string, unknown>),
       ),
-      source: "remote" as const,
-      status: row.status as Memory["status"],
-      supersedesId: row.supersedesId ?? undefined,
-    }));
+      query.includeExpired,
+    )
+      .slice(0, k)
+      .map((memory) => {
+        const usage = usageMap.get(memory.id);
+        const usageBoost = computeUsageBoost(
+          usage?.count ?? 0,
+          usage?.lastUsed,
+        );
+
+        return {
+          id: memory.id,
+          memoryType: memory.memoryType,
+          text: memory.text,
+          summary: memory.summary,
+          tags: memory.tags,
+          sourceRefs: memory.sourceRefs,
+          score: computeCompositeScore(
+            0.5,
+            memory.createdAt,
+            memory.confidence ?? undefined,
+            usageBoost,
+          ),
+          source: "remote" as const,
+          status: memory.status,
+          supersedesId: memory.supersedesId ?? undefined,
+        };
+      });
   }
 
   async list(query: ListQuery): Promise<Memory[]> {
@@ -274,13 +335,17 @@ export class RemoteStore {
     const rows = await this.prisma.memory.findMany({
       where,
       orderBy: { [sortField]: query.sortOrder ?? "desc" },
-      take: query.limit ?? 50,
-      skip: query.offset ?? 0,
     });
 
-    return rows.map((r) =>
-      prismaRowToMemory(r as unknown as Record<string, unknown>),
+    const filtered = filterExpiredMemories(
+      rows.map((r) =>
+        prismaRowToMemory(r as unknown as Record<string, unknown>),
+      ),
+      query.includeExpired,
     );
+    const offset = query.offset ?? 0;
+    const limit = query.limit ?? 50;
+    return filtered.slice(offset, offset + limit);
   }
 
   async count(query: ListQuery): Promise<number> {
@@ -305,7 +370,25 @@ export class RemoteStore {
       where.text = { contains: query.search, mode: "insensitive" };
     }
 
-    return this.prisma.memory.count({ where });
+    const rows = await this.prisma.memory.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        ttlSeconds: true,
+        createdAt: true,
+      },
+    });
+
+    return filterExpiredMemories(
+      rows.map((row) => ({
+        id: row.id,
+        status: row.status as Memory["status"],
+        ttlSeconds: row.ttlSeconds ?? undefined,
+        createdAt: row.createdAt,
+      })),
+      query.includeExpired,
+    ).length;
   }
 
   async stats(orgId: string, repoId: string): Promise<StoreStats> {
@@ -401,6 +484,53 @@ export class RemoteStore {
     } catch {
       return false;
     }
+  }
+
+  async expireExpiredMemories(
+    orgId?: string,
+    repoId?: string,
+    deletedBy = "system:ttl-expiry",
+  ): Promise<number> {
+    const where: Record<string, unknown> = {
+      status: "active",
+    };
+
+    if (orgId) {
+      where.orgId = orgId;
+    }
+
+    if (repoId) {
+      where.repoId = repoId;
+    }
+
+    const rows = await this.prisma.memory.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        ttlSeconds: true,
+        createdAt: true,
+      },
+    });
+
+    let expired = 0;
+    for (const row of rows) {
+      if (
+        !isMemoryExpired({
+          status: row.status as Memory["status"],
+          ttlSeconds: row.ttlSeconds ?? undefined,
+          createdAt: row.createdAt,
+        })
+      ) {
+        continue;
+      }
+
+      if (await this.softDelete({ id: row.id, deletedBy })) {
+        expired += 1;
+      }
+    }
+
+    return expired;
   }
 
   async link(input: CreateLinkInput): Promise<MemoryLink> {
@@ -908,6 +1038,8 @@ export class RemoteStore {
 
     const vectorStr = embeddingToPgVector(queryEmbedding);
     const k = query.k ?? 10;
+    const usageStats = await this.getUsageStats(query.orgId, query.repoId);
+    const usageMap = new Map(usageStats.map((stat) => [stat.memoryId, stat]));
 
     const embeddingResults = await this.prisma.$queryRaw<
       Array<{
@@ -923,6 +1055,10 @@ export class RemoteStore {
       WHERE m.org_id = ${query.orgId}
         AND m.repo_id = ${query.repoId}
         AND m.status = 'active'
+        AND (
+          m.ttl_seconds IS NULL
+          OR m.created_at + (m.ttl_seconds * INTERVAL '1 second') >= NOW()
+        )
       ORDER BY e.embedding_vector <=> ${vectorStr}::vector
       LIMIT ${k * 2}
     `;
@@ -939,7 +1075,15 @@ export class RemoteStore {
       if (ftsIds.has(row.memory_id) || row.similarity < 0.3) continue;
 
       const memory = await this.getById(row.memory_id);
-      if (!memory || memory.status !== "active") continue;
+      if (!memory || memory.status !== "active" || (!query.includeExpired && isMemoryExpired(memory))) {
+        continue;
+      }
+
+      const usage = usageMap.get(memory.id);
+      const usageBoost = computeUsageBoost(
+        usage?.count ?? 0,
+        usage?.lastUsed,
+      );
 
       additionalMemories.push({
         id: memory.id,
@@ -948,7 +1092,7 @@ export class RemoteStore {
         summary: memory.summary,
         tags: memory.tags,
         sourceRefs: memory.sourceRefs,
-        score: computeHybridScore(0, row.similarity, memory.createdAt, memory.confidence),
+        score: computeHybridScore(0, row.similarity, memory.createdAt, memory.confidence, usageBoost),
         source: "remote",
         status: memory.status,
         supersedesId: memory.supersedesId,
@@ -957,10 +1101,15 @@ export class RemoteStore {
 
     const hybridResults = ftsResults.map((r) => {
       const embScore = embeddingScores.get(r.id) ?? 0;
+      const usage = usageMap.get(r.id);
+      const usageBoost = computeUsageBoost(
+        usage?.count ?? 0,
+        usage?.lastUsed,
+      );
       return {
         ...r,
         score: embScore > 0
-          ? computeHybridScore(r.score * 0.6, embScore, new Date(), undefined)
+          ? computeHybridScore(r.score * 0.6, embScore, new Date(), undefined, usageBoost)
           : r.score,
       };
     });
@@ -1277,20 +1426,40 @@ export class RemoteStore {
       return { memoriesDeleted: 0, linksDeleted: 0, embeddingsDeleted: 0 };
     }
 
-    const [embeddingsResult, linksResult, , , memoriesResult] = await this.prisma.$transaction([
-      this.prisma.memoryEmbedding.deleteMany({ where: { memoryId: { in: memoryIds } } }),
+    let embeddingsDeleted = 0;
+    try {
+      const result = await this.prisma.memoryEmbedding.deleteMany({
+        where: { memoryId: { in: memoryIds } },
+      });
+      embeddingsDeleted = result.count;
+    } catch (error) {
+      if (!isMissingTableError(error, "public.memory_embeddings")) {
+        throw error;
+      }
+    }
+
+    try {
+      await this.prisma.memoryUsage.deleteMany({
+        where: { memoryId: { in: memoryIds } },
+      });
+    } catch (error) {
+      if (!isMissingTableError(error, "public.memory_usage")) {
+        throw error;
+      }
+    }
+
+    const [linksResult, , memoriesResult] = await this.prisma.$transaction([
       this.prisma.memoryLink.deleteMany({
         where: { OR: [{ sourceId: { in: memoryIds } }, { targetId: { in: memoryIds } }] },
       }),
       this.prisma.tombstone.deleteMany({ where: { orgId, repoId } }),
-      this.prisma.memoryUsage.deleteMany({ where: { memoryId: { in: memoryIds } } }),
       this.prisma.memory.deleteMany({ where: { orgId, repoId } }),
     ]);
 
     return {
       memoriesDeleted: memoriesResult.count,
       linksDeleted: linksResult.count,
-      embeddingsDeleted: embeddingsResult.count,
+      embeddingsDeleted,
     };
   }
 }

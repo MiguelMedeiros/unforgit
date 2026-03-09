@@ -96,7 +96,7 @@ export function generateSuggestions(
       reason: `These memories are ${Math.round(pair.similarity * 100)}% similar and could be merged`,
       confidence: pair.similarity,
       action: {
-        command: `hippo merge ${pair.id1} ${pair.id2}`,
+        command: `unforgit merge ${pair.id1} ${pair.id2}`,
         description: "Merge these memories into one",
       },
     });
@@ -118,7 +118,7 @@ export function generateSuggestions(
       reason: "No recalls in 90+ days with low quality score",
       confidence: 0.7,
       action: {
-        command: `hippo deprecate ${memory.id}`,
+        command: `unforgit deprecate ${memory.id}`,
         description: "Mark as deprecated",
       },
     });
@@ -135,7 +135,7 @@ export function generateSuggestions(
       reason: `${untagged.length} memories have no tags`,
       confidence: 0.9,
       action: {
-        command: "hippo web",
+        command: "unforgit web",
         description: "Open dashboard to add tags",
       },
     });
@@ -156,7 +156,7 @@ export function generateSuggestions(
       reason: `${unlinked.length} memories are isolated (no links)`,
       confidence: 0.8,
       action: {
-        command: "hippo web",
+        command: "unforgit web",
         description: "Open graph view to create links",
       },
     });
@@ -172,7 +172,7 @@ export function generateSuggestions(
       reason: `${withoutEmbedding.length} memories lack embeddings for semantic search`,
       confidence: 1.0,
       action: {
-        command: "hippo embeddings backfill",
+        command: "unforgit embeddings backfill",
         description: "Generate embeddings for all memories",
       },
     });
@@ -192,7 +192,7 @@ export function generateSuggestions(
       reason: `Private memory with ${stats.recallCount} recalls - consider sharing with team`,
       confidence: 0.75,
       action: {
-        command: `hippo promote ${memory.id}`,
+        command: `unforgit promote ${memory.id}`,
         description: "Promote to shared visibility",
       },
     });

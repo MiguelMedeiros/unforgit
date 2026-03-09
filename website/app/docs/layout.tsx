@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { DocsSidebar } from "@/components/docs-sidebar";
 
 export const metadata: Metadata = {
-  title: "Documentation - Hippocampus",
+  title: "Documentation - Unforgit",
   description:
-    "Technical documentation for Hippocampus - CLI reference, MCP server setup, Docker deployment, and API reference.",
+    "Technical documentation for Unforgit - CLI reference, MCP server setup, Docker deployment, and API reference.",
 };
 
 export default function DocsLayout({

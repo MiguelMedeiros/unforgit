@@ -7,7 +7,7 @@ import { isJsonMode, outputJson } from "../utils.js";
 
 function requireRemote(): { url: string; apiKey: string } {
   if (!isInitialized()) {
-    logger.fatal("not a hippocampus repository");
+    logger.fatal("not an unforgit repository");
     process.exit(EXIT_CONFIG_ERROR);
   }
 
@@ -15,14 +15,14 @@ function requireRemote(): { url: string; apiKey: string } {
 
   if (!config.remote.url) {
     logger.fatal("No remote configured.");
-    logger.error("Use 'hippo remote add origin <url>' to add a remote.");
+    logger.error("Use 'unforgit remote add origin <url>' to add a remote.");
     process.exit(EXIT_CONFIG_ERROR);
   }
 
-  const apiKey = config.remote.apiKey || process.env.HIPPO_API_KEY;
+  const apiKey = config.remote.apiKey || process.env.UNFORGIT_API_KEY;
   if (!apiKey) {
     logger.fatal("No API key configured.");
-    logger.error("Run 'hippo auth set <key>' or set HIPPO_API_KEY env var.");
+    logger.error("Run 'unforgit auth set <key>' or set UNFORGIT_API_KEY env var.");
     process.exit(EXIT_CONFIG_ERROR);
   }
 
@@ -39,8 +39,8 @@ keysCommand
   .requiredOption("--org <orgId>", "Organization ID for the key")
   .addHelpText("after", `
 Examples:
-  hippo keys create --name "CI pipeline" --org my-org
-  hippo keys list --org my-org`)
+  unforgit keys create --name "CI pipeline" --org my-org
+  unforgit keys list --org my-org`)
   .action(async (opts) => {
     const { url, apiKey } = requireRemote();
     const client = new RemoteClient(url, apiKey);
@@ -62,7 +62,7 @@ Examples:
       logger.info("");
       logger.info("Store this key securely. It will not be shown again.");
       logger.info("");
-      logger.info("To use this key, add it to .hippocampus/hippo.yaml:");
+      logger.info("To use this key, add it to .unforgit/unforgit.yaml:");
       logger.info("");
       logger.info("  remote:");
       logger.info(`    apiKey: "${result.key}"`);

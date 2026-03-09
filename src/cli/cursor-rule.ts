@@ -1,15 +1,15 @@
 export const CURSOR_RULE_CONTENT = `---
-description: Auto-manage repository memory with Hippocampus via MCP tools
+description: Auto-manage repository memory with Unforgit via MCP tools
 alwaysApply: true
 ---
 
-# Hippocampus Memory Integration
+# Unforgit Memory Integration
 
-You have access to \`hippo_recall\` and \`hippo_add\` MCP tools for persistent repository memory across sessions.
+You have access to \`unforgit_recall\` and \`unforgit_add\` MCP tools for persistent repository memory across sessions.
 
 ## 1. Recall at the Start
 
-At the **beginning of every conversation**, use the \`hippo_recall\` tool with a query based on the user's first message to retrieve relevant context from past sessions.
+At the **beginning of every conversation**, use the \`unforgit_recall\` tool with a query based on the user's first message to retrieve relevant context from past sessions.
 
 Use recalled memories to avoid repeating past mistakes, follow known conventions, and apply previous decisions.
 
@@ -17,7 +17,7 @@ Use recalled memories to avoid repeating past mistakes, follow known conventions
 
 Save memories **as soon as something noteworthy happens** — don't wait until the end.
 
-Trigger a save with the \`hippo_add\` tool immediately after:
+Trigger a save with the \`unforgit_add\` tool immediately after:
 - A bug is found and fixed
 - An architectural or design decision is made
 - A non-obvious gotcha or workaround is discovered

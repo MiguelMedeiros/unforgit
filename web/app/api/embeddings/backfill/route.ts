@@ -6,7 +6,7 @@ export async function POST() {
   const config = getConfig();
   if (!config) {
     return NextResponse.json(
-      { error: "Hippocampus not initialized" },
+      { error: "Unforgit not initialized" },
       { status: 500 },
     );
   }

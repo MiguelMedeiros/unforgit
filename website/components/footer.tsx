@@ -1,13 +1,13 @@
 "use client";
 
-import { Brain, Github, BookOpen, Package } from "lucide-react";
+import { Github, BookOpen, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const links = [
   {
     title: "GitHub",
-    href: "https://github.com/miguelmedeiros/hippocampus",
+    href: "https://github.com/miguelmedeiros/unforgit",
     icon: Github,
     description: "View source code",
   },
@@ -19,7 +19,7 @@ const links = [
   },
   {
     title: "NPM Package",
-    href: "https://www.npmjs.com/package/hippocampus",
+    href: "https://www.npmjs.com/package/unforgit",
     icon: Package,
     description: "NPM registry",
   },
@@ -38,14 +38,7 @@ export function Footer() {
             className="md:col-span-2"
           >
             <div className="flex items-center gap-3 mb-4">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-                className="p-2 rounded-lg bg-dracula-purple/20"
-              >
-                <Brain className="w-6 h-6 text-dracula-purple" />
-              </motion.div>
-              <span className="text-xl font-bold">Hippocampus</span>
+              <span className="text-xl font-bold tracking-tight">unforgit</span>
             </div>
             <p className="text-muted-foreground max-w-sm">
               Repository memory system for AI agents and developers. Store,
@@ -94,14 +87,14 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Quick Start</h3>
             <div className="space-y-2 text-sm font-mono text-muted-foreground">
               <p>
-                <span className="text-dracula-green">$</span> npm i -g
-                hippocampus
+                <span className="text-dracula-comment">$</span> npm i -g
+                unforgit
               </p>
               <p>
-                <span className="text-dracula-green">$</span> hippo init
+                <span className="text-dracula-comment">$</span> unforgit init
               </p>
               <p>
-                <span className="text-dracula-green">$</span> hippo web
+                <span className="text-dracula-comment">$</span> unforgit web
               </p>
             </div>
           </motion.div>
@@ -120,7 +113,7 @@ export function Footer() {
               href="https://miguelmedeiros.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-dracula-purple hover:text-dracula-pink transition-colors font-medium"
+              className="text-dracula-foreground/70 hover:text-dracula-foreground transition-colors font-medium"
               whileHover={{ scale: 1.05 }}
             >
               Miguel Medeiros
@@ -130,7 +123,7 @@ export function Footer() {
             <motion.a
               whileHover={{ scale: 1.2, rotate: 360 }}
               transition={{ duration: 0.3 }}
-              href="https://github.com/miguelmedeiros/hippocampus"
+              href="https://github.com/miguelmedeiros/unforgit"
               className="text-muted-foreground hover:text-foreground transition-colors"
               aria-label="GitHub"
             >

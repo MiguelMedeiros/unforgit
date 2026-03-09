@@ -26,7 +26,7 @@ export function StepsList({ steps }: StepsListProps) {
           transition={{ duration: 0.4, delay: index * 0.1 }}
           className="flex gap-6"
         >
-          <div className="shrink-0 w-12 text-2xl font-bold text-dracula-purple/40">
+          <div className="shrink-0 w-12 text-2xl font-bold text-dracula-foreground/30">
             {step.number}
           </div>
 

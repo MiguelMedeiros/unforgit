@@ -22,7 +22,7 @@ export class RemoteClient {
     apiKey?: string,
     options?: { timeoutMs?: number },
   ) {
-    this.apiKey = apiKey || process.env.HIPPO_API_KEY;
+    this.apiKey = apiKey || process.env.UNFORGIT_API_KEY;
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
@@ -40,7 +40,14 @@ export class RemoteClient {
     if (res.status === 401) {
       throw new Error(
         `Authentication failed for ${operation}: Invalid or missing API key. ` +
-        `Configure your API key in .hippocampus/hippo.yaml under remote.apiKey`
+        `Configure your API key in .unforgit/unforgit.yaml under remote.apiKey`
+      );
+    }
+    if (res.status === 404 && operation === "resetAll") {
+      throw new Error(
+        "Remote resetAll failed (404): the configured server does not support " +
+        "/v1/memories/reset. Rebuild or restart the remote API so it is running " +
+        "a version that includes the reset endpoint."
       );
     }
     throw new Error(`Remote ${operation} failed (${res.status}): ${errorText}`);
@@ -277,6 +284,94 @@ export class RemoteClient {
       memoriesDeleted: number;
       linksDeleted: number;
       embeddingsDeleted: number;
+    }>;
+  }
+
+  async runLifecycle(body: {
+    orgId: string;
+    repoId: string;
+    dryRun?: boolean;
+    model?: string;
+    preserveOriginals?: boolean;
+  }): Promise<{
+    dryRun: boolean;
+    totalActiveMemories: number;
+    expiredCandidates: Array<{
+      id: string;
+      ttlSeconds: number;
+      reason: string;
+      textPreview: string;
+    }>;
+    expiredCount: number;
+    strengthenedCandidates: Array<{
+      id: string;
+      usageCount: number;
+      lastUsed?: string;
+      recommendedAction: "promote" | "pin";
+      reason: string;
+      textPreview: string;
+    }>;
+    consolidationCandidates: Array<{
+      reason: string;
+      averageScore: number;
+      suggestedTags: string[];
+      memories: Array<{ id: string; memoryType: string; text: string }>;
+    }>;
+    executedConsolidations: Array<{
+      consolidatedId: string;
+      sourceIds: string[];
+      generatedText: string;
+      suggestedTags: string[];
+      memoryType: string;
+    }>;
+    warnings: string[];
+    errors: string[];
+  }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/lifecycle/run`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(body),
+      },
+      "runLifecycle",
+    );
+    if (!res.ok) {
+      this.handleError(res, "runLifecycle", await res.text());
+    }
+    return res.json() as Promise<{
+      dryRun: boolean;
+      totalActiveMemories: number;
+      expiredCandidates: Array<{
+        id: string;
+        ttlSeconds: number;
+        reason: string;
+        textPreview: string;
+      }>;
+      expiredCount: number;
+      strengthenedCandidates: Array<{
+        id: string;
+        usageCount: number;
+        lastUsed?: string;
+        recommendedAction: "promote" | "pin";
+        reason: string;
+        textPreview: string;
+      }>;
+      consolidationCandidates: Array<{
+        reason: string;
+        averageScore: number;
+        suggestedTags: string[];
+        memories: Array<{ id: string; memoryType: string; text: string }>;
+      }>;
+      executedConsolidations: Array<{
+        consolidatedId: string;
+        sourceIds: string[];
+        generatedText: string;
+        suggestedTags: string[];
+        memoryType: string;
+      }>;
+      warnings: string[];
+      errors: string[];
     }>;
   }
 

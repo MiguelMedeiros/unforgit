@@ -103,6 +103,84 @@ describe("lifecycle commands", () => {
       const ok = store.restore("nonexistent");
       expect(ok).toBe(false);
     });
+
+    it("expires stale episodic memories via soft delete and tombstones", () => {
+      const expiredAt = new Date(Date.now() - 5_000);
+      store.upsertFromRemote({
+        id: "expired-memory-1",
+        orgId: "org",
+        repoId: "repo",
+        scopeType: "repo",
+        memoryType: "episodic",
+        visibility: "private",
+        status: "active",
+        text: "Ephemeral note",
+        tags: [],
+        ttlSeconds: 1,
+        version: 1,
+        createdAt: expiredAt,
+        updatedAt: new Date(),
+      });
+
+      const expired = store.expireExpiredMemories("org", "repo");
+      expect(expired).toBe(1);
+
+      const updated = store.getById("expired-memory-1");
+      expect(updated?.status).toBe("deleted");
+
+      const tombstones = store.getTombstones("org", "repo");
+      expect(tombstones).toHaveLength(1);
+      expect(tombstones[0].memoryId).toBe("expired-memory-1");
+    });
+
+    it("hides expired memories from recall and list unless requested", () => {
+      const expiredAt = new Date(Date.now() - 5_000);
+      store.upsertFromRemote({
+        id: "expired-memory-2",
+        orgId: "org",
+        repoId: "repo",
+        scopeType: "repo",
+        memoryType: "episodic",
+        visibility: "private",
+        status: "active",
+        text: "Short lived observation",
+        tags: [],
+        ttlSeconds: 1,
+        version: 1,
+        createdAt: expiredAt,
+        updatedAt: new Date(),
+      });
+
+      const hiddenRecall = store.recall({
+        orgId: "org",
+        repoId: "repo",
+        query: "observation",
+      });
+      expect(hiddenRecall).toHaveLength(0);
+
+      const visibleRecall = store.recall({
+        orgId: "org",
+        repoId: "repo",
+        query: "observation",
+        includeExpired: true,
+      });
+      expect(visibleRecall).toHaveLength(1);
+
+      const hiddenList = store.list({
+        orgId: "org",
+        repoId: "repo",
+        status: ["active"],
+      });
+      expect(hiddenList).toHaveLength(0);
+
+      const visibleList = store.list({
+        orgId: "org",
+        repoId: "repo",
+        status: ["active"],
+        includeExpired: true,
+      });
+      expect(visibleList).toHaveLength(1);
+    });
   });
 
   describe("links", () => {

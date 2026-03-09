@@ -4,6 +4,7 @@ import { logger } from "../logger.js";
 import { LocalStore } from "../../db/local.js";
 import { RemoteClient } from "../remote-client.js";
 import { mergeAndRank } from "../../core/recall.js";
+import { resolveLifecycleConfig } from "../../core/lifecycle.js";
 import type { MemoryType, RecallResult } from "../../core/types.js";
 import { parsePositiveInt } from "../schemas.js";
 import { EXIT_ERROR } from "../exit-codes.js";
@@ -24,10 +25,10 @@ export const recallCommand = new Command("recall")
   .option("--per-page <n>", "Items per page", "10")
   .addHelpText("after", `
 Examples:
-  hippo recall "authentication"             Search all memories
-  hippo recall "deploy" --types procedural  Filter by type
-  hippo recall "bug" --tags auth,api        Filter by tags
-  hippo recall "setup" --local-only         Local search only`)
+  unforgit recall "authentication"             Search all memories
+  unforgit recall "deploy" --types procedural  Filter by type
+  unforgit recall "bug" --tags auth,api        Filter by tags
+  unforgit recall "setup" --local-only         Local search only`)
   .action(async (query, opts) => {
     if (!query || !query.trim()) {
       logger.error("Search query cannot be empty.");
@@ -35,6 +36,7 @@ Examples:
     }
 
     const config = loadConfig();
+    const usageTrackingLimit = resolveLifecycleConfig(config.lifecycle).usageBoost.topKToRecord;
     const k = parsePositiveInt(opts.limit, "limit");
 
     const VALID_TYPES = ["episodic", "semantic", "procedural"];
@@ -72,6 +74,12 @@ Examples:
       try {
         store = new LocalStore(getDbPath());
         localResults = store.recall(recallQuery);
+        const idsToRecord = localResults
+          .slice(0, usageTrackingLimit)
+          .map((result) => result.id);
+        if (idsToRecord.length > 0) {
+          store.recordUsageBatch(idsToRecord, query);
+        }
       } catch {
         if (!opts.localOnly) {
           logger.warn("Local store not available");

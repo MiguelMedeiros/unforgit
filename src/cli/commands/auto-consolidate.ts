@@ -78,7 +78,7 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
   )
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -140,7 +140,7 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
       const openaiKey = process.env.OPENAI_API_KEY || config.openaiApiKey;
       if (!openaiKey) {
         logger.error("OpenAI API key not set.");
-        logger.error("Set OPENAI_API_KEY env var or run 'hippo auth openai <key>'.");
+        logger.error("Set OPENAI_API_KEY env var or run 'unforgit auth openai <key>'.");
         process.exit(EXIT_ERROR);
       }
       process.env.OPENAI_API_KEY = openaiKey;
@@ -214,7 +214,7 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
       logger.info(
         `\nOriginal memories are preserved with status 'superseded'.`,
       );
-      logger.info("Use 'hippo history <id>' to view consolidation history.");
+      logger.info("Use 'unforgit history <id>' to view consolidation history.");
     } catch (err) {
       logger.error(
         `Auto-consolidate: ${err instanceof Error ? err.message : err}`,

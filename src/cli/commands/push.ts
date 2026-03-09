@@ -14,7 +14,7 @@ export const pushCommand = new Command("push")
   .option("-a, --all", "Push all memories including untracked ones")
   .action(async (remote, opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -27,7 +27,7 @@ export const pushCommand = new Command("push")
 
       if (!config.remote.url) {
         logger.fatal(`No remote '${remote}' configured.`);
-        logger.error("Use 'hippo remote add origin <url>' to add a remote.");
+        logger.error("Use 'unforgit remote add origin <url>' to add a remote.");
         process.exit(EXIT_CONFIG_ERROR);
       }
 

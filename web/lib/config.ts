@@ -4,12 +4,12 @@ import YAML from "yaml";
 import type { HippoConfig } from "./types";
 
 export function getWorkspacePath(): string {
-  const workspace = process.env.HIPPO_WORKSPACE || process.cwd();
+  const workspace = process.env.UNFORGIT_WORKSPACE || process.cwd();
   return path.resolve(process.cwd(), workspace);
 }
 
 export function getHippoDir(): string {
-  return path.join(getWorkspacePath(), ".hippocampus");
+  return path.join(getWorkspacePath(), ".unforgit");
 }
 
 export function getDbPath(): string {
@@ -17,7 +17,7 @@ export function getDbPath(): string {
 }
 
 export function getConfigPath(): string {
-  return path.join(getHippoDir(), "hippo.yaml");
+  return path.join(getHippoDir(), "unforgit.yaml");
 }
 
 export function loadConfig(): HippoConfig | null {

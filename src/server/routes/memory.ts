@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { createMemorySchema } from "../../core/schemas.js";
+import { applyLifecycleDefaults } from "../../core/lifecycle.js";
 import type { RemoteStore } from "../../db/remote.js";
 import type { ListQuery } from "../../core/types.js";
 
 export async function memoryRoutes(
   app: FastifyInstance,
   store: RemoteStore,
+  scheduleLifecycle?: (orgId: string, repoId: string) => void,
 ): Promise<void> {
   app.get("/v1/memories", async (request, reply) => {
     const query = request.query as Record<string, string>;
@@ -48,7 +50,8 @@ export async function memoryRoutes(
       return reply.status(400).send({ error: parsed.error.issues });
     }
 
-    const memory = await store.store(parsed.data);
+    const memory = await store.store(applyLifecycleDefaults(parsed.data));
+    scheduleLifecycle?.(parsed.data.orgId, parsed.data.repoId);
     return reply.status(201).send({ id: memory.id });
   });
 }

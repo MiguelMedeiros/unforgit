@@ -23,7 +23,7 @@ describe("RemoteClient", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
-    delete process.env.HIPPO_API_KEY;
+    delete process.env.UNFORGIT_API_KEY;
   });
 
   describe("constructor", () => {
@@ -35,8 +35,8 @@ describe("RemoteClient", () => {
       expect(call[1].headers.Authorization).toBe("Bearer hk_test");
     });
 
-    it("falls back to HIPPO_API_KEY env var", () => {
-      process.env.HIPPO_API_KEY = "hk_env";
+    it("falls back to UNFORGIT_API_KEY env var", () => {
+      process.env.UNFORGIT_API_KEY = "hk_env";
       const client = new RemoteClient("http://localhost");
       mockFetch([{ status: 200, body: { results: [] } }]);
       client.recall({ orgId: "o", repoId: "r", query: "q" });
@@ -87,6 +87,22 @@ describe("RemoteClient", () => {
       await expect(
         client.store({ orgId: "o", repoId: "r", memoryType: "episodic", text: "t" }),
       ).rejects.toThrow("Remote store failed (400)");
+    });
+
+    it("throws actionable error when reset endpoint is missing", async () => {
+      const client = new RemoteClient("http://localhost");
+      mockFetch([{
+        status: 404,
+        body: {
+          message: "Route POST:/v1/memories/reset not found",
+          error: "Not Found",
+          statusCode: 404,
+        },
+      }]);
+
+      await expect(
+        client.resetAll("org", "repo"),
+      ).rejects.toThrow("does not support /v1/memories/reset");
     });
   });
 
@@ -245,6 +261,35 @@ describe("RemoteClient", () => {
 
       const result = await client.restore("id-1");
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("lifecycle maintenance", () => {
+    it("sends POST to /v1/lifecycle/run", async () => {
+      const client = new RemoteClient("http://localhost");
+      mockFetch([{
+        status: 200,
+        body: {
+          dryRun: true,
+          totalActiveMemories: 3,
+          expiredCandidates: [],
+          expiredCount: 0,
+          strengthenedCandidates: [],
+          consolidationCandidates: [],
+          executedConsolidations: [],
+          warnings: [],
+          errors: [],
+        },
+      }]);
+
+      const result = await client.runLifecycle({
+        orgId: "org",
+        repoId: "repo",
+        dryRun: true,
+      });
+
+      expect(result.dryRun).toBe(true);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     });
   });
 });

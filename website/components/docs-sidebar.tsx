@@ -1,45 +1,51 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { usePathname } from "next/navigation";
 import {
   Brain,
   Terminal,
   Server,
-  Container,
   Code2,
   Settings,
   Menu,
   X,
   Search,
   Sparkles,
-  Users,
+  GitMerge,
+  Plug,
+  Key,
+  Globe,
+  AlertTriangle,
+  Monitor,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-const sections = [
+const mainSections = [
   {
     id: "overview",
     title: "Overview",
     icon: Brain,
   },
   {
-    id: "semantic-search",
-    title: "Semantic Search",
-    icon: Search,
+    id: "getting-started",
+    title: "Getting Started",
+    icon: Sparkles,
     subsections: [
-      { id: "embeddings-overview", title: "How It Works" },
-      { id: "embeddings-commands", title: "CLI Commands" },
-      { id: "hybrid-scoring", title: "Hybrid Scoring" },
+      { id: "init-flow", title: "Install And First Flow" },
+      { id: "lifecycle-loop", title: "Lifecycle Loop" },
+      { id: "templates", title: "Templates" },
     ],
   },
   {
-    id: "curation",
-    title: "Curation & Health",
-    icon: Sparkles,
+    id: "recall",
+    title: "Recall & Ranking",
+    icon: Search,
     subsections: [
-      { id: "quality-score", title: "Quality Score" },
-      { id: "suggestions", title: "AI Suggestions" },
-      { id: "templates", title: "Memory Templates" },
+      { id: "recall-behavior", title: "How Recall Works" },
+      { id: "embeddings", title: "Embeddings" },
     ],
   },
   {
@@ -48,35 +54,16 @@ const sections = [
     icon: Terminal,
     subsections: [
       { id: "cli-core", title: "Core Commands" },
-      { id: "cli-lifecycle", title: "Memory Lifecycle" },
-      { id: "cli-links", title: "Links" },
-      { id: "cli-consolidation", title: "Consolidation" },
-      { id: "cli-sync", title: "Sync" },
-      { id: "cli-remote", title: "Remote Config" },
-      { id: "cli-branches", title: "Branches" },
-      { id: "cli-viewing", title: "Viewing" },
-      { id: "cli-auth", title: "Auth & Config" },
+      { id: "cli-lifecycle", title: "Lifecycle And Consolidation" },
+      { id: "cli-links", title: "Links And History" },
+      { id: "cli-sync", title: "Sync And Diagnostics" },
     ],
   },
   {
     id: "mcp",
     title: "MCP Server",
     icon: Server,
-    subsections: [
-      { id: "mcp-setup", title: "Setup in Cursor" },
-      { id: "mcp-tools", title: "Available Tools" },
-      { id: "mcp-cursor-rule", title: "Cursor Rule" },
-    ],
-  },
-  {
-    id: "docker",
-    title: "Docker Deployment",
-    icon: Container,
-    subsections: [
-      { id: "docker-services", title: "Services" },
-      { id: "docker-env", title: "Environment Variables" },
-      { id: "docker-commands", title: "Commands" },
-    ],
+    href: "/docs/mcp",
   },
   {
     id: "api",
@@ -85,8 +72,10 @@ const sections = [
     subsections: [
       { id: "api-auth", title: "Authentication" },
       { id: "api-memory", title: "Memory Endpoints" },
+      { id: "api-lifecycle", title: "Lifecycle Endpoints" },
+      { id: "api-links", title: "Links Endpoints" },
+      { id: "api-ai", title: "AI Endpoints" },
       { id: "api-sync", title: "Sync Endpoints" },
-      { id: "api-keys", title: "API Keys" },
     ],
   },
   {
@@ -94,24 +83,68 @@ const sections = [
     title: "Configuration",
     icon: Settings,
     subsections: [
-      { id: "config-yaml", title: "hippo.yaml" },
+      { id: "config-yaml", title: "unforgit.yaml" },
       { id: "config-env", title: "Environment Variables" },
     ],
   },
   {
-    id: "server-ai",
-    title: "Server-Side AI (Teams)",
-    icon: Users,
+    id: "deployment",
+    title: "Deployment & AI",
+    icon: GitMerge,
     subsections: [
-      { id: "server-ai-config", title: "Configuration" },
-      { id: "server-ai-endpoints", title: "AI Endpoints" },
-      { id: "server-ai-example", title: "Example" },
+      { id: "deployment-docker", title: "Docker Services" },
+      { id: "deployment-ai", title: "Server-Side AI" },
     ],
   },
 ];
 
+const mcpSections = [
+  { id: "mcp-overview", title: "How It Works", icon: Plug },
+  { id: "mcp-prerequisites", title: "Prerequisites", icon: Terminal },
+  {
+    id: "mcp-ides",
+    title: "IDE Setup",
+    icon: Monitor,
+    subsections: [
+      { id: "mcp-cursor", title: "Cursor" },
+      { id: "mcp-claude-desktop", title: "Claude Desktop" },
+      { id: "mcp-windsurf", title: "Windsurf" },
+      { id: "mcp-vscode-copilot", title: "VS Code + Copilot" },
+      { id: "mcp-continue", title: "Continue" },
+      { id: "mcp-other", title: "Other Clients" },
+    ],
+  },
+  {
+    id: "mcp-keys",
+    title: "API Keys",
+    icon: Key,
+    subsections: [
+      { id: "mcp-remote-key", title: "Remote API Key" },
+      { id: "mcp-openai-key", title: "OpenAI Key" },
+    ],
+  },
+  {
+    id: "mcp-remote",
+    title: "Remote Server",
+    icon: Globe,
+    subsections: [
+      { id: "mcp-remote-config", title: "Configure URL" },
+      { id: "mcp-remote-docker", title: "Run the Server" },
+      { id: "mcp-remote-connect", title: "Connect Client" },
+    ],
+  },
+  { id: "mcp-tools", title: "Available Tools", icon: Server },
+  { id: "mcp-cursor-rules", title: "Cursor Rules", icon: BookOpen },
+  { id: "mcp-troubleshooting", title: "Troubleshooting", icon: AlertTriangle },
+];
+
 export function DocsSidebar() {
-  const [activeSection, setActiveSection] = useState<string>("overview");
+  const pathname = usePathname();
+  const isMcpPage = pathname === "/docs/mcp";
+  const sections = isMcpPage ? mcpSections : mainSections;
+  const defaultSection = isMcpPage ? "mcp-overview" : "overview";
+
+  const [activeSection, setActiveSection] = useState<string>(defaultSection);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const isUserClickRef = useRef(false);
   const userClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,7 +157,7 @@ export function DocsSidebar() {
     for (let i = sections.length - 1; i >= 0; i--) {
       const section = sections[i];
 
-      if (section.subsections) {
+      if ("subsections" in section && section.subsections) {
         for (let j = section.subsections.length - 1; j >= 0; j--) {
           const sub = section.subsections[j];
           const subElement = document.getElementById(sub.id);
@@ -142,8 +175,8 @@ export function DocsSidebar() {
       }
     }
 
-    setActiveSection("overview");
-  }, []);
+    setActiveSection(defaultSection);
+  }, [sections, defaultSection]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -178,10 +211,11 @@ export function DocsSidebar() {
   const isSubsectionOfSection = useCallback(
     (sectionId: string) => {
       const section = sections.find((s) => s.id === sectionId);
-      if (!section?.subsections) return false;
+      if (!section || !("subsections" in section) || !section.subsections)
+        return false;
       return section.subsections.some((sub) => sub.id === activeSection);
     },
-    [activeSection]
+    [activeSection, sections]
   );
 
   return (
@@ -217,15 +251,24 @@ export function DocsSidebar() {
         <div className="mb-6">
           <a
             href="/"
-            className="flex items-center gap-2 text-dracula-foreground hover:text-dracula-purple transition-colors"
+            className="flex items-center gap-2 text-dracula-foreground hover:text-dracula-foreground transition-colors"
           >
-            <Brain className="w-6 h-6 text-dracula-purple" />
-            <span className="font-bold text-lg">Hippocampus</span>
+            <span className="font-bold text-lg tracking-tight">unforgit</span>
           </a>
           <p className="text-xs text-dracula-comment mt-2">
             Technical Documentation
           </p>
         </div>
+
+        {isMcpPage && (
+          <Link
+            href="/docs"
+            className="flex items-center gap-2 px-3 py-2 mb-3 text-sm text-dracula-comment hover:text-dracula-foreground transition-colors rounded-lg hover:bg-dracula-current/20"
+          >
+            <span className="text-xs">&larr;</span>
+            Back to Docs
+          </Link>
+        )}
 
         <nav className="space-y-1">
           {sections.map((section) => {
@@ -233,7 +276,29 @@ export function DocsSidebar() {
             const isSectionActive = activeSection === section.id;
             const hasActiveSubsection = isSubsectionOfSection(section.id);
             const hasSubsections =
-              section.subsections && section.subsections.length > 0;
+              "subsections" in section &&
+              section.subsections &&
+              section.subsections.length > 0;
+            const isLink = "href" in section && section.href;
+
+            if (isLink) {
+              return (
+                <Link
+                  key={section.id}
+                  href={(section as { href: string }).href}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    isMcpPage
+                      ? "bg-dracula-foreground/10 text-dracula-foreground font-medium"
+                      : "text-dracula-foreground/70 hover:bg-dracula-current/30 hover:text-dracula-foreground"
+                  )}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 text-left">{section.title}</span>
+                  <span className="text-xs text-dracula-comment">&rarr;</span>
+                </Link>
+              );
+            }
 
             return (
               <div key={section.id}>
@@ -242,9 +307,9 @@ export function DocsSidebar() {
                   className={cn(
                     "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
                     isSectionActive
-                      ? "bg-dracula-purple/20 text-dracula-purple font-medium"
+                      ? "bg-dracula-foreground/10 text-dracula-foreground font-medium"
                       : hasActiveSubsection
-                        ? "text-dracula-purple/80"
+                        ? "text-dracula-foreground/80"
                         : "text-dracula-foreground/70 hover:bg-dracula-current/30 hover:text-dracula-foreground"
                   )}
                 >
@@ -254,7 +319,11 @@ export function DocsSidebar() {
 
                 {hasSubsections && (
                   <div className="ml-6 mt-1 space-y-0.5 border-l border-dracula-current/50 pl-3">
-                    {section.subsections!.map((sub) => {
+                    {(
+                      section as {
+                        subsections: { id: string; title: string }[];
+                      }
+                    ).subsections.map((sub) => {
                       const isSubActive = activeSection === sub.id;
                       return (
                         <button
@@ -263,7 +332,7 @@ export function DocsSidebar() {
                           className={cn(
                             "w-full text-left px-2 py-1.5 text-sm rounded transition-colors",
                             isSubActive
-                              ? "text-dracula-purple font-medium bg-dracula-purple/10"
+                              ? "text-dracula-foreground font-medium bg-dracula-foreground/10"
                               : "text-dracula-foreground/60 hover:text-dracula-foreground hover:bg-dracula-current/20"
                           )}
                         >

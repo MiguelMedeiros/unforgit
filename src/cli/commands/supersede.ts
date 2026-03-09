@@ -14,8 +14,8 @@ export const supersedeCommand = new Command("supersede")
   .option("--force", "Skip confirmation")
   .addHelpText("after", `
 Examples:
-  hippo supersede abc123 --with def456
-  hippo supersede abc123 --with def456 --remote`)
+  unforgit supersede abc123 --with def456
+  unforgit supersede abc123 --with def456 --remote`)
   .action(async (oldId, opts) => {
     if (oldId === opts.with) {
       logger.error("A memory cannot supersede itself.");

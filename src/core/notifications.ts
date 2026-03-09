@@ -49,7 +49,7 @@ export function getNotifications(
       title: "Sync Conflicts",
       message: `You have ${syncSummary.conflicts} unresolved sync conflict(s) that need attention.`,
       action: {
-        command: "hippo status",
+        command: "unforgit status",
         description: "View conflicts",
       },
       createdAt: now,
@@ -66,7 +66,7 @@ export function getNotifications(
       title: "Missing Embeddings",
       message: `${embeddingStats.withoutEmbedding} memories lack embeddings. Semantic search quality is reduced.`,
       action: {
-        command: "hippo embeddings backfill",
+        command: "unforgit embeddings backfill",
         description: "Generate missing embeddings",
       },
       createdAt: now,
@@ -87,7 +87,7 @@ export function getNotifications(
       title: "Curation Suggestions",
       message: `${highPrioritySuggestions} high-priority curation suggestion(s) available.`,
       action: {
-        command: "hippo web",
+        command: "unforgit web",
         description: "Open curation dashboard",
       },
       createdAt: now,
@@ -102,7 +102,7 @@ export function getNotifications(
       title: "Pending Sync",
       message: `${syncSummary.pendingPush} memories waiting to be pushed to remote.`,
       action: {
-        command: "hippo push",
+        command: "unforgit push",
         description: "Push changes to remote",
       },
       createdAt: now,
@@ -118,7 +118,7 @@ export function getNotifications(
       title: "Maintenance Recommended",
       message: `${unusedMemories.length} memories haven't been recalled in 90+ days. Consider reviewing or deprecating.`,
       action: {
-        command: "hippo web",
+        command: "unforgit web",
         description: "Open curation dashboard",
       },
       createdAt: now,

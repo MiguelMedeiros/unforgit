@@ -20,6 +20,39 @@ export const embeddingConfigSchema = z.object({
   autoGenerate: z.boolean(),
 });
 
+export const lifecycleTtlConfigSchema = z.object({
+  episodic: z.number().int().positive().optional(),
+  semantic: z.number().int().positive().optional(),
+  procedural: z.number().int().positive().optional(),
+});
+
+export const lifecycleUsageBoostSchema = z.object({
+  enabled: z.boolean(),
+  topKToRecord: z.number().int().positive(),
+  minUsageCount: z.number().int().positive(),
+  maxBoost: z.number().min(0).max(1),
+  halfLifeDays: z.number().positive(),
+});
+
+export const lifecycleMaintenanceSchema = z.object({
+  staleEpisodicDays: z.number().int().positive(),
+  consolidationThreshold: z.number().min(0).max(1),
+  consolidationMinGroupSize: z.number().int().min(2),
+  consolidationMaxGroups: z.number().int().positive(),
+  promoteRecallCount: z.number().int().positive(),
+  pinRecallCount: z.number().int().positive(),
+  dryRunDefault: z.boolean(),
+  autoRunOnStore: z.boolean(),
+  autoRunOnRecall: z.boolean(),
+  debounceMs: z.number().int().positive(),
+});
+
+export const lifecycleConfigSchema = z.object({
+  ttlSecondsByType: lifecycleTtlConfigSchema.optional(),
+  usageBoost: lifecycleUsageBoostSchema.partial().optional(),
+  maintenance: lifecycleMaintenanceSchema.partial().optional(),
+});
+
 const remoteConfigSchema = z.object({
   url: z.string(),
   orgId: z.string(),
@@ -36,6 +69,7 @@ export const hippoConfigSchema = z.object({
   }),
   sync: syncConfigSchema.optional(),
   embeddings: embeddingConfigSchema.optional(),
+  lifecycle: lifecycleConfigSchema.optional(),
   openaiApiKey: z.string().optional(),
   remotes: z.record(z.string(), remoteConfigSchema).optional(),
 });

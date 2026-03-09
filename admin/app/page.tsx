@@ -54,7 +54,7 @@ export default function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-[22px] font-bold tracking-tight">
-              Hippocampus Admin
+              Unforgit Admin
             </h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
               Enter your password to continue

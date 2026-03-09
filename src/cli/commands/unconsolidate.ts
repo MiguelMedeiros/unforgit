@@ -12,13 +12,13 @@ export const unconsolidateCommand = new Command("unconsolidate")
   .option("--force", "Skip confirmation")
   .addHelpText("after", `
 Examples:
-  hippo unconsolidate abc123 --dry-run   Preview what would be restored
-  hippo unconsolidate abc123             Revert a consolidation`)
+  unforgit unconsolidate abc123 --dry-run   Preview what would be restored
+  unforgit unconsolidate abc123             Revert a consolidation`)
   .action(async (consolidationId: string, opts) => {
     const cwd = process.cwd();
 
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -94,7 +94,7 @@ Examples:
         }
       }
 
-      logger.info("\nThe consolidated memory has been soft-deleted and can be restored with 'hippo restore'.");
+      logger.info("\nThe consolidated memory has been soft-deleted and can be restored with 'unforgit restore'.");
     } finally {
       store.close();
     }

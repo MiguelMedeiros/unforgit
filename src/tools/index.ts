@@ -2,7 +2,11 @@ import { LocalStore } from "../db/local.js";
 import { RemoteClient } from "../cli/remote-client.js";
 import { resolveVisibility } from "../core/policy.js";
 import { mergeAndRank } from "../core/recall.js";
+import { applyLifecycleDefaults, resolveLifecycleConfig } from "../core/lifecycle.js";
+import { runLocalLifecycleMaintenance } from "../core/lifecycle-maintenance.js";
+import { LifecycleScheduler } from "../core/lifecycle-scheduler.js";
 import type {
+  LifecycleConfig,
   MemoryType,
   MemoryLink,
   LinkType,
@@ -16,6 +20,7 @@ export interface ToolConfig {
   orgId: string;
   repoId: string;
   apiKey?: string;
+  lifecycle?: LifecycleConfig;
 }
 
 export interface RecallParams {
@@ -60,6 +65,23 @@ export interface GetLinksParams {
 }
 
 export function createMemoryTools(config: ToolConfig) {
+  const lifecycleConfig = resolveLifecycleConfig(config.lifecycle);
+  const localLifecycleScheduler = new LifecycleScheduler(
+    async (orgId, repoId) => {
+      const store = getLocal();
+      try {
+        await runLocalLifecycleMaintenance(store, orgId, repoId, {
+          dryRun: false,
+          preserveOriginals: true,
+          lifecycle: config.lifecycle,
+        });
+      } finally {
+        store.close();
+      }
+    },
+    { debounceMs: lifecycleConfig.maintenance.debounceMs },
+  );
+
   function getLocal(): LocalStore {
     return new LocalStore(config.localDbPath);
   }
@@ -71,6 +93,7 @@ export function createMemoryTools(config: ToolConfig) {
   return {
     async recall(params: RecallParams): Promise<RecallResult[]> {
       const k = params.k ?? 10;
+      const usageTrackingLimit = lifecycleConfig.usageBoost.topKToRecord;
       const query = {
         orgId: config.orgId,
         repoId: params.repo ?? config.repoId,
@@ -86,6 +109,15 @@ export function createMemoryTools(config: ToolConfig) {
       try {
         const store = getLocal();
         localResults = store.recall(query);
+        const idsToRecord = localResults
+          .slice(0, usageTrackingLimit)
+          .map((result) => result.id);
+        if (idsToRecord.length > 0) {
+          store.recordUsageBatch(idsToRecord, params.query);
+        }
+        if (lifecycleConfig.maintenance.autoRunOnRecall) {
+          localLifecycleScheduler.schedule(query.orgId, query.repoId);
+        }
         store.close();
       } catch {
         /* local not available */
@@ -106,7 +138,7 @@ export function createMemoryTools(config: ToolConfig) {
     },
 
     async store(params: StoreParams): Promise<{ id: string; visibility: string; suggestion?: string }> {
-      const input = {
+      const input = applyLifecycleDefaults({
         orgId: config.orgId,
         repoId: params.repo ?? config.repoId,
         memoryType: params.type,
@@ -114,7 +146,7 @@ export function createMemoryTools(config: ToolConfig) {
         tags: params.tags,
         sourceRefs: params.sourceRefs,
         visibility: params.visibility ?? ("auto" as Visibility),
-      };
+      }, config.lifecycle);
 
       const policy = resolveVisibility(input);
 
@@ -129,6 +161,9 @@ export function createMemoryTools(config: ToolConfig) {
         } catch {
           const store = getLocal();
           const memory = store.store({ ...input, visibility: "private" });
+          if (lifecycleConfig.maintenance.autoRunOnStore) {
+            localLifecycleScheduler.schedule(input.orgId, input.repoId);
+          }
           store.close();
           return {
             id: memory.id,
@@ -140,6 +175,9 @@ export function createMemoryTools(config: ToolConfig) {
 
       const store = getLocal();
       const memory = store.store({ ...input, visibility: policy.visibility });
+      if (lifecycleConfig.maintenance.autoRunOnStore) {
+        localLifecycleScheduler.schedule(input.orgId, input.repoId);
+      }
       store.close();
 
       return {

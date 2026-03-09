@@ -20,7 +20,7 @@ export function AdminHeader() {
         </div>
         <div>
           <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
-            Hippocampus Admin
+            Unforgit Admin
           </h1>
           <p className="text-[11px] text-muted-foreground">
             API Key Management

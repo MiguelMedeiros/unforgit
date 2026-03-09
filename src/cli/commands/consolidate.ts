@@ -14,7 +14,7 @@ export const consolidateCommand = new Command("consolidate")
     const config = loadConfig();
 
     if (!config.remote.url) {
-      logger.error("Remote URL not configured. Update hippo.yaml.");
+      logger.error("Remote URL not configured. Update unforgit.yaml.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

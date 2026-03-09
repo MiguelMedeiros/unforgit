@@ -55,7 +55,7 @@ export function DashboardShowcase() {
   }, [isPaused, goToNext]);
 
   return (
-    <section id="dashboard" className="py-32 px-6 bg-gradient-to-b from-transparent via-dracula-purple/5 to-transparent">
+    <section id="dashboard" className="py-40 px-6 bg-linear-to-b from-transparent via-white/2 to-transparent">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -64,10 +64,10 @@ export function DashboardShowcase() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-pink/10 border border-dracula-pink/30 mb-6">
-            <LayoutDashboard className="w-4 h-4 text-dracula-pink" />
-            <span className="text-sm text-dracula-pink font-medium">
-              hippo web
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-foreground/10 border border-dracula-comment/30 mb-6">
+            <LayoutDashboard className="w-4 h-4 text-dracula-foreground/70" />
+            <span className="text-sm text-dracula-foreground/70 font-medium">
+              unforgit web
             </span>
           </div>
 
@@ -79,8 +79,8 @@ export function DashboardShowcase() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             A visual interface to explore, manage, and understand your
             repository memories. Run{" "}
-            <code className="px-2 py-1 rounded bg-dracula-current text-dracula-green text-sm">
-              hippo web
+            <code className="px-2 py-1 rounded bg-dracula-current text-dracula-foreground text-sm">
+              unforgit web
             </code>{" "}
             to start.
           </p>
@@ -103,7 +103,7 @@ export function DashboardShowcase() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                   activeIndex === index
-                    ? "bg-dracula-purple text-dracula-background"
+                    ? "bg-dracula-foreground text-dracula-background"
                     : "text-muted-foreground hover:text-foreground hover:bg-dracula-current/50"
                 )}
               >
@@ -114,7 +114,7 @@ export function DashboardShowcase() {
           </div>
 
           <div className="relative w-full max-w-5xl group">
-            <div className="absolute -inset-4 bg-gradient-to-r from-dracula-purple/20 via-dracula-pink/20 to-dracula-purple/20 rounded-2xl blur-xl opacity-50" />
+            <div className="absolute -inset-4 bg-linear-to-r from-white/5 via-white/8 to-white/5 rounded-2xl blur-xl opacity-50" />
 
             <button
               onClick={goToPrev}
@@ -132,9 +132,9 @@ export function DashboardShowcase() {
 
             <div className="relative rounded-xl overflow-hidden border border-dracula-current bg-dracula-background shadow-2xl">
               <div className="flex items-center gap-2 px-4 py-3 bg-dracula-current/50 border-b border-dracula-current">
-                <span className="w-3 h-3 rounded-full bg-dracula-red" />
-                <span className="w-3 h-3 rounded-full bg-dracula-yellow" />
-                <span className="w-3 h-3 rounded-full bg-dracula-green" />
+                <span className="w-3 h-3 rounded-full bg-dracula-comment/50" />
+                <span className="w-3 h-3 rounded-full bg-dracula-comment/30" />
+                <span className="w-3 h-3 rounded-full bg-dracula-comment/20" />
                 <span className="ml-4 text-xs text-dracula-comment">
                   localhost:3838
                 </span>
@@ -151,7 +151,7 @@ export function DashboardShowcase() {
                 >
                   <Image
                     src={activeItem.image}
-                    alt={`Hippocampus ${activeItem.label}`}
+                    alt={`Unforgit ${activeItem.label}`}
                     fill
                     className="object-cover object-top"
                     priority
@@ -170,7 +170,7 @@ export function DashboardShowcase() {
                 >
                   {activeIndex === index && (
                     <motion.div
-                      className="absolute inset-0 bg-dracula-purple"
+                      className="absolute inset-0 bg-dracula-foreground"
                       initial={{ scaleX: 0 }}
                       animate={{ scaleX: 1 }}
                       transition={{ duration: AUTOPLAY_INTERVAL / 1000, ease: "linear" }}

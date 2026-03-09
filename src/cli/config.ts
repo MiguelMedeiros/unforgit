@@ -3,10 +3,11 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import YAML from "yaml";
 import type { HippoConfig } from "../core/types.js";
+import { resolveLifecycleConfig } from "../core/lifecycle.js";
 import { hippoConfigSchema } from "./schemas.js";
 
-const HIPPO_DIR = ".hippocampus";
-const CONFIG_FILE = "hippo.yaml";
+const HIPPO_DIR = ".unforgit";
+const CONFIG_FILE = "unforgit.yaml";
 const DB_FILE = "local.db";
 
 export function detectGitInfo(cwd: string = process.cwd()): {
@@ -49,7 +50,7 @@ export function isInitialized(cwd: string = process.cwd()): boolean {
   return fs.existsSync(getHippoDir(cwd)) && fs.existsSync(getConfigPath(cwd));
 }
 
-const CURRENT_CONFIG_VERSION = 1;
+const CURRENT_CONFIG_VERSION = 2;
 
 function migrateConfig(parsed: Record<string, unknown>, configPath: string): Record<string, unknown> {
   const version = (parsed.configVersion as number) ?? 0;
@@ -61,6 +62,11 @@ function migrateConfig(parsed: Record<string, unknown>, configPath: string): Rec
     fs.writeFileSync(configPath, YAML.stringify(parsed), "utf-8");
   }
 
+  if (version === 1) {
+    parsed.configVersion = CURRENT_CONFIG_VERSION;
+    fs.writeFileSync(configPath, YAML.stringify(parsed), "utf-8");
+  }
+
   return parsed;
 }
 
@@ -68,7 +74,7 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
   const configPath = getConfigPath(cwd);
   if (!fs.existsSync(configPath)) {
     throw new Error(
-      "Hippocampus not initialized. Run 'hippo init' first.",
+      "Unforgit not initialized. Run 'unforgit init' first.",
     );
   }
   const raw = fs.readFileSync(configPath, "utf-8");
@@ -82,11 +88,34 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
       .map((i) => `  - ${(i.path as (string | number)[]).join(".")}: ${i.message}`)
       .join("\n");
     throw new Error(
-      `Invalid hippo.yaml configuration:\n${issues}\n\nFix the config at ${configPath} or re-run 'hippo init'.`,
+      `Invalid unforgit.yaml configuration:\n${issues}\n\nFix the config at ${configPath} or re-run 'unforgit init'.`,
     );
   }
 
-  return { ...migrated, ...result.data } as HippoConfig;
+  const defaults = defaultConfig();
+
+  return {
+    ...defaults,
+    ...migrated,
+    ...result.data,
+    remote: {
+      ...defaults.remote,
+      ...result.data.remote,
+    },
+    defaults: {
+      ...defaults.defaults,
+      ...result.data.defaults,
+    },
+    sync: {
+      ...defaults.sync,
+      ...(result.data.sync ?? {}),
+    },
+    embeddings: {
+      ...defaults.embeddings,
+      ...(result.data.embeddings ?? {}),
+    },
+    lifecycle: resolveLifecycleConfig(result.data.lifecycle),
+  } as HippoConfig;
 }
 
 export function saveConfig(
@@ -120,5 +149,6 @@ export function defaultConfig(): HippoConfig & { configVersion: number } {
       model: "text-embedding-3-small",
       autoGenerate: true,
     },
+    lifecycle: resolveLifecycleConfig(),
   };
 }

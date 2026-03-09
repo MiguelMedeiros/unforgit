@@ -145,7 +145,7 @@ export function Header() {
           </div>
           <div className="flex flex-col">
             <span className="text-[15px] font-semibold tracking-tight text-foreground leading-tight">
-              Hippocampus
+              Unforgit
             </span>
             <span className="text-[9px] font-medium text-dracula-purple/70 bg-dracula-purple/10 rounded px-1 py-0.5 w-fit">
               v0.1.0

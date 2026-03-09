@@ -13,13 +13,13 @@ export const promoteCommand = new Command("promote")
   .option("--source-commit <sha>", "Source commit SHA")
   .addHelpText("after", `
 Examples:
-  hippo promote abc123
-  hippo promote abc123 --source-pr https://github.com/org/repo/pull/42`)
+  unforgit promote abc123
+  unforgit promote abc123 --source-pr https://github.com/org/repo/pull/42`)
   .action(async (id, opts) => {
     const config = loadConfig();
 
     if (!config.remote.url) {
-      logger.error("Remote URL not configured. Update hippo.yaml.");
+      logger.error("Remote URL not configured. Update unforgit.yaml.");
       process.exit(EXIT_ERROR);
     }
 

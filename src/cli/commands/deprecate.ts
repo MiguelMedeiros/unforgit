@@ -12,8 +12,8 @@ export const deprecateCommand = new Command("deprecate")
   .option("--remote", "Deprecate on remote")
   .addHelpText("after", `
 Examples:
-  hippo deprecate abc123 --reason "No longer relevant"
-  hippo deprecate abc123 --remote`)
+  unforgit deprecate abc123 --reason "No longer relevant"
+  unforgit deprecate abc123 --remote`)
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();

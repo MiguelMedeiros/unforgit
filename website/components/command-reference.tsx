@@ -49,7 +49,7 @@ export function CommandReference({
       className="rounded-lg border border-dracula-current/50 bg-dracula-background/50 overflow-hidden"
     >
       <div className="px-4 py-3 border-b border-dracula-current/50 bg-dracula-current/20">
-        <h4 className="font-mono text-dracula-green font-semibold">{name}</h4>
+        <h4 className="font-mono text-dracula-foreground font-semibold">{name}</h4>
         <p className="text-sm text-dracula-foreground/70 mt-1">{description}</p>
       </div>
 
@@ -72,7 +72,7 @@ export function CommandReference({
                   <code
                     className={cn(
                       "font-mono",
-                      arg.required ? "text-dracula-orange" : "text-dracula-cyan"
+                      arg.required ? "text-dracula-foreground" : "text-dracula-comment"
                     )}
                   >
                     {arg.required ? `<${arg.name}>` : `[${arg.name}]`}
@@ -94,7 +94,7 @@ export function CommandReference({
             <div className="space-y-1.5">
               {options.map((opt) => (
                 <div key={opt.flag} className="text-sm">
-                  <code className="font-mono text-dracula-pink">{opt.flag}</code>
+                  <code className="font-mono text-dracula-foreground">{opt.flag}</code>
                   <span className="text-dracula-foreground/70 ml-2">
                     {opt.description}
                   </span>

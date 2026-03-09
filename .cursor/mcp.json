@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "hippocampus": {
-      "command": "hippo-mcp",
+    "unforgit": {
+      "command": "unforgit-mcp",
       "args": [],
       "cwd": "/Users/miguelmedeiros/code/hippocampus"
     }

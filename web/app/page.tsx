@@ -228,7 +228,7 @@ export default function DashboardPage() {
                 <p className="text-[12px] text-muted-foreground/60">
                   Use{" "}
                   <code className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px]">
-                    hippo add
+                    unforgit add
                   </code>{" "}
                   or the Memories page to create some
                 </p>

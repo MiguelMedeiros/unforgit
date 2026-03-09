@@ -14,10 +14,11 @@ export function computeCompositeScore(
   textScore: number,
   createdAt: Date,
   confidence?: number,
+  usageBoost = 0,
 ): number {
   const recency = recencyScore(createdAt);
   const conf = confidence ?? 0.5;
-  return textScore * 0.6 + recency * 0.2 + conf * 0.2;
+  return Math.min(1, textScore * 0.55 + recency * 0.15 + conf * 0.15 + usageBoost);
 }
 
 export function computeHybridScore(
@@ -25,10 +26,14 @@ export function computeHybridScore(
   embeddingScore: number,
   createdAt: Date,
   confidence?: number,
+  usageBoost = 0,
 ): number {
   const recency = recencyScore(createdAt);
   const conf = confidence ?? 0.5;
-  return embeddingScore * 0.5 + ftsScore * 0.2 + recency * 0.15 + conf * 0.15;
+  return Math.min(
+    1,
+    embeddingScore * 0.45 + ftsScore * 0.15 + recency * 0.125 + conf * 0.125 + usageBoost,
+  );
 }
 
 export function normalizeEmbeddingScore(similarity: number): number {

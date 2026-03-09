@@ -50,17 +50,17 @@ export function CTASection() {
         }}
       />
 
-      <div className="absolute inset-0 bg-linear-to-t from-dracula-purple/10 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-white/5 via-transparent to-transparent" />
 
       <motion.div
-        className="absolute bottom-20 left-20 w-80 h-80 bg-dracula-pink/15 rounded-full blur-3xl"
+        className="absolute bottom-20 left-20 w-80 h-80 bg-white/4 rounded-full blur-3xl"
         style={{
           x: circle1X,
           y: circle1Y,
         }}
         animate={{
           scale: [1, 1.1, 1],
-          opacity: [0.15, 0.25, 0.15],
+          opacity: [0.04, 0.08, 0.04],
         }}
         transition={{
           duration: 4,
@@ -69,14 +69,14 @@ export function CTASection() {
         }}
       />
       <motion.div
-        className="absolute top-20 right-20 w-72 h-72 bg-dracula-purple/20 rounded-full blur-3xl"
+        className="absolute top-20 right-20 w-72 h-72 bg-white/3 rounded-full blur-3xl"
         style={{
           x: circle2X,
           y: circle2Y,
         }}
         animate={{
           scale: [1, 1.15, 1],
-          opacity: [0.1, 0.2, 0.1],
+          opacity: [0.03, 0.06, 0.03],
         }}
         transition={{
           duration: 5,
@@ -91,9 +91,9 @@ export function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-pink/30 mb-8"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-comment/30 mb-8"
         >
-          <Sparkles className="w-4 h-4 text-dracula-pink" />
+          <Sparkles className="w-4 h-4 text-dracula-foreground/70" />
           <span className="text-sm text-dracula-foreground/80">
             Ready to level up?
           </span>
@@ -131,13 +131,13 @@ export function CTASection() {
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            href="https://github.com/miguelmedeiros/hippocampus"
+            href="https://github.com/miguelmedeiros/unforgit"
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
               "inline-flex items-center gap-2 px-8 py-4 rounded-lg",
-              "bg-dracula-purple text-dracula-background font-semibold text-lg",
-              "hover:bg-dracula-purple/90 transition-all duration-200",
+              "bg-dracula-foreground text-dracula-background font-semibold text-lg",
+              "hover:bg-dracula-foreground/90 transition-all duration-200",
               "glow"
             )}
           >
@@ -148,7 +148,7 @@ export function CTASection() {
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            href="#install"
+            href="#get-started"
             className={cn(
               "inline-flex items-center gap-2 px-8 py-4 rounded-lg",
               "bg-secondary border border-border font-semibold text-lg",
@@ -168,15 +168,15 @@ export function CTASection() {
           className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground"
         >
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-dracula-green animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-dracula-foreground/50 animate-pulse" />
             <span>100% Open Source</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-dracula-cyan animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-dracula-foreground/50 animate-pulse" />
             <span>Self-Hosted</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-dracula-pink animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-dracula-foreground/50 animate-pulse" />
             <span>MIT License</span>
           </div>
         </motion.div>

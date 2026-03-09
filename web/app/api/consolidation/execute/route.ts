@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   if (!config) {
     return NextResponse.json(
-      { error: "Hippocampus not initialized" },
+      { error: "Unforgit not initialized" },
       { status: 500 },
     );
   }

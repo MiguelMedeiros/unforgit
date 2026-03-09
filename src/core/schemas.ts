@@ -38,6 +38,7 @@ export const recallQuerySchema = z.object({
     .optional(),
   k: z.number().int().min(1).max(100).optional().default(10),
   includeDeprecated: z.boolean().optional().default(false),
+  includeExpired: z.boolean().optional().default(false),
 });
 
 export const consolidateSchema = z.object({

@@ -403,7 +403,7 @@ export default function SettingsPage() {
             <SettingsGroup
               title="Configuration"
               icon={FolderOpen}
-              description=".hippocampus/hippo.yaml"
+              description=".unforgit/unforgit.yaml"
             >
               <SettingsRow label="Workspace">
                 <code className="max-w-[240px] truncate text-[11px] text-muted-foreground font-mono block text-right">

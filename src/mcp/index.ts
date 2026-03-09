@@ -3,6 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { LocalStore } from "../db/local.js";
 import { resolveVisibility } from "../core/policy.js";
+import { applyLifecycleDefaults, resolveLifecycleConfig } from "../core/lifecycle.js";
+import { buildAutoLinkQuery } from "../core/auto-link.js";
 import { loadConfig, getDbPath, isInitialized } from "../cli/config.js";
 import type { MemoryType, LinkType } from "../core/types.js";
 import {
@@ -15,25 +17,32 @@ import { generateSuggestions, formatSuggestion } from "../core/suggestions.js";
 import { computeRepositoryHealth, type MemoryStats } from "../core/quality.js";
 import { getTemplate, applyTemplate, formatTemplateList, MEMORY_TEMPLATES } from "../core/templates.js";
 import { getNotifications, formatNotificationsSummary } from "../core/notifications.js";
+import { runLocalLifecycleMaintenance } from "../core/lifecycle-maintenance.js";
+import { LifecycleScheduler } from "../core/lifecycle-scheduler.js";
 
 const cwd = process.cwd();
 
 // Debug log to stderr (doesn't affect MCP protocol on stdout)
 const debug = (msg: string) => {
-  if (process.env.HIPPO_DEBUG === "1") {
-    console.error(`[hippo-mcp] ${msg}`);
+  if (process.env.UNFORGIT_DEBUG === "1") {
+    console.error(`[unforgit-mcp] ${msg}`);
   }
 };
 
 debug(`Starting with cwd: ${cwd}`);
 
-function getStore(): { store: LocalStore; orgId: string; repoId: string } {
+function getStore(): {
+  store: LocalStore;
+  orgId: string;
+  repoId: string;
+  config: ReturnType<typeof loadConfig>;
+} {
   debug(`getStore called, checking initialization at: ${cwd}`);
   
   if (!isInitialized(cwd)) {
     debug(`Not initialized at ${cwd}`);
     throw new Error(
-      `Hippocampus not initialized in this directory (${cwd}). Run 'hippo init' first.`,
+      `Unforgit not initialized in this directory (${cwd}). Run 'unforgit init' first.`,
     );
   }
 
@@ -47,16 +56,17 @@ function getStore(): { store: LocalStore; orgId: string; repoId: string } {
     store,
     orgId: config.remote.orgId || "local",
     repoId: config.remote.repoId || "local",
+    config,
   };
 }
 
 const server = new McpServer({
-  name: "hippocampus",
+  name: "unforgit",
   version: "0.1.0",
 });
 
 server.tool(
-  "hippo_recall",
+  "unforgit_recall",
   "Search local repository memories by query. Returns relevant past decisions, conventions, bugs, and procedures stored across sessions. Consolidated memories are prioritized by default.",
   {
     query: z.string().describe("Search query (natural language)"),
@@ -83,7 +93,7 @@ server.tool(
       .describe("If true, includes source memories for each consolidation"),
   },
   async ({ query, types, tags, k, expandHistory }) => {
-    const { store, orgId, repoId } = getStore();
+    const { store, orgId, repoId, config } = getStore();
 
     try {
       const results = store.recall({
@@ -96,6 +106,12 @@ server.tool(
         expandHistory,
         includeConsolidatedSources: expandHistory,
       });
+      const usageTrackingLimit = resolveLifecycleConfig(config.lifecycle).usageBoost.topKToRecord;
+      const idsToRecord = results.slice(0, usageTrackingLimit).map((result) => result.id);
+      if (idsToRecord.length > 0) {
+        store.recordUsageBatch(idsToRecord, query);
+      }
+      scheduleLocalLifecycleFromConfig(config, orgId, repoId, "recall");
 
       if (results.length === 0) {
         return {
@@ -153,9 +169,65 @@ function getGitAuthor(): { authorId?: string; authorName?: string } {
 
 const AUTO_LINK_THRESHOLD = 0.25;
 const AUTO_LINK_MAX = 3;
+let localLifecycleScheduler: LifecycleScheduler | undefined;
+let localLifecycleSchedulerDebounceMs: number | undefined;
+
+function getLocalLifecycleScheduler(debounceMs: number): LifecycleScheduler {
+  if (
+    !localLifecycleScheduler ||
+    localLifecycleSchedulerDebounceMs !== debounceMs
+  ) {
+    localLifecycleScheduler?.dispose();
+    localLifecycleScheduler = new LifecycleScheduler(
+      async (orgId, repoId) => {
+        const config = loadConfig(cwd);
+        const store = new LocalStore(getDbPath(cwd));
+        try {
+          await runLocalLifecycleMaintenance(store, orgId, repoId, {
+            dryRun: false,
+            preserveOriginals: true,
+            lifecycle: config.lifecycle,
+          });
+        } finally {
+          store.close();
+        }
+      },
+      {
+        debounceMs,
+        onError: (error, context) => {
+          debug(
+            `Lifecycle hook failed for ${context.orgId}/${context.repoId}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        },
+      },
+    );
+    localLifecycleSchedulerDebounceMs = debounceMs;
+  }
+
+  return localLifecycleScheduler;
+}
+
+function scheduleLocalLifecycleFromConfig(
+  config: ReturnType<typeof loadConfig>,
+  orgId: string,
+  repoId: string,
+  trigger: "store" | "recall",
+): void {
+  const maintenance = resolveLifecycleConfig(config.lifecycle).maintenance;
+
+  if (trigger === "store" && !maintenance.autoRunOnStore) {
+    return;
+  }
+
+  if (trigger === "recall" && !maintenance.autoRunOnRecall) {
+    return;
+  }
+
+  getLocalLifecycleScheduler(maintenance.debounceMs).schedule(orgId, repoId);
+}
 
 server.tool(
-  "hippo_add",
+  "unforgit_add",
   "Store a memory in the local repository knowledge base. Use for decisions, conventions, bugs, gotchas, and procedures worth remembering across sessions. Automatically links to related existing memories. Use templates for common memory types.",
   {
     text: z
@@ -184,12 +256,12 @@ server.tool(
       .describe("Automatically link to related memories (default: true)"),
   },
   async ({ text, type, tags, template, autoLink }) => {
-    const { store, orgId, repoId } = getStore();
+    const { store, orgId, repoId, config } = getStore();
     const author = getGitAuthor();
 
     try {
       let memoryText = text;
-      let memoryType = (type ?? "episodic") as MemoryType;
+      let memoryType = (type ?? config.defaults.memoryType) as MemoryType;
       let memoryTags = tags;
       let visibility: "private" | "repo" = "private";
 
@@ -204,7 +276,7 @@ server.tool(
         }
       }
 
-      const input = {
+      const input = applyLifecycleDefaults({
         orgId,
         repoId,
         memoryType,
@@ -213,7 +285,7 @@ server.tool(
         visibility,
         authorId: author.authorId,
         authorName: author.authorName,
-      };
+      }, config.lifecycle);
 
       const policy = resolveVisibility(input);
       const memory = store.store({
@@ -234,37 +306,31 @@ server.tool(
 
       const linkedIds: string[] = [];
       if (autoLink) {
-        const stopWords = new Set(["the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall", "can", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during", "before", "after", "above", "below", "between", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just", "and", "but", "if", "or", "because", "until", "while", "this", "that", "these", "those", "it", "its"]);
-        const words = text
-          .toLowerCase()
-          .replace(/[_-]/g, " ")
-          .replace(/[^\w\s]/g, " ")
-          .split(/\s+/)
-          .filter((w) => w.length > 2 && !stopWords.has(w));
-        const uniqueWords = [...new Set(words)].slice(0, 10);
-        const searchQuery = uniqueWords.join(" OR ");
-        
-        const similar = store.recall({
-          orgId,
-          repoId,
-          query: searchQuery,
-          k: AUTO_LINK_MAX + 5,
-        });
+        const searchQuery = buildAutoLinkQuery(text, 10);
 
-        for (const match of similar) {
-          if (match.id === memory.id) continue;
-          if (match.score < AUTO_LINK_THRESHOLD) continue;
-          if (linkedIds.length >= AUTO_LINK_MAX) break;
+        if (searchQuery) {
+          const similar = store.recall({
+            orgId,
+            repoId,
+            query: searchQuery,
+            k: AUTO_LINK_MAX + 5,
+          });
 
-          try {
-            store.link({
-              sourceId: memory.id,
-              targetId: match.id,
-              linkType: "related_to",
-            });
-            linkedIds.push(match.id);
-          } catch (err) {
-            console.error("Auto-link error:", err);
+          for (const match of similar) {
+            if (match.id === memory.id) continue;
+            if (match.score < AUTO_LINK_THRESHOLD) continue;
+            if (linkedIds.length >= AUTO_LINK_MAX) break;
+
+            try {
+              store.link({
+                sourceId: memory.id,
+                targetId: match.id,
+                linkType: "related_to",
+              });
+              linkedIds.push(match.id);
+            } catch (err) {
+              console.error("Auto-link error:", err);
+            }
           }
         }
 
@@ -278,9 +344,11 @@ server.tool(
 
       if (policy.suggestion === "promote") {
         parts.push(
-          `\nHint: This memory might be useful for the team. Consider promoting it later with 'hippo promote ${memory.id}'.`,
+          `\nHint: This memory might be useful for the team. Consider promoting it later with 'unforgit promote ${memory.id}'.`,
         );
       }
+
+      scheduleLocalLifecycleFromConfig(config, orgId, repoId, "store");
 
       return {
         content: [{ type: "text", text: parts.join("\n") }],
@@ -292,7 +360,68 @@ server.tool(
 );
 
 server.tool(
-  "hippo_link",
+  "unforgit_curate",
+  "Preview or run lifecycle maintenance for local memories: expire stale episodic noise, surface frequently reused memories, and identify consolidation candidates.",
+  {
+    dryRun: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("If true, preview actions without changing any memories"),
+    model: z
+      .string()
+      .optional()
+      .describe("Optional OpenAI model for consolidation execution"),
+    preserveOriginals: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("If false, do not preserve originals during consolidation"),
+  },
+  async ({ dryRun, model, preserveOriginals }) => {
+    const { store, orgId, repoId, config } = getStore();
+
+    try {
+      const result = await runLocalLifecycleMaintenance(store, orgId, repoId, {
+        dryRun,
+        model,
+        preserveOriginals,
+        lifecycle: config.lifecycle,
+      });
+
+      const sections = [
+        result.dryRun ? "Lifecycle preview" : "Lifecycle execution",
+        `Active memories scanned: ${result.totalActiveMemories}`,
+        `Expired candidates: ${result.expiredCandidates.length}`,
+        `Strengthened candidates: ${result.strengthenedCandidates.length}`,
+        `Consolidation candidates: ${result.consolidationCandidates.length}`,
+      ];
+
+      if (result.executedConsolidations.length > 0) {
+        sections.push(
+          `Executed consolidations: ${result.executedConsolidations.length}`,
+        );
+      }
+
+      if (result.warnings.length > 0) {
+        sections.push(`Warnings: ${result.warnings.join(" | ")}`);
+      }
+
+      if (result.errors.length > 0) {
+        sections.push(`Errors: ${result.errors.join(" | ")}`);
+      }
+
+      return {
+        content: [{ type: "text", text: sections.join("\n") }],
+      };
+    } finally {
+      store.close();
+    }
+  },
+);
+
+server.tool(
+  "unforgit_link",
   "Create a directional link between two memories. Use to express relationships like 'related_to', 'derived_from', 'contradicts', or 'depends_on'.",
   {
     sourceId: z.string().min(1).describe("Source memory ID"),
@@ -333,7 +462,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_unlink",
+  "unforgit_unlink",
   "Remove a link between two memories.",
   {
     sourceId: z.string().min(1).describe("Source memory ID"),
@@ -365,7 +494,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_links",
+  "unforgit_links",
   "Get all links for a memory. Returns connected memories and their relationship types.",
   {
     memoryId: z.string().min(1).describe("Memory ID to get links for"),
@@ -412,7 +541,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_consolidate",
+  "unforgit_consolidate",
   "Consolidate multiple related memories into a single unified memory. The original memories are preserved and linked via 'derived_from' relationships, creating a commit-like history. Use this to reduce noise while maintaining full history.",
   {
     sourceIds: z
@@ -458,8 +587,8 @@ server.tool(
         `Source IDs: ${result.sourceIds.map((id) => id.slice(0, 8)).join(", ")}`,
         "",
         "Original memories are now linked via 'derived_from' and marked as 'superseded'.",
-        "Use hippo_recall to search - consolidated memories are prioritized.",
-        "Use hippo_history to view the full consolidation history.",
+        "Use unforgit_recall to search - consolidated memories are prioritized.",
+        "Use unforgit_history to view the full consolidation history.",
       ];
 
       return {
@@ -472,7 +601,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_reconsolidate",
+  "unforgit_reconsolidate",
   "Update an existing consolidation with new information or additional source memories. Creates a new version while preserving the previous consolidation in history.",
   {
     existingConsolidationId: z
@@ -511,7 +640,7 @@ server.tool(
         `Total sources: ${result.sourcesPreserved}`,
         `Previous consolidation: ${existingConsolidationId.slice(0, 8)} (now superseded)`,
         "",
-        "The consolidation history is preserved. Use hippo_history to view all versions.",
+        "The consolidation history is preserved. Use unforgit_history to view all versions.",
       ];
 
       return {
@@ -524,7 +653,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_find_similar",
+  "unforgit_find_similar",
   "Find memories similar to a given memory. Useful for identifying candidates for consolidation.",
   {
     memoryId: z.string().min(1).describe("ID of the memory to find similar ones for"),
@@ -586,7 +715,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_history",
+  "unforgit_history",
   "Get the consolidation history for a memory. Shows all source memories and previous consolidation versions.",
   {
     memoryId: z.string().min(1).describe("ID of the memory to get history for"),
@@ -651,7 +780,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_delete",
+  "unforgit_delete",
   "Soft delete a memory from the local repository. The memory can be restored later. Creates a tombstone for sync propagation.",
   {
     memoryId: z.string().min(1).describe("ID of the memory to delete"),
@@ -704,7 +833,7 @@ server.tool(
       }
 
       if (!hardDelete) {
-        parts.push("", "This memory can be restored with hippo_restore.");
+        parts.push("", "This memory can be restored with unforgit_restore.");
         parts.push("Deletion will be synced to remote on next sync.");
       }
 
@@ -718,7 +847,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_restore",
+  "unforgit_restore",
   "Restore a soft-deleted memory. Only works for memories that were soft deleted (not hard deleted).",
   {
     memoryId: z.string().min(1).describe("ID of the memory to restore"),
@@ -750,7 +879,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_list_deleted",
+  "unforgit_list_deleted",
   "List all soft-deleted memories that can be restored.",
   {},
   async () => {
@@ -783,7 +912,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_unconsolidate",
+  "unforgit_unconsolidate",
   "Revert a consolidation, restoring original memories to active status. The consolidated memory is soft-deleted and can be restored later. Use this to undo a consolidation if the merged result is not satisfactory.",
   {
     consolidationId: z
@@ -875,7 +1004,7 @@ server.tool(
 
       parts.push("");
       parts.push("The consolidated memory has been soft-deleted.");
-      parts.push("Use hippo_restore to restore it if needed.");
+      parts.push("Use unforgit_restore to restore it if needed.");
 
       return {
         content: [{ type: "text", text: parts.join("\n") }],
@@ -887,7 +1016,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_auto_consolidate",
+  "unforgit_auto_consolidate",
   "Automatically find and consolidate similar memories using AI. In dry-run mode (default), returns consolidation candidates without making changes. With execute=true, generates consolidated text via OpenAI and creates new consolidated memories.",
   {
     threshold: z
@@ -1034,7 +1163,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_sync_status",
+  "unforgit_sync_status",
   "Get the sync status between local and remote storage. Shows pending pushes, pulls, and conflicts.",
   {},
   async () => {
@@ -1061,12 +1190,12 @@ server.tool(
 
       if (summary.conflicts > 0) {
         parts.push("");
-        parts.push("Warning: You have unresolved conflicts. Run 'hippo status' for details.");
+        parts.push("Warning: You have unresolved conflicts. Run 'unforgit status' for details.");
       }
 
       if (embeddingStats.withoutEmbedding > 0) {
         parts.push("");
-        parts.push(`Tip: Run 'hippo embeddings backfill' to generate missing embeddings for better semantic search.`);
+        parts.push(`Tip: Run 'unforgit embeddings backfill' to generate missing embeddings for better semantic search.`);
       }
 
       return {
@@ -1079,7 +1208,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_embedding_recall",
+  "unforgit_embedding_recall",
   "Search memories using semantic embeddings for better relevance. Falls back to text search if embeddings are unavailable.",
   {
     query: z.string().describe("Search query (natural language)"),
@@ -1159,7 +1288,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_suggestions",
+  "unforgit_suggestions",
   "Get AI-powered curation suggestions for improving memory quality. Analyzes memories and suggests consolidations, deprecations, and improvements.",
   {
     maxSuggestions: z
@@ -1206,7 +1335,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_health",
+  "unforgit_health",
   "Get the health status of the repository memory base. Shows quality metrics and identifies areas needing attention.",
   {},
   async () => {
@@ -1275,7 +1404,7 @@ server.tool(
       }
 
       parts.push("");
-      parts.push("Run 'hippo_suggestions' for specific recommendations.");
+      parts.push("Run 'unforgit_suggestions' for specific recommendations.");
 
       return {
         content: [{ type: "text", text: parts.join("\n") }],
@@ -1287,7 +1416,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_notifications",
+  "unforgit_notifications",
   "Get pending notifications about sync status, conflicts, missing embeddings, and curation suggestions. Run this periodically to stay informed.",
   {},
   async () => {
@@ -1307,7 +1436,7 @@ server.tool(
 );
 
 server.tool(
-  "hippo_templates",
+  "unforgit_templates",
   "List available memory templates for common use cases like decisions, gotchas, playbooks, etc.",
   {},
   async () => {
@@ -1324,6 +1453,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Hippocampus MCP server error:", err);
+  console.error("Unforgit MCP server error:", err);
   process.exit(1);
 });

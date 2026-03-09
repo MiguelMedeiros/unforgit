@@ -8,12 +8,12 @@ export const remoteCommand = new Command("remote")
   .description("Manage set of tracked remote repositories")
   .addHelpText("after", `
 Examples:
-  hippo remote                        List remotes
-  hippo remote add origin <url>       Add a remote
-  hippo remote show origin            Show remote details`)
+  unforgit remote                        List remotes
+  unforgit remote add origin <url>       Add a remote
+  unforgit remote show origin            Show remote details`)
   .action(() => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -22,7 +22,7 @@ Examples:
 
     if (Object.keys(remotes).length === 0) {
       logger.info("No remotes configured.");
-      logger.info("Use 'hippo remote add <name> <url>' to add a remote.");
+      logger.info("Use 'unforgit remote add <name> <url>' to add a remote.");
       return;
     }
 
@@ -34,12 +34,12 @@ Examples:
 export const remoteAddCommand = new Command("add")
   .description("Add a new remote")
   .argument("<name>", "Name for the remote (e.g., origin)")
-  .argument("<url>", "URL of the remote hippocampus server")
+  .argument("<url>", "URL of the remote unforgit server")
   .option("--org <orgId>", "Organization ID")
   .option("--repo <repoId>", "Repository ID")
   .action((name, url, opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -48,7 +48,7 @@ export const remoteAddCommand = new Command("add")
 
     if (remotes[name]) {
       logger.fatal(`remote '${name}' already exists.`);
-      logger.error(`Use 'hippo remote set-url ${name} <newurl>' to change the URL.`);
+      logger.error(`Use 'unforgit remote set-url ${name} <newurl>' to change the URL.`);
       process.exit(EXIT_ERROR);
     }
 
@@ -68,7 +68,7 @@ export const remoteRemoveCommand = new Command("remove")
   .argument("<name>", "Name of the remote to remove")
   .action((name) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -91,7 +91,7 @@ export const remoteSetUrlCommand = new Command("set-url")
   .argument("<newurl>", "New URL for the remote")
   .action((name, newurl) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -100,7 +100,7 @@ export const remoteSetUrlCommand = new Command("set-url")
 
     if (!remotes[name]) {
       logger.fatal(`No such remote: '${name}'`);
-      logger.error(`Use 'hippo remote add ${name} ${newurl}' to add it.`);
+      logger.error(`Use 'unforgit remote add ${name} ${newurl}' to add it.`);
       process.exit(EXIT_ERROR);
     }
 
@@ -114,7 +114,7 @@ export const remoteShowCommand = new Command("show")
   .argument("<name>", "Name of the remote")
   .action((name) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

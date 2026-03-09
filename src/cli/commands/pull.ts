@@ -12,7 +12,7 @@ export const pullCommand = new Command("pull")
   .option("--dry-run", "Show what would be pulled without actually pulling")
   .action(async (remote, opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -25,7 +25,7 @@ export const pullCommand = new Command("pull")
 
       if (!config.remote.url) {
         logger.fatal(`No remote '${remote}' configured.`);
-        logger.fatal("Use 'hippo remote add origin <url>' to add a remote.");
+        logger.fatal("Use 'unforgit remote add origin <url>' to add a remote.");
         process.exit(EXIT_CONFIG_ERROR);
       }
 

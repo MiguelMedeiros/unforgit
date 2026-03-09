@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hippocampus - Repository Memory for AI Agents",
+  title: "Unforgit - Repository Memory for AI Agents",
   description:
     "A repository memory system that gives AI agents persistent knowledge across sessions. Store, recall, and share context with your team.",
   keywords: [

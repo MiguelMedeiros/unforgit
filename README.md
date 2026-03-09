@@ -1,6 +1,6 @@
-# Hippocampus
+# Unforgit
 
-Repository memory system for agents and developers. Shared knowledge per repo, local private memory, and consolidation via PR.
+Repository memory system for agents and developers. Shared knowledge per repo, local private memory, and a brain-like lifecycle that saves broadly, consolidates what matters, and forgets stale episodic noise.
 
 ## Concepts
 
@@ -14,7 +14,7 @@ Repository memory system for agents and developers. Shared knowledge per repo, l
 
 ### Scopes
 
-- **local (private)** — per workspace on your machine (`.hippocampus/local.db`)
+- **local (private)** — per workspace on your machine (`.unforgit/local.db`)
 - **remote (shared)** — per org + repo on PostgreSQL
 
 ### Statuses
@@ -35,10 +35,10 @@ pnpm run db:generate
 ### Initialize in a repo
 
 ```bash
-hippo init
+unforgit init
 ```
 
-This creates `.hippocampus/` with `local.db` and `hippo.yaml`, plus Cursor IDE integration (`.cursor/rules/` and `.cursor/mcp.json`). The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
+This creates `.unforgit/` with `local.db` and `unforgit.yaml`, plus Cursor IDE integration (`.cursor/rules/` and `.cursor/mcp.json`). The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
 
 Use `--no-cursor-rule` to skip Cursor integration.
 
@@ -46,25 +46,25 @@ Use `--no-cursor-rule` to skip Cursor integration.
 
 ```bash
 # Episodic (local by default)
-hippo add "Found a race condition in the queue worker" --type episodic --tags "bug,queue"
+unforgit add "Found a race condition in the queue worker" --type episodic --tags "bug,queue"
 
 # Semantic with source reference
-hippo add "We use UTC timestamps everywhere" --type semantic --tags "convention" --source-pr "https://github.com/org/repo/pull/42"
+unforgit add "We use UTC timestamps everywhere" --type semantic --tags "convention" --source-pr "https://github.com/org/repo/pull/42"
 
 # Procedural
-hippo add "To deploy: run make release, then kubectl apply" --type procedural --tags "deploy,playbook"
+unforgit add "To deploy: run make release, then kubectl apply" --type procedural --tags "deploy,playbook"
 ```
 
 ### Recall
 
 ```bash
-hippo recall "how to deploy" --types procedural,semantic --k 5
+unforgit recall "how to deploy" --types procedural,semantic --k 5
 
 # Local only
-hippo recall "race condition" --local-only
+unforgit recall "race condition" --local-only
 
 # Remote only
-hippo recall "auth decisions" --remote-only
+unforgit recall "auth decisions" --remote-only
 ```
 
 ### Templates
@@ -73,69 +73,91 @@ Use templates for common memory types:
 
 ```bash
 # Decision (semantic, auto-tagged)
-hippo add --template decision "We're using PostgreSQL instead of MySQL for better JSON support"
+unforgit add --template decision "We're using PostgreSQL instead of MySQL for better JSON support"
 
 # Gotcha (episodic, warning)
-hippo add --template gotcha "OAuth callback requires HTTPS in production"
+unforgit add --template gotcha "OAuth callback requires HTTPS in production"
 
 # Playbook (procedural, how-to)
-hippo add --template playbook "To deploy: make release && kubectl apply -f k8s/"
+unforgit add --template playbook "To deploy: make release && kubectl apply -f k8s/"
 
 # Bug fix
-hippo add --template bug "Fixed race condition in queue worker by adding mutex"
+unforgit add --template bug "Fixed race condition in queue worker by adding mutex"
 
 # Other templates: adr, convention, workaround, perf, security, api
-hippo add --list-templates
+unforgit add --list-templates
+```
+
+### Brain-Like Lifecycle
+
+Unforgit now treats memory more like a brain than a notes app:
+
+- `episodic` memories are captured with low friction and get a default TTL
+- frequently reused memories receive a small ranking boost on recall
+- similar episodic memories can be consolidated into stronger semantic memories
+- stale episodic noise can be previewed and cleaned up with a single lifecycle pass
+- long-lived surfaces can auto-trigger maintenance in the background after save/recall, with debounce
+
+```bash
+# Preview lifecycle maintenance (default)
+unforgit curate
+
+# Execute expiry + consolidation locally
+unforgit curate --execute
+
+# Execute lifecycle maintenance on the remote server
+unforgit curate --remote --execute
 ```
 
 ### Semantic Search with Embeddings
 
-Hippocampus uses OpenAI embeddings for semantic search, finding memories by meaning rather than just keywords.
+Unforgit uses OpenAI embeddings for semantic search, finding memories by meaning rather than just keywords.
 
 ```bash
 # Generate embeddings for existing memories
-hippo embeddings backfill
+unforgit embeddings backfill
 
 # Check embedding coverage
-hippo embeddings stats
+unforgit embeddings stats
 
 # Clear all embeddings (requires regeneration)
-hippo embeddings clear --yes
+unforgit embeddings clear --yes
 ```
 
-The system uses a hybrid scoring approach:
-- **50%** Semantic similarity (embeddings)
-- **20%** Text match (FTS5)
-- **15%** Recency
-- **15%** Confidence
+The system uses a hybrid scoring approach with a bounded usage boost:
+- semantic similarity (embeddings)
+- text match (FTS5)
+- recency
+- confidence
+- small reuse-based boost for memories that keep proving useful
 
 ### Promote to shared
 
 ```bash
-hippo promote <memory-id> --source-pr "https://github.com/org/repo/pull/99"
+unforgit promote <memory-id> --source-pr "https://github.com/org/repo/pull/99"
 ```
 
 ### Consolidate
 
 ```bash
-hippo consolidate --from-pr "https://github.com/org/repo/pull/100"
+unforgit consolidate --from-pr "https://github.com/org/repo/pull/100"
 ```
 
 ### Curate
 
 ```bash
-hippo deprecate <id> --reason "outdated after migration"
-hippo supersede <old-id> --with <new-id>
+unforgit deprecate <id> --reason "outdated after migration"
+unforgit supersede <old-id> --with <new-id>
 ```
 
 ### Reset
 
 ```bash
 # Permanently delete ALL memories, links, embeddings, and sync state
-hippo reset                # reset local + remote
-hippo reset --local        # reset local store only
-hippo reset --remote       # reset remote store only
-hippo reset --force        # skip confirmation prompt
+unforgit reset                # reset local + remote
+unforgit reset --local        # reset local store only
+unforgit reset --remote       # reset remote store only
+unforgit reset --force        # skip confirmation prompt
 ```
 
 ### Merge (Consolidate Memories)
@@ -144,32 +166,32 @@ Combine multiple related memories into a single unified memory while preserving 
 
 ```bash
 # Find similar memories (candidates for merging)
-hippo similar <memory-id> --limit 10 --threshold 0.3
+unforgit similar <memory-id> --limit 10 --threshold 0.3
 
 # Merge multiple memories into one
-hippo merge <id1> <id2> <id3> -t "Unified deployment guide: run make release, kubectl apply, wait for health check, rollback on error"
+unforgit merge <id1> <id2> <id3> -t "Unified deployment guide: run make release, kubectl apply, wait for health check, rollback on error"
 
 # Update an existing consolidation with new info
-hippo remerge <consolidation-id> -t "Updated text with new insights" --add "<new-memory-id>"
+unforgit remerge <consolidation-id> -t "Updated text with new insights" --add "<new-memory-id>"
 
 # View consolidation history
-hippo history <memory-id>
+unforgit history <memory-id>
 ```
 
 The original memories are preserved and linked via `derived_from` relationships. By default, source memories are marked as `superseded` so they don't clutter recall results, but the history is always accessible.
 
 ## OpenAI API Key (Optional)
 
-Hippocampus works **without** an OpenAI API key, but some advanced features require it.
+Unforgit works **without** an OpenAI API key, but some advanced features require it.
 
 ### What works WITHOUT OpenAI:
 
 | Feature | Status |
 |---------|--------|
-| Add memories (`hippo add`) | ✅ Full |
-| Recall via text search (`hippo recall`) | ✅ FTS5 |
+| Add memories (`unforgit add`) | ✅ Full |
+| Recall via text search (`unforgit recall`) | ✅ FTS5 |
 | Promote, deprecate, supersede | ✅ Full |
-| Manual consolidation (`hippo merge`) | ✅ Full |
+| Manual consolidation (`unforgit merge`) | ✅ Full |
 | Team sync (push/pull) | ✅ Full |
 | Web dashboard | ✅ Full |
 | MCP integration (Cursor) | ✅ Full |
@@ -179,8 +201,8 @@ Hippocampus works **without** an OpenAI API key, but some advanced features requ
 
 | Feature | Description |
 |---------|-------------|
-| Semantic search | `hippo recall` uses AI embeddings for meaning-based search |
-| Embedding generation | `hippo embeddings backfill` creates vectors for existing memories |
+| Semantic search | `unforgit recall` uses AI embeddings for meaning-based search |
+| Embedding generation | `unforgit embeddings backfill` creates vectors for existing memories |
 | Auto-consolidation | AI-powered suggestions for merging similar memories |
 | Hybrid scoring | 50% semantic + 20% FTS + 15% recency + 15% confidence |
 
@@ -188,34 +210,34 @@ Hippocampus works **without** an OpenAI API key, but some advanced features requ
 
 ```bash
 # Set via CLI
-hippo auth openai sk-your-api-key
+unforgit auth openai sk-your-api-key
 
-# Or in .hippocampus/hippo.yaml
+# Or in .unforgit/unforgit.yaml
 openaiApiKey: sk-your-api-key
 
 # Or via environment variable
 export OPENAI_API_KEY=sk-your-api-key
 ```
 
-When the key is not configured, Hippocampus gracefully falls back to FTS-only search without errors.
+When the key is not configured, Unforgit gracefully falls back to FTS-only search without errors.
 
 ## Sync with Remote Server
 
-Hippocampus supports syncing memories between local (SQLite) and remote (PostgreSQL) storage.
+Unforgit supports syncing memories between local (SQLite) and remote (PostgreSQL) storage.
 
 ### Configuration
 
-Use the `hippo config` command to manage all settings:
+Use the `unforgit config` command to manage all settings:
 
 ```bash
 # List all configuration
-hippo config list
+unforgit config list
 
 # Set remote server URL
-hippo config set remote.url https://hippo.example.com
+unforgit config set remote.url https://unforgit.example.com
 
 # Get a specific value
-hippo config get remote.url
+unforgit config get remote.url
 ```
 
 ### Authentication
@@ -224,13 +246,13 @@ The remote server requires API key authentication:
 
 ```bash
 # Set API key for this repository
-hippo auth set hk_your_api_key_here
+unforgit auth set hk_your_api_key_here
 
 # Check authentication status
-hippo auth status
+unforgit auth status
 
 # Remove API key
-hippo auth remove
+unforgit auth remove
 ```
 
 ### OpenAI API Key (for auto-consolidation)
@@ -239,15 +261,15 @@ Configure OpenAI for AI-powered memory consolidation:
 
 ```bash
 # Set OpenAI API key
-hippo auth openai sk-your-openai-key
+unforgit auth openai sk-your-openai-key
 
 # Remove OpenAI API key
-hippo auth openai-remove
+unforgit auth openai-remove
 ```
 
 ### Manual Configuration
 
-You can also edit `.hippocampus/hippo.yaml` directly:
+You can also edit `.unforgit/unforgit.yaml` directly:
 
 ```yaml
 remote:
@@ -268,35 +290,54 @@ embeddings:
   enabled: true
   model: text-embedding-3-small
   autoGenerate: true          # Generate embeddings on memory creation
+lifecycle:
+  ttlSecondsByType:
+    episodic: 2592000         # 30 days
+  usageBoost:
+    topKToRecord: 5
+    minUsageCount: 2
+    maxBoost: 0.15
+    halfLifeDays: 30
+  maintenance:
+    staleEpisodicDays: 30
+    consolidationThreshold: 0.5
+    consolidationMinGroupSize: 2
+    consolidationMaxGroups: 5
+    promoteRecallCount: 5
+    pinRecallCount: 8
+    dryRunDefault: true
+    autoRunOnStore: true
+    autoRunOnRecall: true
+    debounceMs: 30000
 ```
 
 ### Push & Pull
 
 ```bash
 # Push local memories to remote
-hippo push
+unforgit push
 
 # Pull remote memories to local
-hippo pull
+unforgit pull
 
 # Preview changes before pushing
-hippo push --dry-run
+unforgit push --dry-run
 
 # Show differences between local and remote
-hippo diff
+unforgit diff
 ```
 
 ### Managing API Keys
 
 ```bash
 # Create a new API key (requires existing admin key)
-hippo keys create --name "My Key" --org "my-org"
+unforgit keys create --name "My Key" --org "my-org"
 
 # List all API keys
-hippo keys list
+unforgit keys list
 
 # Revoke an API key
-hippo keys revoke <key-id>
+unforgit keys revoke <key-id>
 ```
 
 ## API Server
@@ -335,6 +376,7 @@ curl -H "Authorization: Bearer hk_your_api_key" \
 | POST | `/v1/memory/:id/supersede` | Mark as superseded |
 | POST | `/v1/memory/:id/pin` | Pin a memory |
 | POST | `/v1/consolidate` | Consolidate memories |
+| POST | `/v1/lifecycle/run` | Preview or run lifecycle maintenance |
 | DELETE | `/v1/memory/:id` | Delete a memory |
 | POST | `/v1/memory/:id/restore` | Restore a deleted memory |
 | POST | `/v1/memories/reset` | Reset all memories for org/repo |
@@ -372,7 +414,7 @@ curl -H "Authorization: Bearer hk_your_api_key" \
 
 ## Server-Side AI (Team Mode)
 
-When running the Hippocampus server for a team, you can configure server-side OpenAI integration so individual developers don't need their own API keys.
+When running the Unforgit server for a team, you can configure server-side OpenAI integration so individual developers don't need their own API keys.
 
 ### Configuration
 
@@ -400,6 +442,7 @@ CONSOLIDATION_MODEL=gpt-4o-mini
 | POST | `/v1/auto-consolidate/preview` | Find consolidation candidates |
 | POST | `/v1/auto-consolidate` | Auto-consolidate with LLM |
 | POST | `/v1/auto-consolidate/execute` | Execute specific group |
+| POST | `/v1/lifecycle/run` | Run the brain-like maintenance loop |
 | GET | `/v1/suggestions` | AI-powered curation suggestions |
 | GET | `/v1/health/repo` | Repository health report |
 
@@ -464,10 +507,10 @@ Returns:
 Import and use the programmatic interface:
 
 ```typescript
-import { createMemoryTools } from "hippocampus/tools";
+import { createMemoryTools } from "unforgit/tools";
 
 const memory = createMemoryTools({
-  localDbPath: ".hippocampus/local.db",
+  localDbPath: ".unforgit/local.db",
   remoteUrl: "http://localhost:3737",
   orgId: "your-org-id",
   repoId: "your-repo-id",
@@ -502,17 +545,17 @@ await memory.consolidate({
 
 ## MCP Server (Cursor IDE)
 
-Hippocampus includes an MCP (Model Context Protocol) server for native integration with Cursor IDE. When configured, the AI agent gets direct access to `hippo_recall` and `hippo_add` tools — no shell commands needed.
+Unforgit includes an MCP (Model Context Protocol) server for native integration with Cursor IDE. When configured, the AI agent gets direct access to `unforgit_recall` and `unforgit_add` tools — no shell commands needed.
 
 ### Setup
 
-`hippo init` automatically creates `.cursor/mcp.json` with the MCP server config. If you need to set it up manually:
+`unforgit init` automatically creates `.cursor/mcp.json` with the MCP server config. If you need to set it up manually:
 
 ```json
 {
   "mcpServers": {
-    "hippocampus": {
-      "command": "hippo-mcp",
+    "unforgit": {
+      "command": "unforgit-mcp",
       "args": []
     }
   }
@@ -525,27 +568,28 @@ Restart Cursor after adding the MCP config.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `hippo_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?`, `expandHistory?` |
-| `hippo_add` | Store a new memory | `text`, `type?`, `tags?`, `template?` |
-| `hippo_embedding_recall` | Semantic search using embeddings | `query`, `types?`, `tags?`, `k?` |
-| `hippo_consolidate` | Merge multiple memories into one | `sourceIds`, `consolidatedText`, `memoryType?`, `tags?` |
-| `hippo_reconsolidate` | Update existing consolidation | `existingConsolidationId`, `newText`, `additionalSourceIds?`, `tags?` |
-| `hippo_find_similar` | Find memories similar to a given one | `memoryId`, `threshold?`, `k?` |
-| `hippo_history` | Get consolidation history | `memoryId` |
-| `hippo_link` | Create link between memories | `sourceId`, `targetId`, `linkType` |
-| `hippo_unlink` | Remove link between memories | `sourceId`, `targetId`, `linkType` |
-| `hippo_links` | Get all links for a memory | `memoryId`, `linkType?` |
-| `hippo_sync_status` | Get sync status and embedding coverage | - |
-| `hippo_suggestions` | Get AI-powered curation suggestions | `maxSuggestions?` |
-| `hippo_health` | Get repository memory health report | - |
-| `hippo_notifications` | Get pending notifications | - |
-| `hippo_templates` | List available memory templates | - |
+| `unforgit_recall` | Search memories by query | `query`, `types?`, `tags?`, `k?`, `expandHistory?` |
+| `unforgit_add` | Store a new memory | `text`, `type?`, `tags?`, `template?` |
+| `unforgit_curate` | Preview or run lifecycle maintenance | `dryRun?`, `model?`, `preserveOriginals?` |
+| `unforgit_embedding_recall` | Semantic search using embeddings | `query`, `types?`, `tags?`, `k?` |
+| `unforgit_consolidate` | Merge multiple memories into one | `sourceIds`, `consolidatedText`, `memoryType?`, `tags?` |
+| `unforgit_reconsolidate` | Update existing consolidation | `existingConsolidationId`, `newText`, `additionalSourceIds?`, `tags?` |
+| `unforgit_find_similar` | Find memories similar to a given one | `memoryId`, `threshold?`, `k?` |
+| `unforgit_history` | Get consolidation history | `memoryId` |
+| `unforgit_link` | Create link between memories | `sourceId`, `targetId`, `linkType` |
+| `unforgit_unlink` | Remove link between memories | `sourceId`, `targetId`, `linkType` |
+| `unforgit_links` | Get all links for a memory | `memoryId`, `linkType?` |
+| `unforgit_sync_status` | Get sync status and embedding coverage | - |
+| `unforgit_suggestions` | Get AI-powered curation suggestions | `maxSuggestions?` |
+| `unforgit_health` | Get repository memory health report | - |
+| `unforgit_notifications` | Get pending notifications | - |
+| `unforgit_templates` | List available memory templates | - |
 
-The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.hippocampus/hippo.yaml` in the current workspace.
+The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.unforgit/unforgit.yaml` in the current workspace.
 
 ### Cursor Rule
 
-`hippo init` also creates `.cursor/rules/hippocampus-memory.mdc` which instructs the AI agent to:
+`unforgit init` also creates `.cursor/rules/unforgit-memory.mdc` which instructs the AI agent to:
 - Recall relevant memories at the start of every conversation
 - Save noteworthy decisions, bugs, and procedures during the conversation
 
@@ -564,9 +608,9 @@ src/
 ├── server/          # Fastify HTTP API
 │   ├── routes/      # memory, recall, curate, consolidate
 │   └── index.ts     # App factory + server start
-├── mcp/             # MCP server (hippo-mcp)
+├── mcp/             # MCP server (unforgit-mcp)
 │   └── index.ts     # Stdio transport + tools
-├── cli/             # Commander CLI (hippo)
+├── cli/             # Commander CLI (unforgit)
 │   ├── commands/    # init, add, recall, promote, consolidate, deprecate, supersede, reset, embeddings
 │   └── index.ts     # CLI entry point
 ├── core/            # Shared domain logic

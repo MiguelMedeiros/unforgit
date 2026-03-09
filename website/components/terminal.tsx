@@ -19,7 +19,7 @@ function highlightBash(line: string): React.ReactNode[] {
 
   if (remaining.startsWith("$ ")) {
     parts.push(
-      <span key={key++} className="text-dracula-green">
+      <span key={key++} className="text-dracula-comment">
         $
       </span>
     );
@@ -47,7 +47,7 @@ function highlightBash(line: string): React.ReactNode[] {
 
     if (isFirstWord && token) {
       parts.push(
-        <span key={key++} className="text-dracula-cyan font-semibold">
+        <span key={key++} className="text-dracula-foreground font-semibold">
           {token}
         </span>
       );
@@ -57,25 +57,25 @@ function highlightBash(line: string): React.ReactNode[] {
 
     if (token.startsWith("--") || token.startsWith("-")) {
       parts.push(
-        <span key={key++} className="text-dracula-pink">
+        <span key={key++} className="text-dracula-comment">
           {token}
         </span>
       );
     } else if (token.startsWith('"') || token.startsWith("'")) {
       parts.push(
-        <span key={key++} className="text-dracula-yellow">
+        <span key={key++} className="text-dracula-foreground/70">
           {token}
         </span>
       );
     } else if (token.match(/^https?:\/\//)) {
       parts.push(
-        <span key={key++} className="text-dracula-cyan underline">
+        <span key={key++} className="text-dracula-foreground underline">
           {token}
         </span>
       );
     } else if (token.match(/^\d+$/)) {
       parts.push(
-        <span key={key++} className="text-dracula-purple">
+        <span key={key++} className="text-dracula-foreground">
           {token}
         </span>
       );
@@ -103,7 +103,7 @@ function highlightJson(code: string): React.ReactNode {
       if (keyMatch) {
         parts.push(<span key={key++}>{keyMatch[1]}</span>);
         parts.push(
-          <span key={key++} className="text-dracula-pink">
+          <span key={key++} className="text-dracula-foreground">
             &quot;{keyMatch[2]}&quot;
           </span>
         );
@@ -120,7 +120,7 @@ function highlightJson(code: string): React.ReactNode {
         const leadingSpace = remaining.match(/^\s*/)?.[0] || "";
         parts.push(<span key={key++}>{leadingSpace}</span>);
         parts.push(
-          <span key={key++} className="text-dracula-yellow">
+          <span key={key++} className="text-dracula-foreground/70">
             &quot;{stringMatch[1]}&quot;
           </span>
         );
@@ -142,20 +142,20 @@ function highlightJson(code: string): React.ReactNode {
         if (part.startsWith("{{BOOL:")) {
           const value = part.slice(7, -2);
           parts.push(
-            <span key={key++} className="text-dracula-purple">
+            <span key={key++} className="text-dracula-foreground">
               {value}
             </span>
           );
         } else if (part.startsWith("{{NUM:")) {
           const value = part.slice(6, -2);
           parts.push(
-            <span key={key++} className="text-dracula-purple">
+            <span key={key++} className="text-dracula-foreground">
               {value}
             </span>
           );
         } else if (part === "{{NULL}}") {
           parts.push(
-            <span key={key++} className="text-dracula-orange">
+            <span key={key++} className="text-dracula-comment">
               null
             </span>
           );
@@ -197,7 +197,7 @@ function highlightYaml(code: string): React.ReactNode {
     if (keyMatch) {
       parts.push(<span key={key++}>{keyMatch[1]}</span>);
       parts.push(
-        <span key={key++} className="text-dracula-pink">
+        <span key={key++} className="text-dracula-foreground">
           {keyMatch[2]}
         </span>
       );
@@ -209,7 +209,7 @@ function highlightYaml(code: string): React.ReactNode {
       const rest = line.slice(keyMatch[0].length);
       if (rest.trim()) {
         parts.push(
-          <span key={key++} className="text-dracula-yellow">
+          <span key={key++} className="text-dracula-foreground/70">
             {rest}
           </span>
         );
@@ -218,12 +218,12 @@ function highlightYaml(code: string): React.ReactNode {
       const indent = line.match(/^(\s*)/)?.[0] || "";
       parts.push(<span key={key++}>{indent}</span>);
       parts.push(
-        <span key={key++} className="text-dracula-cyan">
+        <span key={key++} className="text-dracula-comment">
           -
         </span>
       );
       parts.push(
-        <span key={key++} className="text-dracula-yellow">
+        <span key={key++} className="text-dracula-foreground/70">
           {line.slice(indent.length + 1)}
         </span>
       );
@@ -304,9 +304,9 @@ export function Terminal({
       <div className="flex items-center justify-between px-4 py-2 bg-dracula-background border-b border-dracula-current/30">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 transition-colors" />
-            <div className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 transition-colors" />
-            <div className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 transition-colors" />
+            <div className="w-3 h-3 rounded-full bg-dracula-comment/50 hover:bg-dracula-comment/70 transition-colors" />
+            <div className="w-3 h-3 rounded-full bg-dracula-comment/30 hover:bg-dracula-comment/50 transition-colors" />
+            <div className="w-3 h-3 rounded-full bg-dracula-comment/20 hover:bg-dracula-comment/40 transition-colors" />
           </div>
           <span className="text-xs text-dracula-comment ml-2 font-medium">
             {title}
@@ -319,7 +319,7 @@ export function Terminal({
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
             copied
-              ? "bg-dracula-green/20 text-dracula-green"
+              ? "bg-dracula-foreground/10 text-dracula-foreground"
               : "text-dracula-comment hover:text-dracula-foreground hover:bg-dracula-current/30"
           )}
         >
@@ -374,7 +374,7 @@ export function TerminalInline({ code }: { code: string }) {
       whileHover={{ scale: 1.01 }}
       className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1e1f29] border border-dracula-current/50"
     >
-      <span className="text-dracula-green font-mono text-sm">$</span>
+      <span className="text-dracula-comment font-mono text-sm">$</span>
       <code className="font-mono text-sm text-dracula-foreground">{code}</code>
       <motion.button
         whileHover={{ scale: 1.1 }}
@@ -383,7 +383,7 @@ export function TerminalInline({ code }: { code: string }) {
         className="p-1 rounded hover:bg-dracula-current/50 transition-colors ml-1"
       >
         {copied ? (
-          <Check className="w-3.5 h-3.5 text-dracula-green" />
+          <Check className="w-3.5 h-3.5 text-dracula-foreground" />
         ) : (
           <Copy className="w-3.5 h-3.5 text-dracula-comment hover:text-dracula-foreground" />
         )}

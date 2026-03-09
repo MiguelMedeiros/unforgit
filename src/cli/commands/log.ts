@@ -17,14 +17,14 @@ export const logCommand = new Command("log")
   .option("--per-page <n>", "Items per page", "20")
   .addHelpText("after", `
 Examples:
-  hippo log                     Show recent memories
-  hippo log --all               Include deprecated/superseded
-  hippo log --type semantic     Filter by type
-  hippo log --oneline           Compact output
-  hippo log --page 2            Second page of results`)
+  unforgit log                     Show recent memories
+  unforgit log --all               Include deprecated/superseded
+  unforgit log --type semantic     Filter by type
+  unforgit log --oneline           Compact output
+  unforgit log --page 2            Second page of results`)
   .action((opts) => {
     if (!isInitialized()) {
-      logger.fatal("not a hippocampus repository");
+      logger.fatal("not an unforgit repository");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

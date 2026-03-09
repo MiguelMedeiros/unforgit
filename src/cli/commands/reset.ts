@@ -13,10 +13,10 @@ export const resetCommand = new Command("reset")
   .option("--force", "Skip confirmation prompt")
   .addHelpText("after", `
 Examples:
-  hippo reset                Reset both local and remote
-  hippo reset --local        Reset local store only
-  hippo reset --remote       Reset remote store only
-  hippo reset --force        Skip confirmation`)
+  unforgit reset                Reset both local and remote
+  unforgit reset --local        Reset local store only
+  unforgit reset --remote       Reset remote store only
+  unforgit reset --force        Skip confirmation`)
   .action(async (opts) => {
     const resetLocal = opts.local || (!opts.local && !opts.remote);
     const resetRemote = opts.remote || (!opts.local && !opts.remote);
@@ -57,7 +57,7 @@ Examples:
     if (resetRemote) {
       if (!config.remote?.url) {
         if (opts.remote) {
-          logger.error("No remote URL configured. Run 'hippo init' first.");
+          logger.error("No remote URL configured. Run 'unforgit init' first.");
           process.exit(EXIT_ERROR);
         }
         logger.info("No remote configured, skipping remote reset.");

@@ -21,7 +21,7 @@ embeddingsCommand
   .option("--model <model>", "OpenAI embedding model", "text-embedding-3-small")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -30,7 +30,7 @@ embeddingsCommand
 
     if (!apiKey && !opts.dryRun) {
       logger.error("OpenAI API key not set.");
-      logger.error("Set OPENAI_API_KEY env var or run 'hippo auth openai <key>'.");
+      logger.error("Set OPENAI_API_KEY env var or run 'unforgit auth openai <key>'.");
       process.exit(EXIT_ERROR);
     }
 
@@ -113,7 +113,7 @@ embeddingsCommand
   .description("Show embedding statistics")
   .action(async () => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -142,7 +142,7 @@ embeddingsCommand
       logger.info(`Coverage:           ${coverage}%`);
 
       if (stats.withoutEmbedding > 0) {
-        logger.info(`\nRun 'hippo embeddings backfill' to generate missing embeddings.`);
+        logger.info(`\nRun 'unforgit embeddings backfill' to generate missing embeddings.`);
       }
     } finally {
       store.close();
@@ -155,7 +155,7 @@ embeddingsCommand
   .option("--yes", "Skip confirmation")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

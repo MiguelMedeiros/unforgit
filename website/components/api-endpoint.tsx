@@ -15,11 +15,11 @@ interface ApiEndpointProps {
 }
 
 const methodColors = {
-  GET: "bg-dracula-green",
-  POST: "bg-dracula-cyan",
-  PUT: "bg-dracula-orange",
-  DELETE: "bg-dracula-red",
-  PATCH: "bg-dracula-yellow",
+  GET: "bg-dracula-foreground",
+  POST: "bg-dracula-foreground/80",
+  PUT: "bg-dracula-comment",
+  DELETE: "bg-dracula-comment/70",
+  PATCH: "bg-dracula-comment/50",
 };
 
 export function ApiEndpoint({
@@ -69,9 +69,9 @@ export function ApiEndpoint({
         </code>
         <span className="flex items-center gap-2">
           {auth ? (
-            <Lock className="w-3.5 h-3.5 text-dracula-orange" />
+            <Lock className="w-3.5 h-3.5 text-dracula-foreground/70" />
           ) : (
-            <Unlock className="w-3.5 h-3.5 text-dracula-green" />
+            <Unlock className="w-3.5 h-3.5 text-dracula-comment" />
           )}
           <ChevronDown
             className={cn(
@@ -93,7 +93,7 @@ export function ApiEndpoint({
             <p className="text-sm text-dracula-foreground/70">{description}</p>
 
             {auth && (
-              <div className="text-xs text-dracula-orange flex items-center gap-1.5">
+              <div className="text-xs text-dracula-foreground/70 flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
                 Requires Authorization: Bearer &lt;api-key&gt;
               </div>
@@ -110,7 +110,7 @@ export function ApiEndpoint({
                     className="p-1 rounded hover:bg-dracula-current/50 transition-colors"
                   >
                     {copiedRequest ? (
-                      <Check className="w-3.5 h-3.5 text-dracula-green" />
+                      <Check className="w-3.5 h-3.5 text-dracula-foreground" />
                     ) : (
                       <Copy className="w-3.5 h-3.5 text-dracula-comment" />
                     )}
@@ -133,13 +133,13 @@ export function ApiEndpoint({
                     className="p-1 rounded hover:bg-dracula-current/50 transition-colors"
                   >
                     {copiedResponse ? (
-                      <Check className="w-3.5 h-3.5 text-dracula-green" />
+                      <Check className="w-3.5 h-3.5 text-dracula-foreground" />
                     ) : (
                       <Copy className="w-3.5 h-3.5 text-dracula-comment" />
                     )}
                   </button>
                 </div>
-                <pre className="px-3 py-2 rounded bg-dracula-background border border-dracula-current/30 text-sm font-mono text-dracula-cyan overflow-x-auto">
+                <pre className="px-3 py-2 rounded bg-dracula-background border border-dracula-current/30 text-sm font-mono text-dracula-foreground overflow-x-auto">
                   {responseExample}
                 </pre>
               </div>

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
 import YAML from "yaml";
 import type { HippoConfig } from "../../core/types.js";
@@ -13,7 +14,7 @@ export function createTempHippoDir(configOverrides?: Partial<HippoConfig>): {
   cleanup: () => void;
 } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hippo-test-"));
-  const hippoDir = path.join(dir, ".hippocampus");
+  const hippoDir = path.join(dir, ".unforgit");
   fs.mkdirSync(hippoDir, { recursive: true });
 
   const config: HippoConfig = {
@@ -43,7 +44,7 @@ export function createTempHippoDir(configOverrides?: Partial<HippoConfig>): {
     },
   };
 
-  const configPath = path.join(hippoDir, "hippo.yaml");
+  const configPath = path.join(hippoDir, "unforgit.yaml");
   fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
   const dbPath = path.join(hippoDir, "local.db");
@@ -92,8 +93,12 @@ export async function runCommand(
   const { promisify } = await import("node:util");
   const execFileAsync = promisify(execFile);
 
-  const tsxPath = path.join(process.cwd(), "node_modules", ".bin", "tsx");
-  const entryPoint = path.join(process.cwd(), "src", "cli", "index.ts");
+  const repoRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../..",
+  );
+  const tsxPath = path.join(repoRoot, "node_modules", ".bin", "tsx");
+  const entryPoint = path.join(repoRoot, "src", "cli", "index.ts");
 
   try {
     const { stdout, stderr } = await execFileAsync(tsxPath, [entryPoint, ...args], {

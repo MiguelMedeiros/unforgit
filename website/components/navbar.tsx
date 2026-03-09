@@ -2,25 +2,26 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Github, Menu, X, BookOpen } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#team-memory", label: "Team Memory" },
-  { href: "#eli5", label: "ELI5" },
-  { href: "#how-it-works", label: "How it Works" },
-  { href: "#dashboard", label: "Dashboard" },
-  { href: "#install", label: "Install" },
+  { href: "#eli5", label: "about" },
+  { href: "#mcp-integrations", label: "integrations" },
+  { href: "#team-memory", label: "team" },
+  { href: "#dashboard", label: "dashboard" },
+  { href: "/docs", label: "docs", external: true },
 ];
 
 export function Navbar() {
-  const [isVisible, setIsVisible] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
+  const [scrolled, setScrolled] = useState(false);
 
   const updateActiveSection = useCallback(() => {
-    const sections = navLinks.map((link) => link.href.replace("#", ""));
+    const sections = navLinks
+      .filter((l) => !l.external)
+      .map((link) => link.href.replace("#", ""));
     const navbarHeight = 100;
 
     for (let i = sections.length - 1; i >= 0; i--) {
@@ -38,11 +39,11 @@ export function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsVisible(window.scrollY > 200);
+      setScrolled(window.scrollY > 20);
       updateActiveSection();
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
@@ -52,6 +53,7 @@ export function Navbar() {
     e: React.MouseEvent<HTMLAnchorElement>,
     href: string
   ) => {
+    if (!href.startsWith("#")) return;
     e.preventDefault();
     const targetId = href.replace("#", "");
     const element = document.getElementById(targetId);
@@ -77,182 +79,151 @@ export function Navbar() {
   };
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.nav
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className={cn(
-            "fixed top-0 left-0 right-0 z-50",
-            "bg-dracula-background/80 backdrop-blur-xl",
-            "border-b border-dracula-current/50",
-            "shadow-lg shadow-black/10"
-          )}
-        >
-          <div className="max-w-7xl mx-auto px-6 py-3">
-            <div className="flex items-center justify-between">
-              <a
-                href="#"
-                className="flex items-center gap-2 text-dracula-foreground hover:text-dracula-purple transition-colors"
-                onClick={scrollToTop}
-              >
-                <Brain className="w-6 h-6 text-dracula-purple" />
-                <span className="font-bold text-lg">Hippocampus</span>
-              </a>
+    <nav
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled
+          ? "bg-dracula-background/80 backdrop-blur-xl border-b border-dracula-current/30"
+          : "bg-transparent"
+      )}
+    >
+      <div className="max-w-5xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <a
+            href="#"
+            className="text-dracula-foreground hover:text-dracula-foreground transition-colors"
+            onClick={scrollToTop}
+          >
+            <span className="font-bold text-lg tracking-tight">unforgit</span>
+          </a>
 
-              <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-7">
+            {navLinks.map((link) => {
+              const sectionId = link.href.replace("#", "");
+              const isActive =
+                !link.external && activeSection === sectionId;
+
+              if (link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="text-sm text-dracula-foreground/50 hover:text-dracula-foreground transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                );
+              }
+
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleSmoothScroll(e, link.href)}
+                  className={cn(
+                    "text-sm transition-colors relative",
+                    isActive
+                      ? "text-dracula-foreground"
+                      : "text-dracula-foreground/50 hover:text-dracula-foreground"
+                  )}
+                >
+                  {link.label}
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeNav"
+                      className="absolute -bottom-1 left-0 right-0 h-px bg-dracula-foreground/70 rounded-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </a>
+              );
+            })}
+            <a
+              href="https://github.com/miguelmedeiros/unforgit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-dracula-foreground/50 hover:text-dracula-foreground transition-colors ml-1"
+              aria-label="GitHub"
+            >
+              <Github className="w-[18px] h-[18px]" />
+            </a>
+          </div>
+
+          <button
+            className="md:hidden p-2 text-dracula-foreground"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden overflow-hidden"
+            >
+              <div className="pt-6 pb-4 flex flex-col gap-1">
                 {navLinks.map((link) => {
                   const sectionId = link.href.replace("#", "");
-                  const isActive = activeSection === sectionId;
+                  const isActive =
+                    !link.external && activeSection === sectionId;
+
+                  if (link.external) {
+                    return (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        className="px-3 py-2.5 text-sm text-dracula-foreground/50 hover:text-dracula-foreground rounded-lg transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  }
+
                   return (
                     <a
                       key={link.href}
                       href={link.href}
                       onClick={(e) => handleSmoothScroll(e, link.href)}
                       className={cn(
-                        "text-sm transition-colors relative",
+                        "px-3 py-2.5 text-sm rounded-lg transition-colors",
                         isActive
-                          ? "text-dracula-purple font-medium"
-                          : "text-dracula-foreground/70 hover:text-dracula-foreground"
+                          ? "text-dracula-foreground bg-dracula-foreground/5"
+                          : "text-dracula-foreground/50 hover:text-dracula-foreground"
                       )}
                     >
                       {link.label}
-                      {isActive && (
-                        <motion.span
-                          layoutId="activeSection"
-                          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-dracula-purple rounded-full"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
                     </a>
                   );
                 })}
-              </div>
-
-              <div className="hidden md:flex items-center gap-2">
+                <hr className="border-dracula-current/30 my-3" />
                 <a
-                  href="/docs"
-                  className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
-                    "text-sm font-medium text-dracula-foreground/90",
-                    "border border-dracula-current/60",
-                    "hover:border-dracula-purple/50 hover:text-dracula-purple",
-                    "hover:bg-dracula-purple/5 transition-all duration-200"
-                  )}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Docs
-                </a>
-                <a
-                  href="https://github.com/miguelmedeiros/hippocampus"
+                  href="https://github.com/miguelmedeiros/unforgit"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
-                    "text-sm font-medium text-dracula-foreground/90",
-                    "border border-dracula-current/60",
-                    "hover:border-dracula-purple/50 hover:text-dracula-purple",
-                    "hover:bg-dracula-purple/5 transition-all duration-200"
-                  )}
+                  className="inline-flex items-center gap-2 px-3 py-2.5 text-sm text-dracula-foreground/50 hover:text-dracula-foreground rounded-lg transition-colors"
                 >
                   <Github className="w-4 h-4" />
-                  GitHub
-                </a>
-                <a
-                  href="#install"
-                  onClick={(e) => handleSmoothScroll(e, "#install")}
-                  className={cn(
-                    "inline-flex items-center gap-2 px-5 py-2 rounded-lg",
-                    "bg-dracula-purple text-dracula-background text-sm font-semibold",
-                    "shadow-lg shadow-dracula-purple/25",
-                    "hover:bg-dracula-purple/90 hover:shadow-dracula-purple/40",
-                    "hover:scale-[1.02] active:scale-[0.98]",
-                    "transition-all duration-200"
-                  )}
-                >
-                  Get Started
+                  github
                 </a>
               </div>
-
-              <button
-                className="md:hidden p-2 text-dracula-foreground"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {isMobileMenuOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="md:hidden overflow-hidden"
-                >
-                  <div className="pt-4 pb-2 flex flex-col gap-2">
-                    {navLinks.map((link) => {
-                      const sectionId = link.href.replace("#", "");
-                      const isActive = activeSection === sectionId;
-                      return (
-                        <a
-                          key={link.href}
-                          href={link.href}
-                          onClick={(e) => handleSmoothScroll(e, link.href)}
-                          className={cn(
-                            "px-3 py-2 text-sm rounded-lg transition-colors",
-                            isActive
-                              ? "text-dracula-purple bg-dracula-purple/10 font-medium"
-                              : "text-dracula-foreground/70 hover:text-dracula-foreground hover:bg-dracula-current/30"
-                          )}
-                        >
-                          {link.label}
-                        </a>
-                      );
-                    })}
-                    <hr className="border-dracula-current/50 my-2" />
-                    <a
-                      href="/docs"
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dracula-foreground/80 hover:bg-dracula-current/30 rounded-lg transition-colors"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      Documentation
-                    </a>
-                    <a
-                      href="https://github.com/miguelmedeiros/hippocampus"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm text-dracula-foreground/80 hover:bg-dracula-current/30 rounded-lg transition-colors"
-                    >
-                      <Github className="w-4 h-4" />
-                      GitHub
-                    </a>
-                    <a
-                      href="#install"
-                      onClick={(e) => handleSmoothScroll(e, "#install")}
-                      className={cn(
-                        "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg mt-2",
-                        "bg-dracula-purple text-dracula-background text-sm font-semibold",
-                        "hover:bg-dracula-purple/90 transition-colors"
-                      )}
-                    >
-                      Get Started
-                    </a>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.nav>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </nav>
   );
 }

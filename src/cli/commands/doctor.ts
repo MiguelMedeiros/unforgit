@@ -22,7 +22,7 @@ export const doctorCommand = new Command("doctor")
       results.push({
         check: "initialization",
         status: "error",
-        message: "Not a hippocampus repository. Run 'hippo init' first.",
+        message: "Not an unforgit repository. Run 'unforgit init' first.",
       });
       if (isJsonMode()) {
         outputJson({ results });
@@ -75,7 +75,7 @@ export const doctorCommand = new Command("doctor")
           results.push({
             check: "embeddings",
             status: "warn",
-            message: `${stats.withoutEmbedding}/${stats.total} memories lack embeddings (${pct}% coverage). Run 'hippo embeddings backfill'`,
+            message: `${stats.withoutEmbedding}/${stats.total} memories lack embeddings (${pct}% coverage). Run 'unforgit embeddings backfill'`,
           });
         }
 
@@ -100,13 +100,13 @@ export const doctorCommand = new Command("doctor")
         store.close();
       }
 
-      const apiKey = config.remote.apiKey || process.env.HIPPO_API_KEY;
+      const apiKey = config.remote.apiKey || process.env.UNFORGIT_API_KEY;
       if (config.remote.url) {
         if (!apiKey) {
           results.push({
             check: "auth",
             status: "warn",
-            message: "No API key configured. Run 'hippo auth set <key>' or set HIPPO_API_KEY",
+            message: "No API key configured. Run 'unforgit auth set <key>' or set UNFORGIT_API_KEY",
           });
         } else {
           results.push({
@@ -177,7 +177,7 @@ export const doctorCommand = new Command("doctor")
 function printResults(results: DiagnosticResult[]): void {
   const icons = { ok: "[ok]", warn: "[!!]", error: "[ERR]" };
 
-  logger.info("Hippocampus Doctor\n");
+  logger.info("Unforgit Doctor\n");
 
   for (const r of results) {
     const icon = icons[r.status];

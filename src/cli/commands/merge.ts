@@ -33,7 +33,7 @@ export const mergeCommand = new Command("merge")
   )
   .action(async (ids: string[], opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -88,7 +88,7 @@ export const mergeCommand = new Command("merge")
       logger.info(
         "Original memories are linked via 'derived_from' and marked as 'superseded'.",
       );
-      logger.info("Use 'hippo history <id>' to view the consolidation history.");
+      logger.info("Use 'unforgit history <id>' to view the consolidation history.");
     } catch (err) {
       logger.error(
         `Merging memories: ${err instanceof Error ? err.message : err}`,
@@ -112,7 +112,7 @@ export const remergeCommand = new Command("remerge")
   .option("--tags <tags>", "Comma-separated tags (keeps existing if not provided)")
   .action(async (consolidationId: string, opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -139,7 +139,7 @@ export const remergeCommand = new Command("remerge")
         `  Previous consolidation: ${consolidationId.slice(0, 8)} (now superseded)`,
       );
       logger.info("");
-      logger.info("Use 'hippo history <id>' to view all versions.");
+      logger.info("Use 'unforgit history <id>' to view all versions.");
     } catch (err) {
       logger.error(
         `Remerging: ${err instanceof Error ? err.message : err}`,
@@ -165,11 +165,11 @@ export const similarCommand = new Command("similar")
   )
   .addHelpText("after", `
 Examples:
-  hippo similar abc123
-  hippo similar abc123 --threshold 0.5 -k 5`)
+  unforgit similar abc123
+  unforgit similar abc123 --threshold 0.5 -k 5`)
   .action(async (memoryId: string, opts) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 
@@ -216,7 +216,7 @@ Examples:
         logger.info("");
       }
 
-      logger.info("Tip: Use 'hippo merge <id1> <id2> ... -t \"merged text\"' to consolidate.");
+      logger.info("Tip: Use 'unforgit merge <id1> <id2> ... -t \"merged text\"' to consolidate.");
     } catch (err) {
       logger.error(
         `Finding similar: ${err instanceof Error ? err.message : err}`,
@@ -232,7 +232,7 @@ export const historyCommand = new Command("history")
   .argument("<memory-id>", "Memory ID to show history for")
   .action(async (memoryId: string) => {
     if (!isInitialized(cwd)) {
-      logger.error("Hippocampus not initialized. Run 'hippo init' first.");
+      logger.error("Unforgit not initialized. Run 'unforgit init' first.");
       process.exit(EXIT_CONFIG_ERROR);
     }
 

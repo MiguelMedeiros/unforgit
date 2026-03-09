@@ -25,8 +25,8 @@ export const linkCommand = new Command("link")
   .option("--remote", "Create link on remote")
   .addHelpText("after", `
 Examples:
-  hippo link abc123 def456 --type related_to
-  hippo link abc123 def456 --type derived_from --remote`)
+  unforgit link abc123 def456 --type related_to
+  unforgit link abc123 def456 --type derived_from --remote`)
   .action(async (sourceId, targetId, opts) => {
     if (!VALID_LINK_TYPES.includes(opts.type)) {
       logger.error(

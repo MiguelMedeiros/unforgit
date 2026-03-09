@@ -10,32 +10,32 @@ const installSteps: Step[] = [
   {
     number: "01",
     title: "Install globally",
-    command: "npm install -g hippocampus",
+    command: "npm install -g unforgit",
     description: "Install the CLI tool globally on your system.",
   },
   {
     number: "02",
     title: "Initialize in your project",
-    command: "cd your-project && hippo init",
+    command: "cd your-project && unforgit init",
     description: "Sets up local storage, Cursor rules, and MCP configuration.",
   },
   {
     number: "03",
     title: "Configure remote server",
-    command: "hippo config set remote.url https://hippo.example.com",
-    description: "Set the URL of your shared Hippocampus server.",
+    command: "unforgit config set remote.url https://unforgit.example.com",
+    description: "Point the repo at the shared API when you want team memory.",
   },
   {
     number: "04",
     title: "Authenticate",
-    command: "hippo auth set hk_your_api_key",
-    description: "Configure API key for push/pull operations.",
+    command: "unforgit auth set hk_your_api_key",
+    description: "Configure the remote API key for push, pull, and shared recall.",
   },
   {
     number: "05",
-    title: "Enable AI consolidation (optional)",
-    command: "hippo auth openai sk_your_openai_key",
-    description: "Set OpenAI API key for AI-powered memory consolidation.",
+    title: "Enable AI features (optional)",
+    command: "unforgit auth openai sk_your_openai_key",
+    description: "Unlock embeddings, hybrid recall, and LLM-assisted consolidation.",
   },
 ];
 
@@ -73,19 +73,19 @@ export function Installation() {
               whileTap={{ scale: 0.98 }}
               className={cn(
                 "p-6 rounded-xl",
-                "bg-linear-to-r from-dracula-purple/10 via-dracula-pink/10 to-dracula-cyan/10",
-                "border border-dracula-purple/30",
+                "bg-linear-to-r from-dracula-foreground/5 via-dracula-foreground/5 to-dracula-foreground/5",
+                "border border-dracula-comment/30",
                 "flex items-center justify-between gap-4",
                 "cursor-pointer group",
                 "transition-all duration-300"
               )}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-dracula-purple/20 group-hover:bg-dracula-purple/30 transition-colors">
-                  <BookOpen className="w-6 h-6 text-dracula-purple" />
+                <div className="p-3 rounded-lg bg-dracula-foreground/10 group-hover:bg-dracula-foreground/15 transition-colors">
+                  <BookOpen className="w-6 h-6 text-dracula-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-dracula-foreground group-hover:text-dracula-purple transition-colors">
+                  <h3 className="text-lg font-semibold text-dracula-foreground group-hover:text-dracula-foreground transition-colors">
                     Explore the Documentation
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -94,7 +94,7 @@ export function Installation() {
                 </div>
               </div>
               <motion.div
-                className="text-dracula-purple"
+                className="text-dracula-foreground"
                 initial={{ x: 0 }}
                 whileHover={{ x: 5 }}
               >
