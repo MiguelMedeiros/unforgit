@@ -97,8 +97,7 @@ export async function runCommand(
     path.dirname(fileURLToPath(import.meta.url)),
     "../..",
   );
-  const workspaceRoot = path.resolve(appRoot, "../..");
-  const tsxPath = path.join(workspaceRoot, "node_modules", ".bin", "tsx");
+  const tsxPath = path.join(appRoot, "node_modules", ".bin", "tsx");
   const entryPoint = path.join(appRoot, "src", "index.ts");
 
   try {
