@@ -16,7 +16,7 @@ export default function DocsLayout({
     <div className="min-h-screen bg-dracula-background">
       <DocsSidebar />
       <main className="lg:pl-64">
-        <div className="max-w-4xl mx-auto px-6 py-12 lg:py-20">{children}</div>
+        <div className="max-w-4xl mx-auto px-6 pt-16 pb-12 lg:pt-20 lg:pb-20">{children}</div>
       </main>
     </div>
   );

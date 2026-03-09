@@ -27,54 +27,63 @@ const faqs = [
 
 export function ELI5() {
   return (
-    <section id="eli5" className="py-40 px-6">
-      <div className="max-w-3xl mx-auto">
+    <section id="why" className="py-40 px-6">
+      <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-10"
+          className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            <span className="text-gradient">Explain Like I&apos;m 5</span>
+            <span className="text-gradient">Why Unforgit?</span>
           </h2>
-          <p className="text-lg text-muted-foreground">
-            No jargon. Just simple answers.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            The problem, the solution, and how it all works.
           </p>
         </motion.div>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {faqs.map((item, index) => (
             <motion.div
               key={item.question}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ x: 4 }}
-              className="group p-6 rounded-xl border border-transparent hover:border-dracula-current/40 hover:bg-dracula-current/10 transition-all duration-300"
+              transition={{ duration: 0.4, delay: index * 0.1 }}
+              className="group relative p-6 rounded-xl border border-dracula-current/20 bg-dracula-current/5 hover:border-dracula-purple/40 hover:bg-dracula-current/10 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold mb-2 group-hover:text-dracula-foreground transition-colors">
-                {item.question}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {item.answer}
-              </p>
+              <div className="flex items-start gap-4">
+                <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-dracula-purple/10 text-dracula-purple text-sm font-bold border border-dracula-purple/20">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold mb-2 group-hover:text-dracula-foreground transition-colors">
+                    {item.question}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {item.answer}
+                  </p>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-12 text-center text-muted-foreground"
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mt-14 text-center"
         >
-          <span className="font-medium text-foreground">TL;DR:</span>{" "}
-          Unforgit = long-term memory for AI agents.
-        </motion.p>
+          <p className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-dracula-current/20 bg-dracula-current/5 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">TL;DR</span>
+            <span className="w-px h-4 bg-dracula-current/30" />
+            Unforgit = long-term memory for AI agents.
+          </p>
+        </motion.div>
       </div>
     </section>
   );

@@ -32,9 +32,9 @@ export function SemanticSearch() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="rounded-xl border border-dracula-current/50 bg-dracula-background/50 overflow-hidden"
+          className="rounded-xl border border-dracula-current/60 bg-dracula-current/20 overflow-hidden"
         >
-          <div className="px-4 py-3 bg-dracula-current/30 border-b border-dracula-current/50">
+          <div className="px-4 py-3 bg-dracula-current/40 border-b border-dracula-current/50">
             <code className="text-sm">
               <span className="text-dracula-comment">$</span>{" "}
               <span className="text-dracula-foreground">
@@ -47,7 +47,7 @@ export function SemanticSearch() {
           </div>
 
           <div className="grid md:grid-cols-2 divide-x divide-dracula-current/30">
-            <div className="p-5">
+            <div className="p-5 bg-dracula-current/15">
               <p className="text-xs text-dracula-comment uppercase tracking-wider mb-3">
                 Traditional Search
               </p>
@@ -64,7 +64,7 @@ export function SemanticSearch() {
               </ul>
             </div>
 
-            <div className="p-5 bg-dracula-foreground/5">
+            <div className="p-5 bg-dracula-current/25">
               <p className="text-xs text-dracula-foreground/70 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Brain className="w-3 h-3" />
                 Unforgit

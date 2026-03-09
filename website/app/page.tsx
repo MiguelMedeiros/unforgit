@@ -24,15 +24,15 @@ export default function Home() {
       <Divider />
       <ELI5 />
       <Divider />
-      <McpIntegrations />
-      <Divider />
-      <TeamMemory />
+      <HowItWorks />
       <Divider />
       <SemanticSearch />
       <Divider />
+      <TeamMemory />
+      <Divider />
       <DashboardShowcase />
       <Divider />
-      <HowItWorks />
+      <McpIntegrations />
       <CTASection />
       <Footer />
     </main>

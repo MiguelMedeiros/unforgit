@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#18181b"/>
-  <path d="M9 9v9a7 7 0 0 0 14 0V9" stroke="#a78bfa" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="9" cy="9" r="2.5" fill="#a78bfa"/>
-  <circle cx="23" cy="9" r="2.5" fill="#a78bfa"/>
-  <circle cx="16" cy="25" r="2" fill="#a78bfa" opacity="0.6"/>
-  <line x1="9" y1="9" x2="23" y2="9" stroke="#a78bfa" stroke-width="1" opacity="0.25"/>
-  <line x1="9" y1="9" x2="16" y2="25" stroke="#a78bfa" stroke-width="1" opacity="0.15"/>
-  <line x1="23" y1="9" x2="16" y2="25" stroke="#a78bfa" stroke-width="1" opacity="0.15"/>
+  <rect width="32" height="32" rx="6" fill="#0a0a0a"/>
+  <text x="16" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff" letter-spacing="-0.5">UN</text>
+  <line x1="7" y1="24" x2="25" y2="24" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
 </svg>

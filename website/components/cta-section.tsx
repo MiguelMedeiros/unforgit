@@ -149,6 +149,13 @@ export function CTASection() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             href="#get-started"
+            onClick={(e) => {
+              e.preventDefault();
+              const element = document.getElementById("get-started");
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             className={cn(
               "inline-flex items-center gap-2 px-8 py-4 rounded-lg",
               "bg-secondary border border-border font-semibold text-lg",
@@ -165,7 +172,7 @@ export function CTASection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground"
+          className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground"
         >
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-dracula-foreground/50 animate-pulse" />

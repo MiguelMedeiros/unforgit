@@ -9,8 +9,33 @@ import {
   Globe,
   Plug,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
+
+const MCP_CONFIG_BASE64 = "eyJjb21tYW5kIjoidW5mb3JnaXQtbWNwIiwiYXJncyI6W119";
+const CURSOR_INSTALL_LINK = `cursor://anysphere.cursor-deeplink/mcp/install?name=unforgit&config=${MCP_CONFIG_BASE64}`;
+const VSCODE_INSTALL_LINK = `https://vscode.dev/redirect/mcp/install?name=unforgit&config=${MCP_CONFIG_BASE64}`;
+
+function InstallButton({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-dracula-foreground/10 border border-dracula-comment/30 hover:bg-dracula-foreground/20 hover:border-dracula-comment/50 transition-all"
+    >
+      <Download className="w-4 h-4" />
+      {label}
+    </a>
+  );
+}
 
 function Section({
   id,
@@ -240,7 +265,7 @@ $ unforgit init`}
                 Automatic Setup
               </span>
             </div>
-            <p className="text-sm text-dracula-foreground/70">
+            <p className="text-sm text-dracula-foreground/70 mb-3">
               <code className="text-dracula-foreground/80">unforgit init</code>{" "}
               already creates{" "}
               <code className="text-dracula-foreground/80">
@@ -252,6 +277,10 @@ $ unforgit init`}
               </code>{" "}
               for you. Just restart Cursor and the tools will appear.
             </p>
+            <InstallButton
+              href={CURSOR_INSTALL_LINK}
+              label="Install in Cursor"
+            />
           </div>
 
           <p className="text-sm text-dracula-foreground/70 mb-3">
@@ -355,9 +384,15 @@ $ unforgit init`}
         </Subsection>
 
         <Subsection id="mcp-vscode-copilot" title="VS Code + GitHub Copilot">
+          <div className="mb-4">
+            <InstallButton
+              href={VSCODE_INSTALL_LINK}
+              label="Install in VS Code"
+            />
+          </div>
           <p className="text-sm text-dracula-foreground/70 mb-3">
-            VS Code supports MCP servers in Copilot Chat (agent mode). Add to
-            your project&apos;s{" "}
+            Or configure manually — VS Code supports MCP servers in Copilot Chat
+            (agent mode). Add to your project&apos;s{" "}
             <code className="text-dracula-foreground/80">
               .vscode/settings.json
             </code>

@@ -110,7 +110,7 @@ function PushPulse({ side, delay }: { side: "left" | "right"; delay: number }) {
         }}
         className={cn(
           "w-3 h-3 rounded-full",
-          isLeft ? "bg-violet-400" : "bg-sky-400"
+          isLeft ? "bg-zinc-300" : "bg-zinc-400"
         )}
       />
     </motion.div>
@@ -188,16 +188,16 @@ export function TeamMemory() {
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 md:px-5 py-3 border-b border-dracula-current/30 bg-dracula-background/60 backdrop-blur-sm">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" />
               <span className="text-[10px] md:text-xs font-medium text-dracula-comment uppercase tracking-wider">
                 remote mcp server
               </span>
             </div>
             <div className="hidden md:flex items-center gap-3">
               {[
-                { color: "bg-violet-400", name: "Alice" },
-                { color: "bg-sky-400", name: "Bob" },
-                { color: "bg-amber-400", name: "John" },
+                { color: "bg-zinc-300", name: "Alice" },
+                { color: "bg-zinc-500", name: "Bob" },
+                { color: "bg-zinc-700", name: "John" },
               ].map((dev) => (
                 <span
                   key={dev.name}

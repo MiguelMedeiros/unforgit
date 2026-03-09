@@ -27,7 +27,7 @@ const links = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/50">
+    <footer className="border-t border-border bg-card/50 pb-20 md:pb-0">
       <div className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <motion.div

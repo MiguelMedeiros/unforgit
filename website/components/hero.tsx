@@ -147,7 +147,7 @@ export function Hero() {
             href="#get-started"
             onClick={(e) => {
               e.preventDefault();
-              const element = document.getElementById("install");
+              const element = document.getElementById("get-started");
               if (element) {
                 element.scrollIntoView({ behavior: "smooth" });
               }
@@ -230,14 +230,14 @@ export function Hero() {
       </div>
 
       <motion.a
-        href="#mcp-integrations"
+        href="#why"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 1 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-dracula-foreground/50 hover:text-dracula-foreground transition-colors cursor-pointer z-10"
         onClick={(e) => {
           e.preventDefault();
-          const element = document.getElementById("mcp-integrations");
+          const element = document.getElementById("why");
           if (element) {
             element.scrollIntoView({ behavior: "smooth" });
           }

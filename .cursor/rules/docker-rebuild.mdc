@@ -1,0 +1,14 @@
+---
+description: Auto rebuild Docker containers after code changes
+alwaysApply: true
+---
+
+# Docker Rebuild After Changes
+
+After making any code changes to the project, always rebuild and restart the Docker containers so the changes are reflected immediately:
+
+```bash
+docker compose down && docker compose up -d --build
+```
+
+Run this from the project root (`/Users/miguelmedeiros/code/hippocampus`).

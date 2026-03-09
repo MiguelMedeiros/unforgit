@@ -1,9 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Plug } from "lucide-react";
+import { ArrowRight, Download, Plug } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+
+const MCP_CONFIG_BASE64 = "eyJjb21tYW5kIjoidW5mb3JnaXQtbWNwIiwiYXJncyI6W119";
+const CURSOR_INSTALL_LINK = `cursor://anysphere.cursor-deeplink/mcp/install?name=unforgit&config=${MCP_CONFIG_BASE64}`;
+const VSCODE_INSTALL_LINK = `https://vscode.dev/redirect/mcp/install?name=unforgit&config=${MCP_CONFIG_BASE64}`;
 
 function CursorLogo({ className }: { className?: string }) {
   return (
@@ -48,33 +52,45 @@ function CopilotLogo({ className }: { className?: string }) {
 const ides = [
   {
     name: "Cursor",
-    note: "Auto-configured",
+    note: "One-click install",
     icon: CursorLogo,
+    href: CURSOR_INSTALL_LINK,
+    installLink: true,
   },
   {
     name: "Claude Desktop",
     note: "macOS / Windows / Linux",
     icon: ClaudeLogo,
+    href: "/docs/mcp#mcp-claude-desktop",
+    installLink: false,
   },
   {
     name: "VS Code",
-    note: "Copilot agent mode",
+    note: "One-click install",
     icon: VSCodeLogo,
+    href: VSCODE_INSTALL_LINK,
+    installLink: true,
   },
   {
     name: "Windsurf",
     note: "Global config",
     icon: WindsurfLogo,
+    href: "/docs/mcp#mcp-windsurf",
+    installLink: false,
   },
   {
     name: "GitHub Copilot",
-    note: "Chat + Agent",
+    note: "One-click install",
     icon: CopilotLogo,
+    href: VSCODE_INSTALL_LINK,
+    installLink: true,
   },
   {
     name: "Any MCP client",
     note: "stdio transport",
     icon: null,
+    href: "/docs/mcp#mcp-other",
+    installLink: false,
   },
 ];
 
@@ -109,32 +125,47 @@ export function McpIntegrations() {
         >
           {ides.map((ide, i) => {
             const Icon = ide.icon;
+            const isExternal =
+              ide.href.startsWith("cursor://") ||
+              ide.href.startsWith("https://");
+            const Wrapper = isExternal ? "a" : Link;
+            const wrapperProps = isExternal
+              ? { href: ide.href, target: "_blank", rel: "noopener noreferrer" }
+              : { href: ide.href };
+
             return (
-              <motion.div
-                key={ide.name}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
-                whileHover={{ y: -4, scale: 1.03 }}
-                className="rounded-xl border border-dracula-current/40 bg-dracula-current/20 p-5 flex flex-col items-center gap-3 group hover:border-dracula-comment/60 hover:bg-dracula-current/30 hover:shadow-2xl hover:shadow-white/6 transition-all duration-300"
-              >
-                <div className="w-10 h-10 flex items-center justify-center text-dracula-foreground/60 group-hover:text-dracula-foreground transition-colors">
-                  {Icon ? (
-                    <Icon className="w-8 h-8" />
-                  ) : (
-                    <Plug className="w-7 h-7" />
+              <Wrapper key={ide.name} {...(wrapperProps as any)}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
+                  whileHover={{ y: -4, scale: 1.03 }}
+                  className="rounded-xl border border-dracula-current/40 bg-dracula-current/20 p-5 flex flex-col items-center gap-3 group hover:border-dracula-comment/60 hover:bg-dracula-current/30 hover:shadow-2xl hover:shadow-white/6 transition-all duration-300 cursor-pointer h-full relative"
+                >
+                  {ide.installLink && (
+                    <span className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-dracula-foreground/10 text-[10px] font-medium text-dracula-foreground/70">
+                      <Download className="w-2.5 h-2.5" />
+                      Install
+                    </span>
                   )}
-                </div>
-                <div className="text-center">
-                  <p className="font-medium text-sm text-dracula-foreground">
-                    {ide.name}
-                  </p>
-                  <p className="text-xs text-dracula-comment mt-0.5">
-                    {ide.note}
-                  </p>
-                </div>
-              </motion.div>
+                  <div className="w-10 h-10 flex items-center justify-center text-dracula-foreground/60 group-hover:text-dracula-foreground transition-colors">
+                    {Icon ? (
+                      <Icon className="w-8 h-8" />
+                    ) : (
+                      <Plug className="w-7 h-7" />
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium text-sm text-dracula-foreground">
+                      {ide.name}
+                    </p>
+                    <p className="text-xs text-dracula-comment mt-0.5">
+                      {ide.note}
+                    </p>
+                  </div>
+                </motion.div>
+              </Wrapper>
             );
           })}
         </motion.div>

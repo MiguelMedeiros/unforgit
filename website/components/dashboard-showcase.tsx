@@ -95,7 +95,7 @@ export function DashboardShowcase() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-dracula-background/80 border border-dracula-current mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-xl bg-dracula-background/80 border border-dracula-current mb-8">
             {tabs.map((tab, index) => (
               <button
                 key={tab.id}
@@ -118,16 +118,16 @@ export function DashboardShowcase() {
 
             <button
               onClick={goToPrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-dracula-background/80 border border-dracula-current opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dracula-current"
+              className="absolute -left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-dracula-background/80 border border-dracula-current opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dracula-current"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={goToNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-dracula-background/80 border border-dracula-current opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dracula-current"
+              className="absolute -right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-1.5 sm:p-2 rounded-full bg-dracula-background/80 border border-dracula-current opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dracula-current"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <div className="relative rounded-xl overflow-hidden border border-dracula-current bg-dracula-background shadow-2xl">

@@ -220,17 +220,32 @@ export function DocsSidebar() {
 
   return (
     <>
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-dracula-background border border-dracula-current"
-        aria-label="Toggle sidebar"
-      >
-        {isMobileOpen ? (
-          <X className="w-5 h-5 text-dracula-foreground" />
-        ) : (
-          <Menu className="w-5 h-5 text-dracula-foreground" />
-        )}
-      </button>
+      {/* Mobile top header bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-dracula-background/95 backdrop-blur-xl border-b border-dracula-current/30">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileOpen(!isMobileOpen)}
+              className="p-1.5 rounded-lg hover:bg-dracula-current/30 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              {isMobileOpen ? (
+                <X className="w-5 h-5 text-dracula-foreground" />
+              ) : (
+                <Menu className="w-5 h-5 text-dracula-foreground" />
+              )}
+            </button>
+            <a
+              href="/"
+              className="text-dracula-foreground hover:text-dracula-foreground transition-colors"
+            >
+              <span className="font-bold text-lg tracking-tight">unforgit</span>
+            </a>
+            <span className="text-xs text-dracula-comment">/</span>
+            <span className="text-xs text-dracula-comment">docs</span>
+          </div>
+        </div>
+      </div>
 
       {isMobileOpen && (
         <div
@@ -241,14 +256,16 @@ export function DocsSidebar() {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen w-64 pt-6 pb-8 px-4 overflow-y-auto",
+          "fixed left-0 z-40 w-64 pb-8 px-4 pt-4 overflow-y-auto",
           "bg-dracula-background border-r border-dracula-current/50",
           "transition-transform duration-300",
+          "top-[53px] h-[calc(100vh-53px)] lg:top-0 lg:h-screen lg:pt-6",
           "lg:translate-x-0",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="mb-6">
+        {/* Desktop-only header inside sidebar */}
+        <div className="hidden lg:block mb-6">
           <a
             href="/"
             className="flex items-center gap-2 text-dracula-foreground hover:text-dracula-foreground transition-colors"
