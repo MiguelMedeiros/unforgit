@@ -1,7 +1,7 @@
 node_modules/
 dist/
 src/generated/
-.hippocampus/
+.unforgit/
 *.db
 *.db-journal
 .env

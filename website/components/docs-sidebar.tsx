@@ -239,7 +239,7 @@ export function DocsSidebar() {
               href="/"
               className="text-dracula-foreground hover:text-dracula-foreground transition-colors"
             >
-              <span className="font-bold text-lg tracking-tight">unforgit</span>
+              <span className="font-bold text-lg tracking-tight"><span className="underline decoration-2 underline-offset-[3px]">un</span>forgit</span>
             </a>
             <span className="text-xs text-dracula-comment">/</span>
             <span className="text-xs text-dracula-comment">docs</span>
@@ -270,7 +270,7 @@ export function DocsSidebar() {
             href="/"
             className="flex items-center gap-2 text-dracula-foreground hover:text-dracula-foreground transition-colors"
           >
-            <span className="font-bold text-lg tracking-tight">unforgit</span>
+            <span className="font-bold text-lg tracking-tight"><span className="underline decoration-2 underline-offset-[3px]">un</span>forgit</span>
           </a>
           <p className="text-xs text-dracula-comment mt-2">
             Technical Documentation

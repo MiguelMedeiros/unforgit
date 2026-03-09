@@ -34,7 +34,7 @@ export function Sidebar() {
           <Brain className="h-4.5 w-4.5 text-white" />
         </div>
         <span className="text-[15px] font-semibold tracking-tight text-foreground">
-          Unforgit
+          <span className="underline decoration-2 underline-offset-[3px]">Un</span>forgit
         </span>
       </div>
 

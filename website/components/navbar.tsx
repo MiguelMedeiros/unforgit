@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "#why", label: "about", icon: Info },
-  { href: "#mcp-integrations", label: "integrations", icon: Puzzle },
   { href: "#team-memory", label: "team", icon: Users },
   { href: "#dashboard", label: "dashboard", icon: LayoutDashboard },
+  { href: "#mcp-integrations", label: "integrations", icon: Puzzle },
   { href: "/docs", label: "docs", external: true, icon: FileText },
 ];
 
@@ -25,20 +25,25 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   const updateActiveSection = useCallback(() => {
-    const sections = navLinks
+    const sectionIds = navLinks
       .filter((l) => !l.external)
       .map((link) => link.href.replace("#", ""));
 
+    const elements = sectionIds
+      .map((id) => ({ id, el: document.getElementById(id) }))
+      .filter((s): s is { id: string; el: HTMLElement } => s.el !== null);
+
+    elements.sort(
+      (a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top
+    );
+
     const viewportMid = window.innerHeight / 2;
 
-    for (let i = sections.length - 1; i >= 0; i--) {
-      const section = document.getElementById(sections[i]);
-      if (section) {
-        const rect = section.getBoundingClientRect();
-        if (rect.top <= viewportMid) {
-          setActiveSection(sections[i]);
-          return;
-        }
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const rect = elements[i].el.getBoundingClientRect();
+      if (rect.top <= viewportMid) {
+        setActiveSection(elements[i].id);
+        return;
       }
     }
     setActiveSection("");
@@ -103,7 +108,7 @@ export function Navbar() {
               onClick={scrollToTop}
             >
               <span className="font-bold text-lg tracking-tight">
-                unforgit
+                <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit
               </span>
             </a>
 

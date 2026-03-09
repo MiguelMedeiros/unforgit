@@ -33,7 +33,7 @@ function getClient(apiKey?: string): OpenAI {
   if (!key) {
     throw new Error(
       "OpenAI API key not configured. Set OPENAI_API_KEY environment variable or pass apiKey option. " +
-      "Semantic search features are disabled. Hippocampus will use FTS-only search."
+      "Semantic search features are disabled. Unforgit will use FTS-only search."
     );
   }
   if (!cachedClient || apiKey) {

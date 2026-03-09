@@ -50,8 +50,6 @@ export function CTASection() {
         }}
       />
 
-      <div className="absolute inset-0 bg-linear-to-t from-white/5 via-transparent to-transparent" />
-
       <motion.div
         className="absolute bottom-20 left-20 w-80 h-80 bg-white/4 rounded-full blur-3xl"
         style={{

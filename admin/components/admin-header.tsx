@@ -20,7 +20,7 @@ export function AdminHeader() {
         </div>
         <div>
           <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
-            Unforgit Admin
+            <span className="underline decoration-2 underline-offset-[3px]">Un</span>forgit Admin
           </h1>
           <p className="text-[11px] text-muted-foreground">
             API Key Management

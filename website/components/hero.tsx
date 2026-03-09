@@ -122,7 +122,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.25 }}
           className="text-5xl md:text-8xl font-black mb-8 tracking-tight text-dracula-foreground"
         >
-          We fix that.
+          We <span className="underline decoration-dracula-purple underline-offset-4">fix</span> that.
         </motion.h2>
 
         <motion.p
