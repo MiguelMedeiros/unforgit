@@ -4,19 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Github,
-  Info,
-  Puzzle,
+  Rocket,
+  Search,
   Users,
   LayoutDashboard,
+  Server,
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "#why", label: "about", icon: Info },
-  { href: "#team-memory", label: "team", icon: Users },
+  { href: "#get-started", label: "get started", icon: Rocket },
+  { href: "#semantic-search", label: "semantic search", icon: Search },
+  { href: "#team-memory", label: "team memory", icon: Users },
   { href: "#dashboard", label: "dashboard", icon: LayoutDashboard },
-  { href: "#mcp-integrations", label: "integrations", icon: Puzzle },
+  { href: "#mcp-integrations", label: "mcp server", icon: Server },
   { href: "/docs", label: "docs", external: true, icon: FileText },
 ];
 

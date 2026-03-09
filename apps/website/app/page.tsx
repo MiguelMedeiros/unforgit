@@ -6,6 +6,7 @@ import { ELI5 } from "@/components/eli5";
 import { McpIntegrations } from "@/components/mcp-integrations";
 import { HowItWorks } from "@/components/how-it-works";
 import { DashboardShowcase } from "@/components/dashboard-showcase";
+import { FAQ } from "@/components/faq";
 import { CTASection } from "@/components/cta-section";
 import { Footer } from "@/components/footer";
 function Divider() {
@@ -33,6 +34,8 @@ export default function Home() {
       <DashboardShowcase />
       <Divider />
       <McpIntegrations />
+      <Divider />
+      <FAQ />
       <CTASection />
       <Footer />
     </main>
