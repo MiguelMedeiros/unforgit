@@ -1,7 +1,0 @@
-remote:
-  url: http://localhost:3737
-  orgId: MiguelMedeiros
-  repoId: hippocampus
-defaults:
-  visibility: auto
-  memoryType: episodic
