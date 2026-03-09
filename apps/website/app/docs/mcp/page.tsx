@@ -5,9 +5,6 @@ import { Terminal } from "@/components/terminal";
 import {
   ArrowLeft,
   Monitor,
-  Key,
-  Globe,
-  Plug,
   AlertTriangle,
   Download,
 } from "lucide-react";

@@ -5,15 +5,10 @@ import { Terminal } from "@/components/terminal";
 import { CommandReference } from "@/components/command-reference";
 import { ApiEndpoint } from "@/components/api-endpoint";
 import {
-  Brain,
   Database,
-  Search,
-  Sparkles,
   Terminal as TerminalIcon,
   Server,
   Settings,
-  Link2,
-  GitMerge,
 } from "lucide-react";
 import Link from "next/link";
 

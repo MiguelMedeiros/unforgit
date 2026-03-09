@@ -31,12 +31,6 @@ const TYPE_COLORS = {
   procedural: "#50fa7b",
 };
 
-const STATUS_COLORS = {
-  active: "#50fa7b",
-  deprecated: "#ff5555",
-  superseded: "#ffb86c",
-};
-
 export function MemoryTypeChart({ stats }: DashboardChartsProps) {
   const data = [
     { name: "Episodic", value: stats.byType.episodic, color: TYPE_COLORS.episodic },

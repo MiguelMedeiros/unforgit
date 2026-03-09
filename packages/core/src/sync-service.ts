@@ -177,7 +177,7 @@ export class SyncService extends EventEmitter {
   private async performSync(): Promise<SyncServiceResult> {
     const errors: string[] = [];
     let pushed = 0;
-    let pulled = 0;
+    const pulled = 0;
     let conflicts = 0;
 
     const pendingPush = this.store.getPendingPush();

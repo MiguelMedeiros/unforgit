@@ -22,7 +22,7 @@ export async function recallRoutes(
       try {
         const embResult = await generateEmbedding(query.query);
         queryEmbedding = embResult.embedding;
-      } catch (error) {
+      } catch (_error) {
         app.log.warn("Failed to generate query embedding, falling back to FTS");
       }
     }

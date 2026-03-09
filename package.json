@@ -16,6 +16,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "clean": "pnpm -r exec rm -rf dist .next node_modules"
   },
   "keywords": [
@@ -50,10 +52,17 @@
     ]
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@next/eslint-plugin-next": "^16.1.6",
     "@types/node": "^25.3.3",
     "dotenv": "^17.3.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
     "puppeteer": "^24.38.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18"
   }
 }

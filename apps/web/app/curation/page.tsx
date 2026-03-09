@@ -34,15 +34,6 @@ interface Suggestion {
   };
 }
 
-interface SuggestionsResponse {
-  suggestions: Suggestion[];
-  stats: {
-    totalMemories: number;
-    memoriesAnalyzed: number;
-    suggestionsGenerated: number;
-  };
-}
-
 interface HealthResponse {
   overallScore: number;
   status: "healthy" | "needs_attention" | "critical";
@@ -127,7 +118,7 @@ export default function CurationPage() {
       } else {
         toast.error(data.error || "Backfill failed");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to run backfill");
     }
   };

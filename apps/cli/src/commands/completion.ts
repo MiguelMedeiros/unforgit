@@ -98,14 +98,14 @@ _unforgit() {
     '1: :->cmd' \\
     '*::arg:->args'
 
-  case "\$state" in
+  case "$state" in
     cmd)
       _describe 'command' commands
       ;;
   esac
 }
 
-_unforgit "\$@"
+_unforgit "$@"
 `.trim();
 
 const FISH_COMPLETION = `

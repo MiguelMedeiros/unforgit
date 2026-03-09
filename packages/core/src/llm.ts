@@ -130,7 +130,7 @@ export async function generateConsolidatedText(
         : mergeTags(input.memories),
       suggestedType,
     };
-  } catch (parseError) {
+  } catch (_parseError) {
     const textMatch = content.match(/"text"\s*:\s*"([^"]+)"/);
     if (textMatch) {
       return {

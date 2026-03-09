@@ -84,10 +84,9 @@ export class LifecycleScheduler {
         state.pending = false;
         this.states.set(key, state);
         this.schedule(state.orgId, state.repoId);
-        return;
+      } else {
+        this.states.delete(key);
       }
-
-      this.states.delete(key);
     }
   }
 }

@@ -9,7 +9,6 @@ import {
   Loader2,
   RefreshCw,
   Star,
-  GitPullRequest,
   MessageSquare,
   Zap,
 } from "lucide-react";
@@ -245,7 +244,7 @@ export default function TeamPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {topMemories.slice(0, 10).map((memory, idx) => (
+                {topMemories.slice(0, 10).map((memory) => (
                   <div
                     key={memory.id}
                     className="p-3 rounded-lg bg-dracula-bg hover:bg-dracula-bg/80 transition-colors"
