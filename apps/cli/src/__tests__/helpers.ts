@@ -101,9 +101,12 @@ export async function runCommand(
   const entryPoint = path.join(appRoot, "src", "index.ts");
 
   try {
+    const nodeOptions = [process.env.NODE_OPTIONS, "--conditions source"]
+      .filter(Boolean)
+      .join(" ");
     const { stdout, stderr } = await execFileAsync(tsxPath, [entryPoint, ...args], {
       timeout: 15_000,
-      env: { ...process.env, NODE_ENV: "test" },
+      env: { ...process.env, NODE_ENV: "test", NODE_OPTIONS: nodeOptions },
     });
     return { stdout, stderr, exitCode: 0 };
   } catch (err: unknown) {
