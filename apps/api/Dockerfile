@@ -12,7 +12,14 @@ COPY tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
+COPY packages/config/package.json packages/config/
+COPY packages/tools/package.json packages/tools/
 COPY apps/api/package.json apps/api/
+COPY apps/cli/package.json apps/cli/
+COPY apps/mcp/package.json apps/mcp/
+COPY apps/web/package.json apps/web/
+COPY apps/admin/package.json apps/admin/
+COPY apps/website/package.json apps/website/
 
 RUN pnpm install --frozen-lockfile
 
@@ -23,10 +30,10 @@ ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV DATABASE_URL=${DATABASE_URL}
 
 RUN pnpm run db:generate
-RUN pnpm --filter @unforgit/shared build
-RUN pnpm --filter @unforgit/core build
-RUN pnpm --filter @unforgit/db build
-RUN pnpm --filter @unforgit/api build
+RUN pnpm --filter @unforgit/shared exec tsup --no-dts
+RUN pnpm --filter @unforgit/core exec tsup --no-dts
+RUN pnpm --filter @unforgit/db exec tsup --no-dts
+RUN pnpm --filter @unforgit/api exec tsup --no-dts
 
 FROM node:20-alpine AS runner
 
@@ -41,7 +48,14 @@ COPY prisma.config.ts ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
+COPY packages/config/package.json packages/config/
+COPY packages/tools/package.json packages/tools/
 COPY apps/api/package.json apps/api/
+COPY apps/cli/package.json apps/cli/
+COPY apps/mcp/package.json apps/mcp/
+COPY apps/web/package.json apps/web/
+COPY apps/admin/package.json apps/admin/
+COPY apps/website/package.json apps/website/
 
 RUN pnpm install --frozen-lockfile --prod
 
