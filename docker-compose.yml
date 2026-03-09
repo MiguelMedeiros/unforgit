@@ -16,7 +16,9 @@ services:
       retries: 5
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     ports:
       - "3737:3737"
     environment:
@@ -31,7 +33,7 @@ services:
 
   admin:
     build:
-      context: ./admin
+      context: ./apps/admin
       dockerfile: Dockerfile
     ports:
       - "3939:3939"
@@ -43,7 +45,7 @@ services:
 
   website:
     build:
-      context: ./website
+      context: ./apps/website
       dockerfile: Dockerfile
     ports:
       - "3030:3000"

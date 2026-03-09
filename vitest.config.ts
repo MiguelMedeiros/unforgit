@@ -4,10 +4,17 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/__tests__/**/*.test.ts"],
+    include: [
+      "packages/*/src/**/__tests__/**/*.test.ts",
+      "apps/*/src/**/__tests__/**/*.test.ts",
+    ],
     coverage: {
       provider: "v8",
-      include: ["src/cli/**", "src/core/**"],
+      include: [
+        "packages/core/src/**",
+        "packages/shared/src/**",
+        "apps/cli/src/**",
+      ],
       thresholds: {
         lines: 80,
         branches: 80,

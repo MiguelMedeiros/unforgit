@@ -11,4 +11,4 @@ After making any code changes to the project, always rebuild and restart the Doc
 docker compose down && docker compose up -d --build
 ```
 
-Run this from the project root (`/Users/miguelmedeiros/code/unforgit`).
+Run this from the project root (`/Users/miguelmedeiros/code/hippocampus`).

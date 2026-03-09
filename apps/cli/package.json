@@ -1,0 +1,29 @@
+{
+  "name": "@unforgit/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "unforgit": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@unforgit/shared": "workspace:*",
+    "@unforgit/core": "workspace:*",
+    "@unforgit/db": "workspace:*",
+    "@unforgit/config": "workspace:*",
+    "commander": "^14.0.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "yaml": "^2.8.2"
+  }
+}

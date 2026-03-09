@@ -1,6 +1,6 @@
 node_modules/
 dist/
-src/generated/
+packages/db/src/generated/
 .unforgit/
 .hippocampus/
 *.db
@@ -12,6 +12,4 @@ src/generated/
 .DS_Store
 coverage/
 .next/
-web/.next/
-
 .cursor/plans/

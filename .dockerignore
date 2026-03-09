@@ -6,9 +6,10 @@ dist
 .env.*
 *.log
 .unforgit
+.hippocampus
 .cursor
-web
-admin
 README.md
 LICENSE
 .DS_Store
+.next
+coverage

@@ -1,1 +1,3 @@
-approveBuilds: '@prisma/engines better-sqlite3 esbuild prisma'
+packages:
+  - "packages/*"
+  - "apps/*"
