@@ -80,7 +80,7 @@ function getStrengthenedCandidates(
 
   return memories
     .filter((memory) => memory.memoryType === "episodic" && memory.status === "active")
-    .map((memory) => {
+    .map((memory): StrengthenedMemoryCandidate | undefined => {
       const usage = usageMap.get(memory.id);
       if (!usage || usage.count < config.maintenance.promoteRecallCount) {
         return undefined;
