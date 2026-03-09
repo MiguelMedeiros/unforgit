@@ -34,6 +34,7 @@
     "repository"
   ],
   "license": "MIT",
+  "packageManager": "pnpm@10.28.1",
   "engines": {
     "node": ">=20"
   },
