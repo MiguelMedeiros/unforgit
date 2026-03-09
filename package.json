@@ -52,6 +52,7 @@
   "devDependencies": {
     "@types/node": "^25.3.3",
     "dotenv": "^17.3.1",
+    "puppeteer": "^24.38.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

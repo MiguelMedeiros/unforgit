@@ -1,0 +1,161 @@
+# CLI Reference
+
+## Initialize
+
+```bash
+unforgit init
+```
+
+Creates `.unforgit/` with `local.db` and `unforgit.yaml`, plus Cursor IDE integration (`.cursor/rules/` and `.cursor/mcp.json`). The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
+
+Use `--no-cursor-rule` to skip Cursor integration.
+
+## Add Memories
+
+```bash
+# Episodic (local by default)
+unforgit add "Found a race condition in the queue worker" --type episodic --tags "bug,queue"
+
+# Semantic with source reference
+unforgit add "We use UTC timestamps everywhere" --type semantic --tags "convention" --source-pr "https://github.com/org/repo/pull/42"
+
+# Procedural
+unforgit add "To deploy: run make release, then kubectl apply" --type procedural --tags "deploy,playbook"
+```
+
+## Recall
+
+```bash
+unforgit recall "how to deploy" --types procedural,semantic --k 5
+
+# Local only
+unforgit recall "race condition" --local-only
+
+# Remote only
+unforgit recall "auth decisions" --remote-only
+```
+
+## Templates
+
+Use templates for common memory types:
+
+```bash
+# Decision (semantic, auto-tagged)
+unforgit add --template decision "We're using PostgreSQL instead of MySQL for better JSON support"
+
+# Gotcha (episodic, warning)
+unforgit add --template gotcha "OAuth callback requires HTTPS in production"
+
+# Playbook (procedural, how-to)
+unforgit add --template playbook "To deploy: make release && kubectl apply -f k8s/"
+
+# Bug fix
+unforgit add --template bug "Fixed race condition in queue worker by adding mutex"
+
+# Other templates: adr, convention, workaround, perf, security, api
+unforgit add --list-templates
+```
+
+## Curate (Lifecycle)
+
+```bash
+# Preview lifecycle maintenance (default)
+unforgit curate
+
+# Execute expiry + consolidation locally
+unforgit curate --execute
+
+# Execute lifecycle maintenance on the remote server
+unforgit curate --remote --execute
+```
+
+## Embeddings
+
+```bash
+# Generate embeddings for existing memories
+unforgit embeddings backfill
+
+# Check embedding coverage
+unforgit embeddings stats
+
+# Clear all embeddings (requires regeneration)
+unforgit embeddings clear --yes
+```
+
+## Promote
+
+```bash
+unforgit promote <memory-id> --source-pr "https://github.com/org/repo/pull/99"
+```
+
+## Consolidate
+
+```bash
+unforgit consolidate --from-pr "https://github.com/org/repo/pull/100"
+```
+
+## Deprecate & Supersede
+
+```bash
+unforgit deprecate <id> --reason "outdated after migration"
+unforgit supersede <old-id> --with <new-id>
+```
+
+## Merge (Consolidate Memories)
+
+Combine multiple related memories into a single unified memory while preserving the full history — like a Git commit for knowledge.
+
+```bash
+# Find similar memories (candidates for merging)
+unforgit similar <memory-id> --limit 10 --threshold 0.3
+
+# Merge multiple memories into one
+unforgit merge <id1> <id2> <id3> -t "Unified deployment guide: run make release, kubectl apply, wait for health check, rollback on error"
+
+# Update an existing consolidation with new info
+unforgit remerge <consolidation-id> -t "Updated text with new insights" --add "<new-memory-id>"
+
+# View consolidation history
+unforgit history <memory-id>
+```
+
+The original memories are preserved and linked via `derived_from` relationships. By default, source memories are marked as `superseded` so they don't clutter recall results, but the history is always accessible.
+
+## Reset
+
+```bash
+# Permanently delete ALL memories, links, embeddings, and sync state
+unforgit reset                # reset local + remote
+unforgit reset --local        # reset local store only
+unforgit reset --remote       # reset remote store only
+unforgit reset --force        # skip confirmation prompt
+```
+
+## Sync (Push & Pull)
+
+```bash
+# Push local memories to remote
+unforgit push
+
+# Pull remote memories to local
+unforgit pull
+
+# Preview changes before pushing
+unforgit push --dry-run
+
+# Show differences between local and remote
+unforgit diff
+```
+
+## API Keys
+
+```bash
+# Create a new API key (requires existing admin key)
+unforgit keys create --name "My Key" --org "my-org"
+
+# List all API keys
+unforgit keys list
+
+# Revoke an API key
+unforgit keys revoke <key-id>
+```
