@@ -1,5 +1,8 @@
 FROM node:20-alpine AS builder
 
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.title="unforgit-api"
+
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate

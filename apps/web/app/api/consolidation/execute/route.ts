@@ -14,7 +14,7 @@ interface ConsolidationInput {
 async function generateConsolidatedText(
   input: ConsolidationInput,
   apiKey: string,
-  model: string = "gpt-4o-mini",
+  model: string = "gpt-5.4",
 ): Promise<{ text: string; suggestedTags: string[]; suggestedType: string }> {
   const client = new OpenAI({ apiKey });
 
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { sourceIds, model = "gpt-4o-mini" } = body;
+  const { sourceIds, model = "gpt-5.4" } = body;
 
   if (!sourceIds || !Array.isArray(sourceIds) || sourceIds.length < 2) {
     return NextResponse.json(

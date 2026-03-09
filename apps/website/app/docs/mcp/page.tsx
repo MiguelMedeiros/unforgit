@@ -578,7 +578,7 @@ $ pnpm run db:push`}
               code={`DATABASE_URL=postgresql://unforgit:unforgit@localhost:5432/unforgit
 OPENAI_API_KEY=sk-your-team-key
 AUTO_EMBEDDING_ENABLED=true
-CONSOLIDATION_MODEL=gpt-4o-mini`}
+CONSOLIDATION_MODEL=gpt-5.4`}
             />
           </div>
           <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">

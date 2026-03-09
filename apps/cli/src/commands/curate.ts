@@ -36,7 +36,7 @@ export const curateCommand = new Command("curate")
 Examples:
   unforgit curate
   unforgit curate --execute
-  unforgit curate --remote --execute --model gpt-4o-mini`)
+  unforgit curate --remote --execute --model gpt-5.4`)
   .action(async (opts) => {
     if (!isInitialized()) {
       logger.error("Unforgit not initialized. Run 'unforgit init' first.");

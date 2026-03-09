@@ -1058,7 +1058,7 @@ server.tool(
     model: z
       .string()
       .optional()
-      .default("gpt-4o-mini")
+      .default("gpt-5.4")
       .describe("OpenAI model to use for text generation"),
   },
   async ({ threshold, minGroupSize, maxGroups, types, dryRun, execute, model }) => {

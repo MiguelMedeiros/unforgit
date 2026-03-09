@@ -108,7 +108,7 @@ export function Footer() {
           className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4"
         >
           <p className="text-sm text-muted-foreground">
-            MIT License. Built by{" "}
+            v0.1.0 · MIT License · Built by{" "}
             <motion.a
               href="https://miguelmedeiros.dev"
               target="_blank"

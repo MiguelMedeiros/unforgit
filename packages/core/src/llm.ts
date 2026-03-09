@@ -83,7 +83,7 @@ export async function generateConsolidatedText(
   }
 
   const client = new OpenAI({ apiKey });
-  const model = options?.model ?? "gpt-4o-mini";
+  const model = options?.model ?? "gpt-5.4";
 
   const memoriesText = formatMemoriesForPrompt(input.memories);
   const prompt = CONSOLIDATION_PROMPT.replace("{{MEMORIES}}", memoriesText);

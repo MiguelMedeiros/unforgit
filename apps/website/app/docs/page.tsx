@@ -242,7 +242,7 @@ $ unforgit recall "oauth https" --local-only`}
             title="Preview or execute lifecycle maintenance"
             code={`$ unforgit curate
 $ unforgit curate --execute
-$ unforgit curate --remote --execute --model gpt-4o-mini`}
+$ unforgit curate --remote --execute --model gpt-5.4`}
           />
         </Subsection>
 
@@ -655,7 +655,7 @@ $ unforgit auth openai-remove`}
   "repoId": "repo",
   "dryRun": true,
   "preserveOriginals": true,
-  "model": "gpt-4o-mini"
+  "model": "gpt-5.4"
 }`}
             />
             <ApiEndpoint
@@ -1004,7 +1004,7 @@ $ docker-compose down`}
             title="Server .env"
             code={`OPENAI_API_KEY=sk-your-team-api-key
 AUTO_EMBEDDING_ENABLED=true
-CONSOLIDATION_MODEL=gpt-4o-mini`}
+CONSOLIDATION_MODEL=gpt-5.4`}
           />
           <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
             <ul className="text-sm text-dracula-foreground/70 space-y-2">

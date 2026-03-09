@@ -70,7 +70,7 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
   .option(
     "--model <model>",
     "OpenAI model to use",
-    "gpt-4o-mini",
+    "gpt-5.4",
   )
   .option(
     "--no-preserve",

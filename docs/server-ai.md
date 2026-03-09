@@ -13,8 +13,8 @@ OPENAI_API_KEY=sk-your-team-api-key
 # Auto-generate embeddings when memories are created
 AUTO_EMBEDDING_ENABLED=true
 
-# LLM model for consolidation (default: gpt-4o-mini)
-CONSOLIDATION_MODEL=gpt-4o-mini
+# LLM model for consolidation (default: gpt-5.4)
+CONSOLIDATION_MODEL=gpt-5.4
 ```
 
 ## Server AI Endpoints

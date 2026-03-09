@@ -1,5 +1,8 @@
 FROM node:22-alpine AS base
 
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.title="unforgit-website"
+
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app

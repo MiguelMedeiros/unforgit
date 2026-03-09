@@ -16,6 +16,7 @@ services:
       retries: 5
 
   api:
+    image: unforgit-api:0.1.0
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -32,6 +33,7 @@ services:
     restart: unless-stopped
 
   admin:
+    image: unforgit-admin:0.1.0
     build:
       context: ./apps/admin
       dockerfile: Dockerfile
@@ -44,6 +46,7 @@ services:
     restart: unless-stopped
 
   website:
+    image: unforgit-website:0.1.0
     build:
       context: ./apps/website
       dockerfile: Dockerfile
