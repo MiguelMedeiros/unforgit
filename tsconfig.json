@@ -2,7 +2,14 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": {
+      "@unforgit/shared": ["./packages/shared/src/index.ts"],
+      "@unforgit/core": ["./packages/core/src/index.ts"],
+      "@unforgit/db": ["./packages/db/src/index.ts"],
+      "@unforgit/config": ["./packages/config/src/index.ts"],
+      "@unforgit/tools": ["./packages/tools/src/index.ts"]
+    }
   },
   "include": [
     "packages/*/src/**/*",
