@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutDashboard, Database, Network, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CodeBlock } from "./code-block";
 
 const tabs = [
   {
@@ -76,14 +77,13 @@ export function DashboardShowcase() {
               Beautiful Web Dashboard
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
             A visual interface to explore, manage, and understand your
-            repository memories. Run{" "}
-            <code className="px-2 py-1 rounded bg-dracula-current text-dracula-foreground text-sm">
-              unforgit web
-            </code>{" "}
-            to start.
+            repository memories.
           </p>
+          <div className="text-center">
+            <CodeBlock code="unforgit web" />
+          </div>
         </motion.div>
 
         <motion.div
@@ -151,7 +151,7 @@ export function DashboardShowcase() {
                 >
                   <Image
                     src={activeItem.image}
-                    alt={`Unforgit ${activeItem.label}`}
+                    alt={`unforgit ${activeItem.label}`}
                     fill
                     className="object-cover object-top"
                     priority

@@ -1,10 +1,39 @@
-# MCP Server (Cursor IDE)
+# MCP Server
 
-Unforgit includes an MCP (Model Context Protocol) server for native integration with Cursor IDE. When configured, the AI agent gets direct access to `unforgit_recall` and `unforgit_add` tools — no shell commands needed.
+Unforgit includes an MCP (Model Context Protocol) server for native integration with AI-powered IDEs. When configured, the AI agent gets direct access to `unforgit_recall` and `unforgit_add` tools — no shell commands needed.
 
 ## Setup
 
-`unforgit init` automatically creates `.cursor/mcp.json` with the MCP server config. If you need to set it up manually:
+`unforgit init` automatically detects which IDEs you use and creates the appropriate config files. You can also specify IDEs explicitly:
+
+```bash
+unforgit init                        # auto-detect IDEs
+unforgit init --ide cursor           # Cursor only
+unforgit init --ide claude           # Claude Code only
+unforgit init --ide cursor,claude    # multiple IDEs
+unforgit init --ide all              # all supported IDEs
+unforgit init --no-ide               # skip IDE integration
+```
+
+### Supported IDEs
+
+| IDE | Rules File | MCP Config |
+|-----|-----------|------------|
+| **Cursor** | `.cursor/rules/unforgit-memory.mdc` | `.cursor/mcp.json` |
+| **Claude Code** | `CLAUDE.md` | `.mcp.json` |
+| **VS Code (Copilot)** | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
+| **Windsurf** | `.windsurfrules` | `.windsurf/mcp.json` |
+
+### Manual setup
+
+If you need to configure an IDE manually, the MCP server config always follows the same pattern:
+
+- **Transport:** stdio (stdin/stdout)
+- **Command:** `unforgit-mcp`
+- **Arguments:** none required
+- **Working directory:** the project root where `.unforgit/` lives
+
+Example for Cursor (`.cursor/mcp.json`):
 
 ```json
 {
@@ -17,7 +46,33 @@ Unforgit includes an MCP (Model Context Protocol) server for native integration 
 }
 ```
 
-Restart Cursor after adding the MCP config.
+Example for Claude Code (`.mcp.json` at project root):
+
+```json
+{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Example for VS Code (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "unforgit": {
+      "type": "stdio",
+      "command": "unforgit-mcp"
+    }
+  }
+}
+```
+
+Restart your IDE after adding the MCP config.
 
 ## Available Tools
 
@@ -42,8 +97,17 @@ Restart Cursor after adding the MCP config.
 
 The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.unforgit/unforgit.yaml` in the current workspace.
 
-## Cursor Rule
+## IDE Rules
 
-`unforgit init` also creates `.cursor/rules/unforgit-memory.mdc` which instructs the AI agent to:
+`unforgit init` creates IDE-specific instruction files that teach the AI agent to:
 - Recall relevant memories at the start of every conversation
 - Save noteworthy decisions, bugs, and procedures during the conversation
+
+| IDE | Rules file |
+|-----|-----------|
+| Cursor | `.cursor/rules/unforgit-memory.mdc` |
+| Claude Code | `CLAUDE.md` (appended) |
+| VS Code | `.github/copilot-instructions.md` (appended) |
+| Windsurf | `.windsurfrules` (appended) |
+
+For IDEs that use shared files (like `CLAUDE.md`), `unforgit init` safely appends the memory instructions without overwriting existing content.

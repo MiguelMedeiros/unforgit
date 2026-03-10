@@ -17,19 +17,7 @@ const steps: Step[] = [
     number: "02",
     command: "unforgit init",
     title: "Initialize",
-    description: "Set up local storage, config, and Cursor MCP integration.",
-  },
-  {
-    number: "03",
-    command: 'unforgit add "Found bug in auth flow"',
-    title: "Store a Memory",
-    description: "Capture bugs, decisions, deploy notes, and context.",
-  },
-  {
-    number: "04",
-    command: 'unforgit recall "authentication"',
-    title: "Recall",
-    description: "Search your knowledge base by meaning, not just keywords.",
+    description: "Run inside your project folder. Sets up storage, config, and MCP integration.",
   },
 ];
 
@@ -48,7 +36,7 @@ export function HowItWorks() {
             <span className="text-gradient">Get Started</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Up and running in under a minute.
+            Two commands. That's all it takes.
           </p>
         </motion.div>
 

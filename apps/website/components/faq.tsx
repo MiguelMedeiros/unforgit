@@ -9,39 +9,44 @@ import { UnforgitBrand } from "./unforgit-brand";
 
 const faqs: { question: ReactNode; answer: ReactNode }[] = [
   {
-    question: <>Is <UnforgitBrand capitalize /> free?</>,
+    question: <>Is <UnforgitBrand /> free?</>,
     answer:
-      <>Yes — <UnforgitBrand capitalize /> is 100% open source under the MIT license. You can use it, modify it, and self-host it with zero cost.</>,
+      <>Yes! <UnforgitBrand /> is 100% open source under the MIT license. You can use it, modify it, and self-host it with zero cost.</>,
   },
   {
     question: "Where are memories stored?",
     answer:
-      "Memories live inside your project in the .unforgit/ folder. You own your data — nothing is sent to external servers unless you choose to set up a shared team instance.",
+      "Memories live inside your project in the .unforgit/ folder. You own your data. Nothing is sent to external servers unless you choose to set up a shared team instance.",
   },
   {
     question: "Which AI tools does it support?",
     answer:
-      <>Any MCP-compatible client works out of the box: Cursor, Claude Desktop, VS Code, Windsurf, GitHub Copilot, and more. If your tool speaks MCP, it speaks <UnforgitBrand capitalize />.</>,
+      <>Any MCP-compatible client works out of the box: Cursor, Claude Desktop, VS Code, Windsurf, GitHub Copilot, and more. If your tool speaks MCP, it speaks <UnforgitBrand />.</>,
   },
   {
     question: "How does semantic search differ from regular search?",
     answer:
-      "Regular search matches exact keywords. Semantic search understands meaning — so searching for \"auth bug\" can find a memory about \"login session token expired\", even without overlapping words.",
+      "Regular search matches exact keywords. Semantic search understands meaning. Searching for \"auth bug\" can find a memory about \"login session token expired\", even without overlapping words.",
   },
   {
     question: "Does it work with teams?",
     answer:
-      <>Yes. You can keep memories private or share them across your team through a shared <UnforgitBrand capitalize /> server. Every teammate&apos;s AI agent benefits from collective knowledge.</>,
+      <>Yes. You can keep memories private or share them across your team through a shared <UnforgitBrand /> server. Every AI agent on the team benefits from collective knowledge.</>,
   },
   {
     question: "Can I self-host it?",
     answer:
-      <>Absolutely. <UnforgitBrand capitalize /> is designed to be self-hosted. Run it locally with a single command or deploy it on your own infrastructure with Docker.</>,
+      <>Absolutely. <UnforgitBrand /> is designed to be self-hosted. Run it locally with a single command or deploy it on your own infrastructure with Docker.</>,
   },
   {
     question: "How long does setup take?",
     answer:
-      "Less than 10 seconds. Install the CLI with npm and run unforgit init — that's it, your AI agent already has persistent memory.",
+      "Less than 10 seconds. Install the CLI with npm and run unforgit init. That's it, your AI agent already has persistent memory.",
+  },
+  {
+    question: "Should I add .unforgit/ to my .gitignore?",
+    answer:
+      "Yes. The .unforgit/ folder contains your local memory database and config. Add it to .gitignore to keep it private. To share memories across your team, use the remote server with unforgit push and unforgit pull.",
   },
   {
     question: "Will it slow down my AI agent?",
@@ -127,7 +132,7 @@ export function FAQ() {
             <span className="text-dracula-foreground">Questions</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Everything you need to know about <UnforgitBrand capitalize />.
+            Everything you need to know about <UnforgitBrand />.
           </p>
         </motion.div>
 

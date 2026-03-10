@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import { Command } from "commander";
 import { logger } from "../logger.js";
 import {
@@ -12,14 +11,26 @@ import {
   detectGitInfo,
 } from "@unforgit/config";
 import { LocalStore } from "@unforgit/db";
-import { CURSOR_RULE_CONTENT } from "../cursor-rule.js";
+import {
+  detectIdes,
+  setupIdes,
+  logIdeResults,
+  parseIdeOption,
+  ALL_IDE_NAMES,
+  type IdeName,
+} from "../ide-integration.js";
 
 export const initCommand = new Command("init")
   .description("Initialize Unforgit in the current repository")
   .option("--org-id <orgId>", "Override auto-detected organization ID")
   .option("--repo-id <repoId>", "Override auto-detected repository ID")
   .option("--remote-url <url>", "Remote API URL", "http://localhost:3737")
-  .option("--no-cursor-rule", "Skip creating Cursor IDE rule")
+  .option(
+    "--ide <ides>",
+    `IDE integrations to set up: ${ALL_IDE_NAMES.join(", ")}, all (default: auto-detect)`,
+  )
+  .option("--no-ide", "Skip all IDE integrations")
+  .option("--no-cursor-rule", "Skip IDE integrations (deprecated, use --no-ide)")
   .action((opts) => {
     const cwd = process.cwd();
 
@@ -59,53 +70,30 @@ export const initCommand = new Command("init")
       );
     }
 
-    if (opts.cursorRule !== false) {
-      const cursorDir = path.join(cwd, ".cursor");
+    const skipIde = opts.ide === false || opts.cursorRule === false;
 
-      const rulesDir = path.join(cursorDir, "rules");
-      const rulePath = path.join(rulesDir, "unforgit-memory.mdc");
-      if (!fs.existsSync(rulePath)) {
-        fs.mkdirSync(rulesDir, { recursive: true });
-        fs.writeFileSync(rulePath, CURSOR_RULE_CONTENT, "utf-8");
-        logger.info(`  Cursor rule: ${rulePath}`);
-      } else {
-        logger.info(`  Cursor rule: already exists`);
-      }
+    if (!skipIde) {
+      let ides: IdeName[];
 
-      const mcpPath = path.join(cursorDir, "mcp.json");
-      if (!fs.existsSync(mcpPath)) {
-        const mcpConfig = {
-          mcpServers: {
-            unforgit: {
-              command: "unforgit-mcp",
-              args: [],
-            },
-          },
-        };
-        fs.mkdirSync(cursorDir, { recursive: true });
-        fs.writeFileSync(
-          mcpPath,
-          JSON.stringify(mcpConfig, null, 2) + "\n",
-          "utf-8",
-        );
-        logger.info(`  MCP config: ${mcpPath}`);
+      if (opts.ide && typeof opts.ide === "string") {
+        ides = parseIdeOption(opts.ide);
       } else {
-        const existing = JSON.parse(fs.readFileSync(mcpPath, "utf-8"));
-        if (!existing.mcpServers?.unforgit) {
-          existing.mcpServers = existing.mcpServers || {};
-          existing.mcpServers.unforgit = {
-            command: "unforgit-mcp",
-            args: [],
-          };
-          fs.writeFileSync(
-            mcpPath,
-            JSON.stringify(existing, null, 2) + "\n",
-            "utf-8",
+        ides = detectIdes(cwd);
+        if (ides.length === 0) {
+          ides = ["cursor"];
+          logger.info(
+            "\n  No IDE detected, defaulting to Cursor. Use --ide to specify.",
           );
-          logger.info(`  MCP config: added unforgit to ${mcpPath}`);
         } else {
-          logger.info(`  MCP config: already configured`);
+          logger.info(
+            `\n  Auto-detected IDEs: ${ides.join(", ")}`,
+          );
         }
       }
+
+      const results = setupIdes(cwd, ides);
+      logIdeResults(results);
+    } else {
+      logger.info("\n  IDE integration: skipped");
     }
   });

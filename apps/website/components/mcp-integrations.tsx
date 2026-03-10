@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { ArrowRight, Download, Plug, Terminal, Copy, Check } from "lucide-react";
+import { ArrowRight, Download, Plug } from "lucide-react";
+import { CodeBlock } from "./code-block";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -96,58 +96,15 @@ const ides = [
 ];
 
 function TerminalCommand() {
-  const [copied, setCopied] = useState(false);
-  const command = "unforgit init";
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="relative flex justify-center mb-8"
+      className="text-center mb-8"
     >
-      <motion.div whileHover={{ scale: 1.02 }} className="relative">
-        <div className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-dracula-current/40 border border-dracula-comment/30">
-          <Terminal className="w-4 h-4 text-dracula-comment shrink-0" />
-          <code className="text-dracula-foreground font-mono text-sm tracking-wide whitespace-nowrap">
-            <span className="text-dracula-comment">$</span>{" "}
-            <span className="text-dracula-foreground">unforgit init</span>
-            <span className="text-dracula-comment ml-4">
-              # auto-configures MCP for Cursor
-            </span>
-          </code>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleCopy}
-            className="p-1.5 rounded-md hover:bg-dracula-current/50 transition-colors shrink-0"
-            aria-label="Copy to clipboard"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-dracula-foreground" />
-            ) : (
-              <Copy className="w-4 h-4 text-dracula-comment hover:text-dracula-foreground transition-colors" />
-            )}
-          </motion.button>
-        </div>
-        {copied && (
-          <motion.span
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm text-dracula-foreground font-medium"
-          >
-            Copied to clipboard!
-          </motion.span>
-        )}
-      </motion.div>
+      <CodeBlock code="unforgit init" />
     </motion.div>
   );
 }
@@ -169,7 +126,7 @@ export function McpIntegrations() {
             <span className="text-dracula-foreground">AI tools</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Connect via MCP and your AI agent gains persistent memory — no
+            Connect via MCP and your AI agent gains persistent memory. No
             shell commands, no context switching. One protocol, every tool.
           </p>
         </motion.div>

@@ -115,8 +115,8 @@ export function CTASection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
         >
-          Join thousands of developers who are building smarter AI workflows.
-          Open source, self-hosted, and ready in under 5 minutes.
+          Join developers who are building smarter AI workflows.
+          Open source, self-hosted, and ready in seconds.
         </motion.p>
 
         <motion.div

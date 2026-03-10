@@ -81,7 +81,7 @@ export default function DocsPage() {
           className="prose prose-invert max-w-none"
         >
           <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
-            <UnforgitBrand capitalize /> is a local-first repository memory system for agents and
+            <UnforgitBrand /> is a local-first repository memory system for agents and
             developers. It stores private workspace memory in SQLite, can sync
             shared memory to a remote API, and now exposes a full lifecycle
             loop: capture broadly, strengthen reused knowledge, consolidate
@@ -183,8 +183,10 @@ export default function DocsPage() {
         <Subsection id="init-flow" title="Install And First Flow">
           <p className="text-dracula-foreground/70 mb-4">
             The default setup is local-first. <code>unforgit init</code> creates
-            the local database, config file, Cursor rule, and MCP config. Org
-            and repo are auto-detected from your git remote when available.
+            the local database, config file, and IDE-specific rules and MCP
+            config. It auto-detects which IDEs are present (Cursor, Claude Code,
+            VS Code, Windsurf) and configures each one. Org and repo are
+            auto-detected from your git remote when available.
           </p>
           <div className="space-y-4">
             <Terminal
@@ -301,7 +303,7 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
 
         <Subsection id="embeddings" title="Embeddings And Hybrid Search">
           <p className="text-dracula-foreground/70 mb-4">
-            OpenAI is optional. Without it, <UnforgitBrand capitalize /> still works with local
+            OpenAI is optional. Without it, <UnforgitBrand /> still works with local
             FTS recall, sync, links, lifecycle, and manual consolidation. With
             OpenAI, you unlock embeddings, server-side hybrid recall, and
             LLM-based consolidation flows.
@@ -335,7 +337,7 @@ $ unforgit embeddings clear --yes`}
           <div className="space-y-4">
             <CommandReference
               name="unforgit init"
-              description="Initialize unforgit in the current repository"
+              description="Initialize unforgit in the current repository with auto-detected IDE integrations"
               usage="unforgit init [options]"
               options={[
                 { flag: "--org-id <orgId>", description: "Override detected org ID" },
@@ -346,11 +348,15 @@ $ unforgit embeddings clear --yes`}
                   default: "http://localhost:3737",
                 },
                 {
-                  flag: "--no-cursor-rule",
-                  description: "Skip Cursor rule + MCP bootstrap",
+                  flag: "--ide <ides>",
+                  description: "IDE integrations: cursor, claude, vscode, windsurf, all (default: auto-detect)",
+                },
+                {
+                  flag: "--no-ide",
+                  description: "Skip all IDE integrations",
                 },
               ]}
-              example="unforgit init --org-id my-org --repo-id my-repo"
+              example="unforgit init --ide all --remote-url http://localhost:3737"
             />
 
             <CommandReference
@@ -492,7 +498,7 @@ $ unforgit auth status`}
 
       <Section id="mcp" title="MCP Server">
         <p className="text-dracula-foreground/70 mb-6">
-          The MCP server gives your IDE&apos;s AI agent direct access to local
+          The MCP server gives the AI agent in your IDE direct access to local
           repository memory without shelling out. We have a dedicated setup
           guide covering Cursor, Claude Desktop, Windsurf, VS Code, API keys,
           and remote server configuration.

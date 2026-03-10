@@ -186,7 +186,7 @@ export default function McpSetupPage() {
           MCP Server Setup
         </h1>
         <p className="text-lg text-dracula-foreground/70">
-          Connect <UnforgitBrand capitalize /> to your IDE so AI agents can recall and store
+          Connect <UnforgitBrand /> to your IDE so AI agents can recall and store
           memories natively, without shell commands.
         </p>
       </motion.div>
@@ -196,7 +196,7 @@ export default function McpSetupPage() {
         <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-5 mb-6">
           <ul className="text-sm text-dracula-foreground/70 space-y-3">
             <li>
-              <UnforgitBrand capitalize /> ships a local{" "}
+              <UnforgitBrand /> ships a local{" "}
               <code className="text-dracula-foreground/80">unforgit-mcp</code>{" "}
               binary that speaks the{" "}
               <a
@@ -234,7 +234,7 @@ export default function McpSetupPage() {
       {/* ── Prerequisites ────────────────────────────── */}
       <Section id="mcp-prerequisites" title="Prerequisites">
         <p className="text-dracula-foreground/70 mb-4">
-          Install <UnforgitBrand capitalize /> globally and initialize it in your project before
+          Install <UnforgitBrand /> globally and initialize it in your project before
           configuring any IDE.
         </p>
         <div className="space-y-4">
@@ -248,9 +248,36 @@ $ unforgit init`}
         <p className="text-sm text-dracula-foreground/60 mt-4">
           <code className="text-dracula-foreground/70">unforgit init</code>{" "}
           creates the <code>.unforgit/</code> directory with the local database
-          and config file. For Cursor, it also auto-generates the MCP config
-          and Cursor rules.
+          and config file. It auto-detects which IDEs are present (Cursor, Claude Code,
+          VS Code, Windsurf) and generates the appropriate MCP config and rules for each.
         </p>
+        <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+          <p className="text-sm text-dracula-foreground/70 mb-3">
+            You can also specify IDEs explicitly:
+          </p>
+          <ul className="text-sm text-dracula-foreground/70 space-y-1">
+            <li>
+              <code className="text-dracula-foreground/80">--ide cursor</code>{" "}
+              Cursor only
+            </li>
+            <li>
+              <code className="text-dracula-foreground/80">--ide claude</code>{" "}
+              Claude Code only
+            </li>
+            <li>
+              <code className="text-dracula-foreground/80">--ide cursor,claude</code>{" "}
+              multiple IDEs
+            </li>
+            <li>
+              <code className="text-dracula-foreground/80">--ide all</code>{" "}
+              all supported IDEs
+            </li>
+            <li>
+              <code className="text-dracula-foreground/80">--no-ide</code>{" "}
+              skip IDE integration entirely
+            </li>
+          </ul>
+        </div>
       </Section>
 
       {/* ── IDE Integrations ─────────────────────────── */}
@@ -308,6 +335,54 @@ $ unforgit init`}
           </p>
         </Subsection>
 
+        <Subsection id="mcp-claude-code" title="Claude Code (CLI)">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Monitor className="w-4 h-4 text-dracula-foreground" />
+              <span className="text-sm font-semibold text-dracula-foreground">
+                Automatic Setup
+              </span>
+            </div>
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init</code>{" "}
+              (or <code className="text-dracula-foreground/80">unforgit init --ide claude</code>)
+              automatically creates{" "}
+              <code className="text-dracula-foreground/80">CLAUDE.md</code>{" "}
+              with memory instructions and{" "}
+              <code className="text-dracula-foreground/80">.mcp.json</code>{" "}
+              with the MCP server config. If these files already exist, unforgit
+              safely appends without overwriting.
+            </p>
+          </div>
+
+          <p className="text-sm text-dracula-foreground/70 mb-3">
+            To set it up manually, create{" "}
+            <code className="text-dracula-foreground/80">.mcp.json</code>{" "}
+            in your project root:
+          </p>
+          <Terminal
+            title=".mcp.json"
+            language="json"
+            code={`{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": [],
+      "env": {
+        "UNFORGIT_API_KEY": "hk_your_api_key",
+        "OPENAI_API_KEY": "sk-your-openai-key"
+      }
+    }
+  }
+}`}
+          />
+          <p className="text-sm text-dracula-foreground/60 mt-3">
+            Claude Code reads <code>CLAUDE.md</code> at the project root for
+            agent instructions. The memory instructions teach the agent to
+            recall and save memories automatically.
+          </p>
+        </Subsection>
+
         <Subsection id="mcp-claude-desktop" title="Claude Desktop">
           <p className="text-sm text-dracula-foreground/70 mb-3">
             Edit the Claude Desktop config file. The location depends on your
@@ -356,7 +431,7 @@ $ unforgit init`}
             <p className="text-sm text-dracula-foreground/70">
               <strong>Important:</strong> Claude Desktop requires an absolute{" "}
               <code className="text-dracula-foreground/80">cwd</code> path
-              because it doesn&apos;t open projects like an IDE. Point it to the
+              because it doesn't open projects like an IDE. Point it to the
               repo where you ran{" "}
               <code className="text-dracula-foreground/80">unforgit init</code>.
             </p>
@@ -364,8 +439,25 @@ $ unforgit init`}
         </Subsection>
 
         <Subsection id="mcp-windsurf" title="Windsurf">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Monitor className="w-4 h-4 text-dracula-foreground" />
+              <span className="text-sm font-semibold text-dracula-foreground">
+                Automatic Setup
+              </span>
+            </div>
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init</code>{" "}
+              (or <code className="text-dracula-foreground/80">unforgit init --ide windsurf</code>)
+              creates{" "}
+              <code className="text-dracula-foreground/80">.windsurfrules</code>{" "}
+              and{" "}
+              <code className="text-dracula-foreground/80">.windsurf/mcp.json</code>{" "}
+              for you.
+            </p>
+          </div>
           <p className="text-sm text-dracula-foreground/70 mb-3">
-            Windsurf uses a global MCP config at{" "}
+            Windsurf also supports a global MCP config at{" "}
             <code className="text-dracula-foreground/80">
               ~/.codeium/windsurf/mcp_config.json
             </code>
@@ -389,20 +481,35 @@ $ unforgit init`}
           />
           <p className="text-sm text-dracula-foreground/60 mt-3">
             Restart Windsurf after saving. The MCP server will use the
-            workspace&apos;s <code>.unforgit/</code> directory automatically.
+            workspace <code>.unforgit/</code> directory automatically.
           </p>
         </Subsection>
 
         <Subsection id="mcp-vscode-copilot" title="VS Code + GitHub Copilot">
-          <div className="mb-4">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Monitor className="w-4 h-4 text-dracula-foreground" />
+              <span className="text-sm font-semibold text-dracula-foreground">
+                Automatic Setup
+              </span>
+            </div>
+            <p className="text-sm text-dracula-foreground/70 mb-3">
+              <code className="text-dracula-foreground/80">unforgit init</code>{" "}
+              (or <code className="text-dracula-foreground/80">unforgit init --ide vscode</code>)
+              creates{" "}
+              <code className="text-dracula-foreground/80">.github/copilot-instructions.md</code>{" "}
+              and{" "}
+              <code className="text-dracula-foreground/80">.vscode/mcp.json</code>{" "}
+              for you.
+            </p>
             <InstallButton
               href={VSCODE_INSTALL_LINK}
               label="Install in VS Code"
             />
           </div>
           <p className="text-sm text-dracula-foreground/70 mb-3">
-            Or configure manually — VS Code supports MCP servers in Copilot Chat
-            (agent mode). Add to your project&apos;s{" "}
+            Or configure manually. VS Code supports MCP servers in Copilot Chat
+            (agent mode). Add to your project{" "}
             <code className="text-dracula-foreground/80">
               .vscode/settings.json
             </code>
@@ -449,7 +556,7 @@ $ unforgit init`}
 
         <Subsection id="mcp-other" title="Other Clients">
           <p className="text-sm text-dracula-foreground/70 mb-4">
-            Any MCP-compatible client can connect to <UnforgitBrand capitalize />. The pattern is
+            Any MCP-compatible client can connect to <UnforgitBrand />. The pattern is
             always the same:
           </p>
           <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
@@ -480,7 +587,7 @@ $ unforgit init`}
           </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
             The binary is installed globally via npm, so it should be available
-            in your PATH. If your client can&apos;t find it, use the full path:{" "}
+            in your PATH. If your client can't find it, use the full path:{" "}
             <code className="text-dracula-foreground/80">
               npx unforgit-mcp
             </code>
@@ -517,12 +624,12 @@ $ unforgit init`}
                 <code className="text-dracula-foreground/80">
                   UNFORGIT_API_KEY
                 </code>{" "}
-                environment variable in your shell or in the MCP server&apos;s{" "}
+                environment variable in your shell or in the MCP server{" "}
                 <code className="text-dracula-foreground/80">env</code>{" "}
                 configuration block.
               </li>
               <li>
-                The MCP server itself does not need this key &mdash; it operates
+                The MCP server itself does not need this key. It operates
                 locally. The key is only used by CLI remote commands.
               </li>
             </ul>
@@ -545,10 +652,10 @@ $ unforgit init`}
             />
           </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
-            Without this key, <UnforgitBrand capitalize /> is fully functional &mdash; local recall
+            Without this key, <UnforgitBrand /> is fully functional. Local recall
             uses FTS5 text search. Set the{" "}
             <code className="text-dracula-foreground/70">OPENAI_API_KEY</code>{" "}
-            environment variable or configure it in the MCP server&apos;s{" "}
+            environment variable or configure it in the MCP server{" "}
             <code className="text-dracula-foreground/70">env</code> block.
           </p>
         </Subsection>
@@ -558,7 +665,7 @@ $ unforgit init`}
       <Section id="mcp-remote" title="Remote Server Setup">
         <Subsection id="mcp-remote-config" title="Configure the Remote URL">
           <p className="text-sm text-dracula-foreground/70 mb-4">
-            Point your local <UnforgitBrand capitalize /> at a remote API server for team-shared
+            Point your local <UnforgitBrand /> at a remote API server for team-shared
             memory, hybrid recall, and server-side AI features.
           </p>
           <div className="space-y-4">
@@ -652,7 +759,7 @@ $ unforgit recall "deploy" --remote-only`}
       {/* ── Tools Reference ──────────────────────────── */}
       <Section id="mcp-tools" title="Available MCP Tools">
         <p className="text-dracula-foreground/70 mb-6">
-          These tools are exposed to your IDE&apos;s AI agent when the MCP
+          These tools are exposed to the AI agent in your IDE when the MCP
           server is connected. The agent can call them directly during
           conversations.
         </p>
@@ -692,17 +799,13 @@ $ unforgit recall "deploy" --remote-only`}
         </div>
       </Section>
 
-      {/* ── Cursor Rules ─────────────────────────────── */}
-      <Section id="mcp-cursor-rules" title="Cursor Rules">
+      {/* ── IDE Rules ─────────────────────────────── */}
+      <Section id="mcp-ide-rules" title="IDE Rules">
         <p className="text-dracula-foreground/70 mb-4">
           <code className="text-dracula-foreground/80">unforgit init</code>{" "}
-          creates{" "}
-          <code className="text-dracula-foreground/80">
-            .cursor/rules/unforgit-memory.mdc
-          </code>{" "}
-          which instructs the AI agent to:
+          creates IDE-specific instruction files that teach the AI agent to:
         </p>
-        <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+        <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4 mb-6">
           <ul className="text-sm text-dracula-foreground/70 space-y-2">
             <li>
               <strong>Recall</strong> relevant memories at the start of every
@@ -719,9 +822,44 @@ $ unforgit recall "deploy" --remote-only`}
             </li>
           </ul>
         </div>
-        <p className="text-sm text-dracula-foreground/60 mt-3">
-          You can customize this rule to match your team&apos;s workflow. The
-          file is a standard Cursor rule and supports all Cursor rule features.
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-dracula-current/50">
+                <th className="text-left py-3 px-4 text-dracula-comment font-semibold">IDE</th>
+                <th className="text-left py-3 px-4 text-dracula-comment font-semibold">Rules File</th>
+                <th className="text-left py-3 px-4 text-dracula-comment font-semibold">Behavior</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dracula-current/30">
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Cursor</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.cursor/rules/unforgit-memory.mdc</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Created with frontmatter</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Claude Code</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">CLAUDE.md</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">VS Code</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.github/copilot-instructions.md</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Windsurf</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.windsurfrules</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm text-dracula-foreground/60">
+          For IDEs that use shared files (like <code>CLAUDE.md</code>),{" "}
+          <code>unforgit init</code> appends the memory instructions without
+          overwriting existing content. You can customize these files to match
+          your team workflow.
         </p>
       </Section>
 
@@ -790,7 +928,7 @@ $ unforgit recall "deploy" --remote-only`}
                   &quot;command not found&quot; error
                 </h4>
                 <p className="text-sm text-dracula-foreground/70">
-                  If your IDE can&apos;t find the binary, use the full path in
+                  If your IDE can't find the binary, use the full path in
                   the config. Run{" "}
                   <code className="text-dracula-foreground/80">
                     which unforgit-mcp

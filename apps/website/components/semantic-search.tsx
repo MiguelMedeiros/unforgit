@@ -3,10 +3,12 @@
 import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
 import { UnforgitBrand } from "./unforgit-brand";
+import { SemanticParticles } from "./semantic-particles";
 
 export function SemanticSearch() {
   return (
     <section id="semantic-search" className="py-40 px-6 relative overflow-hidden">
+      <SemanticParticles />
       <div className="max-w-3xl mx-auto relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -22,9 +24,9 @@ export function SemanticSearch() {
           </h2>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Traditional search finds files. <UnforgitBrand capitalize /> finds{" "}
+            Traditional search finds files. <UnforgitBrand /> finds{" "}
             <em>knowledge</em>. Ask naturally and get the right context
-            back — powered by semantic ranking.
+            back, powered by semantic ranking.
           </p>
         </motion.div>
 
@@ -68,7 +70,7 @@ export function SemanticSearch() {
             <div className="p-5 bg-dracula-current/25">
               <p className="text-xs text-dracula-foreground/70 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Brain className="w-3 h-3" />
-                <UnforgitBrand capitalize />
+                <UnforgitBrand />
               </p>
               <ul className="space-y-2">
                 {[

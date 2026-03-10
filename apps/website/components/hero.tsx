@@ -1,15 +1,13 @@
 "use client";
 
-import { ArrowRight, Terminal, Copy, Check, ChevronDown } from "lucide-react";
-import { UnforgitBrand } from "./unforgit-brand";
-import { useState, useEffect } from "react";
+import { ArrowRight, ChevronDown } from "lucide-react";
+import { useEffect } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ParticlesBackground } from "./particles-background";
+import { CodeBlock } from "./code-block";
 
 export function Hero() {
-  const [copied, setCopied] = useState(false);
-  const installCommand = "npm install -g unforgit";
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -37,12 +35,6 @@ export function Hero() {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(installCommand);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -96,32 +88,41 @@ export function Hero() {
       />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-32 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-comment/30 mb-8"
+        >
+          <span className="text-sm font-mono text-dracula-foreground/80">
+            unforget + git = <span className="font-semibold text-dracula-foreground">unforgit</span>
+          </span>
+        </motion.div>
+
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-3xl md:text-5xl font-bold mb-4 text-dracula-foreground"
-        >
-          AI forgets everything.
-        </motion.h1>
-
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
           className="text-5xl md:text-8xl font-black mb-8 tracking-tight text-dracula-foreground"
         >
-          We <span className="underline decoration-dracula-purple underline-offset-4">fix</span> that.
-        </motion.h2>
+          Like{" "}
+          <span className="underline decoration-dracula-purple underline-offset-4">
+            git
+          </span>
+          , but for
+          <br />
+          AI memory.
+        </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-xl md:text-2xl text-dracula-foreground/90 max-w-2xl mx-auto mb-8"
+          className="text-lg md:text-xl text-dracula-foreground/70 max-w-2xl mx-auto mb-8 leading-relaxed"
         >
-          <UnforgitBrand className="font-semibold text-dracula-foreground" /> gives your AI agents persistent memory.<br />
-          Local, fast, open-source.
+          Persistent memory for AI agents.
+          <br />
+          Shared across your team. Local, fast, open-source.
         </motion.p>
 
         <motion.div
@@ -176,45 +177,8 @@ export function Hero() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="relative inline-block"
         >
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="relative"
-          >
-            <div className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-dracula-current/40 border border-dracula-comment/30">
-              <Terminal className="w-4 h-4 text-dracula-comment shrink-0" />
-              <code className="text-dracula-foreground font-mono text-sm tracking-wide whitespace-nowrap">
-                <span className="text-dracula-comment">$</span>{" "}
-                <span className="text-dracula-foreground">npm</span>{" "}
-                <span className="text-dracula-foreground">install -g</span>{" "}
-                <UnforgitBrand className="text-dracula-foreground font-semibold" />
-              </code>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleCopy}
-                className="p-1.5 rounded-md hover:bg-dracula-current/50 transition-colors shrink-0"
-                aria-label="Copy to clipboard"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-dracula-foreground" />
-                ) : (
-                  <Copy className="w-4 h-4 text-dracula-comment hover:text-dracula-foreground transition-colors" />
-                )}
-              </motion.button>
-            </div>
-          </motion.div>
-          {copied && (
-            <motion.span
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm text-dracula-foreground font-medium"
-            >
-              Copied to clipboard!
-            </motion.span>
-          )}
+          <CodeBlock code="npm install -g unforgit" />
         </motion.div>
       </div>
 

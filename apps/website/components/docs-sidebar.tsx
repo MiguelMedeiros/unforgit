@@ -107,6 +107,7 @@ const mcpSections = [
     icon: Monitor,
     subsections: [
       { id: "mcp-cursor", title: "Cursor" },
+      { id: "mcp-claude-code", title: "Claude Code (CLI)" },
       { id: "mcp-claude-desktop", title: "Claude Desktop" },
       { id: "mcp-windsurf", title: "Windsurf" },
       { id: "mcp-vscode-copilot", title: "VS Code + Copilot" },
@@ -134,7 +135,7 @@ const mcpSections = [
     ],
   },
   { id: "mcp-tools", title: "Available Tools", icon: Server },
-  { id: "mcp-cursor-rules", title: "Cursor Rules", icon: BookOpen },
+  { id: "mcp-ide-rules", title: "IDE Rules", icon: BookOpen },
   { id: "mcp-troubleshooting", title: "Troubleshooting", icon: AlertTriangle },
 ];
 
@@ -222,7 +223,7 @@ export function DocsSidebar() {
     <>
       {/* Mobile top header bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-dracula-background/95 backdrop-blur-xl border-b border-dracula-current/30">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -256,10 +257,10 @@ export function DocsSidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 z-40 w-64 pb-8 px-4 pt-4 overflow-y-auto",
+          "fixed left-0 z-40 w-64 pb-8 px-6 pt-4 overflow-y-auto",
           "bg-dracula-background border-r border-dracula-current/50",
           "transition-transform duration-300",
-          "top-[53px] h-[calc(100vh-53px)] lg:top-0 lg:h-screen lg:pt-6",
+          "top-[65px] h-[calc(100vh-65px)] lg:top-0 lg:h-screen lg:pt-4",
           "lg:translate-x-0",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}

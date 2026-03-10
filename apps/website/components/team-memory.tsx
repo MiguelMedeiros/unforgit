@@ -165,14 +165,14 @@ export function TeamMemory() {
         >
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
             <span className="text-gradient-purple">
-              Your whole team&apos;s AI
+              Your whole team AI
             </span>
             <br />
             <span className="text-dracula-foreground">learns together</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Memories form a living semantic graph. Each team member contributes
-            knowledge that automatically links by meaning — push to share,
+            knowledge that automatically links by meaning. Push to share,
             pull to sync.
           </p>
         </motion.div>
@@ -252,13 +252,13 @@ export function TeamMemory() {
               icon: Lock,
               title: "Private Memory",
               description:
-                "Personal notes, WIP ideas, and sensitive context. Stored locally in SQLite — stays on your machine until you promote it.",
+                "Personal notes, WIP ideas, and sensitive context. Stored locally in SQLite. Stays on your machine until you promote it.",
             },
             {
               icon: Users,
               title: "Team Memory",
               description:
-                "Stable decisions, deploy playbooks, and conventions. Shared through the remote API so every team member's AI can recall them.",
+                "Stable decisions, deploy playbooks, and conventions. Shared through the remote API so every AI agent on the team can recall them.",
             },
           ].map((card, i) => (
             <motion.div

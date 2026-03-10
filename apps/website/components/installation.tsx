@@ -17,7 +17,7 @@ const installSteps: Step[] = [
     number: "02",
     title: "Initialize in your project",
     command: "cd your-project && unforgit init",
-    description: "Sets up local storage, Cursor rules, and MCP configuration.",
+    description: "Sets up local storage, IDE rules, and MCP configuration.",
   },
   {
     number: "03",

@@ -6,9 +6,24 @@
 unforgit init
 ```
 
-Creates `.unforgit/` with `local.db` and `unforgit.yaml`, plus Cursor IDE integration (`.cursor/rules/` and `.cursor/mcp.json`). The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
+Creates `.unforgit/` with `local.db` and `unforgit.yaml`, plus IDE-specific integration files. The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
 
-Use `--no-cursor-rule` to skip Cursor integration.
+By default, `unforgit init` auto-detects which IDEs are present in the project (Cursor, Claude Code, VS Code, Windsurf) and creates the appropriate rules and MCP config files for each. You can control this with `--ide`:
+
+```bash
+unforgit init --ide cursor           # Cursor only
+unforgit init --ide claude           # Claude Code only
+unforgit init --ide cursor,claude    # multiple IDEs
+unforgit init --ide all              # all supported IDEs
+unforgit init --no-ide               # skip all IDE integration
+```
+
+| IDE | Rules | MCP Config |
+|-----|-------|------------|
+| Cursor | `.cursor/rules/unforgit-memory.mdc` | `.cursor/mcp.json` |
+| Claude Code | `CLAUDE.md` | `.mcp.json` |
+| VS Code (Copilot) | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
+| Windsurf | `.windsurfrules` | `.windsurf/mcp.json` |
 
 ## Add Memories
 
