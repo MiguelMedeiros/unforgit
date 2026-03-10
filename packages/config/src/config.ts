@@ -50,6 +50,18 @@ export function isInitialized(cwd: string = process.cwd()): boolean {
   return fs.existsSync(getDataDir(cwd)) && fs.existsSync(getConfigPath(cwd));
 }
 
+export function findRepoRoot(startDir: string = process.cwd()): string | null {
+  let dir = path.resolve(startDir);
+  const root = path.parse(dir).root;
+
+  while (dir !== root) {
+    if (isInitialized(dir)) return dir;
+    dir = path.dirname(dir);
+  }
+
+  return null;
+}
+
 const CURRENT_CONFIG_VERSION = 2;
 
 function migrateConfig(parsed: Record<string, unknown>, configPath: string): Record<string, unknown> {

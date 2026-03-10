@@ -154,32 +154,55 @@ export function DocsSidebar() {
     if (isUserClickRef.current) return;
 
     const scrollPosition = window.scrollY + 150;
+    let newActive = defaultSection;
 
     for (let i = sections.length - 1; i >= 0; i--) {
       const section = sections[i];
 
       if ("subsections" in section && section.subsections) {
+        let found = false;
         for (let j = section.subsections.length - 1; j >= 0; j--) {
           const sub = section.subsections[j];
           const subElement = document.getElementById(sub.id);
           if (subElement && subElement.offsetTop <= scrollPosition) {
-            setActiveSection(sub.id);
-            return;
+            newActive = sub.id;
+            found = true;
+            break;
           }
         }
+        if (found) break;
       }
 
       const element = document.getElementById(section.id);
       if (element && element.offsetTop <= scrollPosition) {
-        setActiveSection(section.id);
-        return;
+        newActive = section.id;
+        break;
       }
     }
 
-    setActiveSection(defaultSection);
+    setActiveSection(newActive);
+    const currentHash = window.location.hash.slice(1);
+    if (currentHash !== newActive) {
+      history.replaceState(null, "", `#${newActive}`);
+    }
   }, [sections, defaultSection]);
 
   useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const el = document.getElementById(hash);
+      if (el) {
+        setActiveSection(hash);
+        isUserClickRef.current = true;
+        const offset = 100;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+        userClickTimeoutRef.current = setTimeout(() => {
+          isUserClickRef.current = false;
+        }, 800);
+      }
+    }
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
@@ -195,6 +218,7 @@ export function DocsSidebar() {
       }
 
       setActiveSection(id);
+      history.pushState(null, "", `#${id}`);
 
       const offset = 100;
       const elementPosition = element.getBoundingClientRect().top;

@@ -1,11 +1,13 @@
+import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import dotenv from "dotenv";
 import { LocalStore } from "@unforgit/db";
 import { resolveVisibility } from "@unforgit/core";
 import { applyLifecycleDefaults, resolveLifecycleConfig } from "@unforgit/core";
 import { buildAutoLinkQuery } from "@unforgit/core";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
+import { loadConfig, getDbPath, isInitialized, findRepoRoot } from "@unforgit/config";
 import type { MemoryType, LinkType } from "@unforgit/shared";
 import {
   findConsolidationCandidates,
@@ -20,8 +22,6 @@ import { getNotifications, formatNotificationsSummary } from "@unforgit/core";
 import { runLocalLifecycleMaintenance } from "@unforgit/core";
 import { LifecycleScheduler } from "@unforgit/core";
 
-const cwd = process.cwd();
-
 // Debug log to stderr (doesn't affect MCP protocol on stdout)
 const debug = (msg: string) => {
   if (process.env.UNFORGIT_DEBUG === "1") {
@@ -29,7 +29,11 @@ const debug = (msg: string) => {
   }
 };
 
+const cwd = findRepoRoot(process.cwd()) ?? process.cwd();
+
 debug(`Starting with cwd: ${cwd}`);
+
+dotenv.config({ path: path.join(cwd, ".env") });
 
 function getStore(): {
   store: LocalStore;

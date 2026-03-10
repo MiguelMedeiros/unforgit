@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Github,
+  HelpCircle,
   Rocket,
   Search,
   Users,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { UnforgitBrand } from "./unforgit-brand";
 
 const navLinks = [
+  { href: "#why", label: "why unforgit?", icon: HelpCircle },
   { href: "#get-started", label: "get started", icon: Rocket },
   { href: "#team-memory", label: "team memory", icon: Users },
   { href: "#semantic-search", label: "semantic search", icon: Search },

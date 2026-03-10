@@ -4,6 +4,7 @@ export {
   getDbPath,
   getConfigPath,
   isInitialized,
+  findRepoRoot,
   loadConfig,
   saveConfig,
   defaultConfig,

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Terminal } from "@/components/terminal";
+import { Section, Subsection } from "@/components/doc-section";
 import {
   ArrowLeft,
   Monitor,
@@ -32,50 +33,6 @@ function InstallButton({
       <Download className="w-4 h-4" />
       {label}
     </a>
-  );
-}
-
-function Section({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="scroll-mt-24 mb-16">
-      <motion.h2
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        className="text-2xl font-bold text-dracula-foreground mb-6 flex items-center gap-3"
-      >
-        <span className="w-1 h-6 bg-dracula-foreground rounded-full" />
-        {title}
-      </motion.h2>
-      {children}
-    </section>
-  );
-}
-
-function Subsection({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div id={id} className="scroll-mt-24 mb-8">
-      <h3 className="text-lg font-semibold text-dracula-foreground mb-4">
-        {title}
-      </h3>
-      {children}
-    </div>
   );
 }
 
@@ -214,11 +171,16 @@ export default function McpSetupPage() {
               stdin/stdout. No network ports, no HTTP.
             </li>
             <li>
-              The MCP server reads{" "}
+              The MCP server automatically discovers{" "}
               <code className="text-dracula-foreground/80">
                 .unforgit/unforgit.yaml
               </code>{" "}
-              and operates on the local SQLite database in the workspace.
+              by walking up the filesystem (like{" "}
+              <code className="text-dracula-foreground/80">git</code> finds{" "}
+              <code className="text-dracula-foreground/80">.git/</code>) and
+              loads environment variables from the repo&apos;s{" "}
+              <code className="text-dracula-foreground/80">.env</code> file
+              automatically.
             </li>
             <li>
               If a remote server is configured, the MCP server still works
@@ -320,15 +282,21 @@ $ unforgit init`}
   "mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": [],
-      "env": {
-        "UNFORGIT_API_KEY": "hk_your_api_key",
-        "OPENAI_API_KEY": "sk-your-openai-key"
-      }
+      "args": []
     }
   }
 }`}
           />
+          <div className="mt-3 rounded-lg border border-dracula-current/50 bg-dracula-comment/5 p-3">
+            <p className="text-sm text-dracula-foreground/70">
+              <strong>Important:</strong> Always use a{" "}
+              <strong>project-level</strong> config, not a global one. The MCP
+              server loads API keys from the repo&apos;s{" "}
+              <code className="text-dracula-foreground/80">.env</code> file
+              automatically &mdash; no need to put secrets in the MCP config.
+              This file is safe to commit.
+            </p>
+          </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
             Restart Cursor after saving. The tools will be available in Agent
             mode.
@@ -367,11 +335,7 @@ $ unforgit init`}
   "mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": [],
-      "env": {
-        "UNFORGIT_API_KEY": "hk_your_api_key",
-        "OPENAI_API_KEY": "sk-your-openai-key"
-      }
+      "args": []
     }
   }
 }`}
@@ -418,11 +382,7 @@ $ unforgit init`}
     "unforgit": {
       "command": "unforgit-mcp",
       "args": [],
-      "cwd": "/absolute/path/to/your-project",
-      "env": {
-        "UNFORGIT_API_KEY": "hk_your_api_key",
-        "OPENAI_API_KEY": "sk-your-openai-key"
-      }
+      "cwd": "/absolute/path/to/your-project"
     }
   }
 }`}
@@ -431,9 +391,12 @@ $ unforgit init`}
             <p className="text-sm text-dracula-foreground/70">
               <strong>Important:</strong> Claude Desktop requires an absolute{" "}
               <code className="text-dracula-foreground/80">cwd</code> path
-              because it doesn't open projects like an IDE. Point it to the
+              because it doesn&apos;t open projects like an IDE. Point it to the
               repo where you ran{" "}
               <code className="text-dracula-foreground/80">unforgit init</code>.
+              API keys are loaded from the repo&apos;s{" "}
+              <code className="text-dracula-foreground/80">.env</code> file
+              automatically.
             </p>
           </div>
         </Subsection>
@@ -470,18 +433,16 @@ $ unforgit init`}
   "mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": [],
-      "env": {
-        "UNFORGIT_API_KEY": "hk_your_api_key",
-        "OPENAI_API_KEY": "sk-your-openai-key"
-      }
+      "args": []
     }
   }
 }`}
           />
           <p className="text-sm text-dracula-foreground/60 mt-3">
-            Restart Windsurf after saving. The MCP server will use the
-            workspace <code>.unforgit/</code> directory automatically.
+            Restart Windsurf after saving. The MCP server discovers the{" "}
+            <code>.unforgit/</code> directory automatically by walking up the
+            filesystem, and loads API keys from the repo&apos;s{" "}
+            <code>.env</code> file.
           </p>
         </Subsection>
 
@@ -522,11 +483,7 @@ $ unforgit init`}
   "github.copilot.chat.mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": [],
-      "env": {
-        "UNFORGIT_API_KEY": "hk_your_api_key",
-        "OPENAI_API_KEY": "sk-your-openai-key"
-      }
+      "args": []
     }
   }
 }`}
@@ -547,10 +504,7 @@ $ unforgit init`}
             code={`mcpServers:
   - name: unforgit
     command: unforgit-mcp
-    args: []
-    env:
-      UNFORGIT_API_KEY: hk_your_api_key
-      OPENAI_API_KEY: sk-your-openai-key`}
+    args: []`}
           />
         </Subsection>
 
@@ -572,16 +526,15 @@ $ unforgit init`}
                 <strong>Arguments:</strong> none required
               </li>
               <li>
-                <strong>Working directory:</strong> the project root where{" "}
-                <code className="text-dracula-foreground/80">.unforgit/</code>{" "}
-                lives
+                <strong>Working directory:</strong> anywhere inside the repo
+                &mdash; the server walks up to find{" "}
+                <code className="text-dracula-foreground/80">.unforgit/</code>
               </li>
               <li>
-                <strong>Environment:</strong>{" "}
-                <code className="text-dracula-foreground/80">UNFORGIT_API_KEY</code>{" "}
-                and{" "}
-                <code className="text-dracula-foreground/80">OPENAI_API_KEY</code>{" "}
-                (optional) via the <code className="text-dracula-foreground/80">env</code> block
+                <strong>Environment:</strong> loaded automatically from the
+                repo&apos;s{" "}
+                <code className="text-dracula-foreground/80">.env</code> file
+                (no need to set keys in the MCP config)
               </li>
             </ul>
           </div>
@@ -597,7 +550,25 @@ $ unforgit init`}
       </Section>
 
       {/* ── API Keys ─────────────────────────────────── */}
-      <Section id="mcp-keys" title="API Keys & Authentication">
+      <Section id="mcp-keys" title="API Keys & Environment">
+        <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-6">
+          <p className="text-sm text-dracula-foreground/70">
+            The MCP server <strong>automatically loads</strong> the{" "}
+            <code className="text-dracula-foreground/80">.env</code> file from
+            your repository root. Add your keys there instead of putting them in
+            MCP config files. This keeps secrets out of committed files.
+          </p>
+        </div>
+
+        <Terminal
+          title=".env (at repo root, already in .gitignore)"
+          code={`# Optional: enables semantic search and AI consolidation
+OPENAI_API_KEY=sk-your-openai-key
+
+# Optional: for remote sync operations
+UNFORGIT_API_KEY=hk_your_api_key`}
+        />
+
         <Subsection id="mcp-remote-key" title="Remote API Key">
           <p className="text-sm text-dracula-foreground/70 mb-4">
             To sync memories with a remote server, you need an API key. This
@@ -609,7 +580,7 @@ $ unforgit init`}
           </p>
           <div className="space-y-4">
             <Terminal
-              title="Set the remote API key via environment variable"
+              title="Or set via shell environment"
               code={`$ export UNFORGIT_API_KEY=hk_your_api_key`}
             />
             <Terminal
@@ -620,13 +591,13 @@ $ unforgit init`}
           <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
             <ul className="text-sm text-dracula-foreground/70 space-y-2">
               <li>
-                Set the{" "}
+                Add{" "}
                 <code className="text-dracula-foreground/80">
                   UNFORGIT_API_KEY
                 </code>{" "}
-                environment variable in your shell or in the MCP server{" "}
-                <code className="text-dracula-foreground/80">env</code>{" "}
-                configuration block.
+                to your repo&apos;s{" "}
+                <code className="text-dracula-foreground/80">.env</code> file
+                or set it as a shell environment variable.
               </li>
               <li>
                 The MCP server itself does not need this key. It operates
@@ -645,18 +616,13 @@ $ unforgit init`}
             </code>{" "}
             tool, and AI-powered consolidation flows.
           </p>
-          <div className="space-y-4">
-            <Terminal
-              title="Set your OpenAI key via environment variable"
-              code={`$ export OPENAI_API_KEY=sk-your-openai-key`}
-            />
-          </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
             Without this key, <UnforgitBrand /> is fully functional. Local recall
-            uses FTS5 text search. Set the{" "}
+            uses FTS5 text search. Add{" "}
             <code className="text-dracula-foreground/70">OPENAI_API_KEY</code>{" "}
-            environment variable or configure it in the MCP server{" "}
-            <code className="text-dracula-foreground/70">env</code> block.
+            to your{" "}
+            <code className="text-dracula-foreground/70">.env</code> file to
+            enable AI features.
           </p>
         </Subsection>
       </Section>
@@ -915,6 +881,32 @@ $ unforgit recall "deploy" --remote-only`}
                   </code>{" "}
                   to enable verbose logging to stderr. This does not interfere
                   with the MCP protocol on stdout.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-dracula-foreground/70 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-sm font-semibold text-dracula-foreground mb-1">
+                  &quot;Not initialized in this directory&quot; error
+                </h4>
+                <p className="text-sm text-dracula-foreground/70">
+                  This usually means the MCP config is in a global config file
+                  (e.g.{" "}
+                  <code className="text-dracula-foreground/80">
+                    ~/.cursor/mcp.json
+                  </code>
+                  ) instead of a project-level one. Global configs launch the
+                  server from the home directory, which can&apos;t find{" "}
+                  <code className="text-dracula-foreground/80">.unforgit/</code>.
+                  Move the config to the project&apos;s{" "}
+                  <code className="text-dracula-foreground/80">
+                    .cursor/mcp.json
+                  </code>{" "}
+                  (or equivalent) so the IDE launches it from the workspace root.
                 </p>
               </div>
             </div>

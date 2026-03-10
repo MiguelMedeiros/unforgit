@@ -24,6 +24,29 @@ unforgit init --no-ide               # skip IDE integration
 | **VS Code (Copilot)** | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
 | **Windsurf** | `.windsurfrules` | `.windsurf/mcp.json` |
 
+### Project-level vs global config
+
+The MCP config should always be **project-level** (inside the repo), not global. This is because:
+
+- Each repo has its own `.unforgit/` directory and configuration
+- Each repo may use a different `OPENAI_API_KEY` or other environment variables
+- Project-level configs ensure the IDE launches `unforgit-mcp` with the correct working directory
+
+### Environment variables and `.env`
+
+The MCP server **automatically loads the `.env` file** from the repository root. You don't need to put API keys in the MCP config — just add them to your `.env` file:
+
+```bash
+# .env (at repo root, already in .gitignore)
+OPENAI_API_KEY=sk-your-key-here
+```
+
+This keeps secrets out of committed config files. The `.cursor/mcp.json` (or equivalent) can be safely committed to the repo since it contains no secrets.
+
+### Repo root discovery
+
+The MCP server walks up the filesystem from its working directory to find the `.unforgit/` folder, similar to how `git` finds `.git/`. This means it works even if the IDE launches the process from a subdirectory.
+
 ### Manual setup
 
 If you need to configure an IDE manually, the MCP server config always follows the same pattern:
@@ -31,7 +54,8 @@ If you need to configure an IDE manually, the MCP server config always follows t
 - **Transport:** stdio (stdin/stdout)
 - **Command:** `unforgit-mcp`
 - **Arguments:** none required
-- **Working directory:** the project root where `.unforgit/` lives
+- **Working directory:** the project root where `.unforgit/` lives (auto-discovered)
+- **Environment:** loaded automatically from the repo's `.env` file
 
 Example for Cursor (`.cursor/mcp.json`):
 
@@ -95,7 +119,7 @@ Restart your IDE after adding the MCP config.
 | `unforgit_notifications` | Get pending notifications | - |
 | `unforgit_templates` | List available memory templates | - |
 
-The MCP server works with the local SQLite store only (no remote dependency). It reads the config from `.unforgit/unforgit.yaml` in the current workspace.
+The MCP server works with the local SQLite store only (no remote dependency). It automatically discovers the `.unforgit/unforgit.yaml` config by walking up the filesystem from the working directory, and loads environment variables from the repo's `.env` file.
 
 ## IDE Rules
 

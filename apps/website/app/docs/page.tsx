@@ -5,6 +5,7 @@ import { Terminal } from "@/components/terminal";
 import { CommandReference } from "@/components/command-reference";
 import { ApiEndpoint } from "@/components/api-endpoint";
 import { UnforgitBrand } from "@/components/unforgit-brand";
+import { Section, Subsection } from "@/components/doc-section";
 import {
   Database,
   Terminal as TerminalIcon,
@@ -12,50 +13,6 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
-
-function Section({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="scroll-mt-24 mb-16">
-      <motion.h2
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        className="text-2xl font-bold text-dracula-foreground mb-6 flex items-center gap-3"
-      >
-        <span className="w-1 h-6 bg-dracula-foreground rounded-full" />
-        {title}
-      </motion.h2>
-      {children}
-    </section>
-  );
-}
-
-function Subsection({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div id={id} className="scroll-mt-24 mb-8">
-      <h3 className="text-lg font-semibold text-dracula-foreground mb-4">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
 
 const templates = [
   "decision",
@@ -904,8 +861,10 @@ embeddings:
                   remote auth fallback when no key is stored in config.
                 </li>
                 <li>
-                  <code className="text-dracula-foreground/80">OPENAI_API_KEY</code> is
-                  the local fallback for embeddings and auto-consolidation.
+                  <code className="text-dracula-foreground/80">OPENAI_API_KEY</code> enables
+                  embeddings and auto-consolidation. The MCP server loads this
+                  from the repo&apos;s <code className="text-dracula-foreground/80">.env</code> file
+                  automatically.
                 </li>
               </ul>
             </div>
