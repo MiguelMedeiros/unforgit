@@ -6,7 +6,6 @@ dist
 .env.*
 *.log
 .unforgit
-.hippocampus
 .cursor
 README.md
 LICENSE

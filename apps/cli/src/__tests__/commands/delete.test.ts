@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTempHippoDir } from "../helpers.js";
+import { createTempDataDir } from "../helpers.js";
 import { LocalStore } from "@unforgit/db";
 
 describe("delete and restore", () => {
-  let tmpDir: ReturnType<typeof createTempHippoDir>;
+  let tmpDir: ReturnType<typeof createTempDataDir>;
   let store: LocalStore;
 
   beforeEach(() => {
-    tmpDir = createTempHippoDir();
+    tmpDir = createTempDataDir();
     store = new LocalStore(tmpDir.dbPath);
   });
 

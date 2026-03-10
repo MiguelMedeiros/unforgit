@@ -3,7 +3,7 @@ import path from "node:path";
 import { Command } from "commander";
 import { logger } from "../logger.js";
 import {
-  getHippoDir,
+  getDataDir,
   getConfigPath,
   getDbPath,
   defaultConfig,
@@ -28,8 +28,8 @@ export const initCommand = new Command("init")
       return;
     }
 
-    const hippoDir = getHippoDir(cwd);
-    fs.mkdirSync(hippoDir, { recursive: true });
+    const dataDir = getDataDir(cwd);
+    fs.mkdirSync(dataDir, { recursive: true });
 
     const git = detectGitInfo(cwd);
     const config = defaultConfig();
@@ -43,7 +43,7 @@ export const initCommand = new Command("init")
     const store = new LocalStore(getDbPath(cwd));
     store.close();
 
-    logger.info(`Initialized Unforgit at ${hippoDir}`);
+    logger.info(`Initialized Unforgit at ${dataDir}`);
     logger.info(`  Config: ${getConfigPath(cwd)}`);
     logger.info(`  Local DB: ${getDbPath(cwd)}`);
 

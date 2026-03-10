@@ -184,7 +184,7 @@ export interface LifecycleConfig {
   maintenance?: Partial<LifecycleMaintenanceConfig>;
 }
 
-export interface HippoConfig {
+export interface AppConfig {
   configVersion?: number;
   remote: {
     url: string;

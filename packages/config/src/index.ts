@@ -1,6 +1,6 @@
 export {
   detectGitInfo,
-  getHippoDir,
+  getDataDir,
   getDbPath,
   getConfigPath,
   isInitialized,
@@ -10,7 +10,7 @@ export {
 } from "./config.js";
 
 export {
-  hippoConfigSchema,
+  appConfigSchema,
   syncConfigSchema,
   embeddingConfigSchema,
   lifecycleTtlConfigSchema,

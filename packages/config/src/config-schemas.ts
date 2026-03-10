@@ -57,7 +57,7 @@ const remoteConfigSchema = z.object({
   repoId: z.string(),
 });
 
-export const hippoConfigSchema = z.object({
+export const appConfigSchema = z.object({
   configVersion: z.number().optional(),
   remote: remoteConfigSchema,
   defaults: z.object({

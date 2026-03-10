@@ -9,7 +9,7 @@ describe("unforgit init logic", () => {
   const dirs: string[] = [];
 
   function makeTempDir(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hippo-init-test-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "unforgit-init-test-"));
     dirs.push(dir);
     return dir;
   }
@@ -23,8 +23,8 @@ describe("unforgit init logic", () => {
 
   it("creates .unforgit directory with config and db", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".unforgit");
-    fs.mkdirSync(hippoDir, { recursive: true });
+    const dataDir = path.join(dir, ".unforgit");
+    fs.mkdirSync(dataDir, { recursive: true });
 
     const config = {
       remote: { url: "http://localhost:3737", orgId: "", repoId: "" },
@@ -33,14 +33,14 @@ describe("unforgit init logic", () => {
       embeddings: { enabled: true, model: "text-embedding-3-small", autoGenerate: true },
     };
 
-    const configPath = path.join(hippoDir, "unforgit.yaml");
+    const configPath = path.join(dataDir, "unforgit.yaml");
     fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
-    const dbPath = path.join(hippoDir, "local.db");
+    const dbPath = path.join(dataDir, "local.db");
     const store = new LocalStore(dbPath);
     store.close();
 
-    expect(fs.existsSync(hippoDir)).toBe(true);
+    expect(fs.existsSync(dataDir)).toBe(true);
     expect(fs.existsSync(configPath)).toBe(true);
     expect(fs.existsSync(dbPath)).toBe(true);
 
@@ -51,15 +51,15 @@ describe("unforgit init logic", () => {
 
   it("loads config after initialization", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".unforgit");
-    fs.mkdirSync(hippoDir, { recursive: true });
+    const dataDir = path.join(dir, ".unforgit");
+    fs.mkdirSync(dataDir, { recursive: true });
 
     const config = {
       remote: { url: "http://localhost:3737", orgId: "my-org", repoId: "my-repo" },
       defaults: { visibility: "auto", memoryType: "episodic" },
     };
 
-    const configPath = path.join(hippoDir, "unforgit.yaml");
+    const configPath = path.join(dataDir, "unforgit.yaml");
     fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
     const loaded = YAML.parse(fs.readFileSync(configPath, "utf-8"));
@@ -69,10 +69,10 @@ describe("unforgit init logic", () => {
 
   it("creates valid SQLite database", () => {
     const dir = makeTempDir();
-    const hippoDir = path.join(dir, ".unforgit");
-    fs.mkdirSync(hippoDir, { recursive: true });
+    const dataDir = path.join(dir, ".unforgit");
+    fs.mkdirSync(dataDir, { recursive: true });
 
-    const dbPath = path.join(hippoDir, "local.db");
+    const dbPath = path.join(dataDir, "local.db");
     const store = new LocalStore(dbPath);
 
     const memory = store.store({

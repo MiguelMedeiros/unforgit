@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { isInitialized, loadConfig, saveConfig } from "@unforgit/config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import type { HippoConfig, RemoteConfig } from "@unforgit/shared";
+import type { AppConfig, RemoteConfig } from "@unforgit/shared";
 
 export const remoteCommand = new Command("remote")
   .description("Manage set of tracked remote repositories")
@@ -138,7 +138,7 @@ remoteCommand.addCommand(remoteRemoveCommand);
 remoteCommand.addCommand(remoteSetUrlCommand);
 remoteCommand.addCommand(remoteShowCommand);
 
-function getRemotes(config: HippoConfig): Record<string, RemoteConfig> {
+function getRemotes(config: AppConfig): Record<string, RemoteConfig> {
   if (config.remotes) {
     return { ...config.remotes };
   }
@@ -156,7 +156,7 @@ function getRemotes(config: HippoConfig): Record<string, RemoteConfig> {
   return {};
 }
 
-function saveRemotes(config: HippoConfig, remotes: Record<string, RemoteConfig>): void {
+function saveRemotes(config: AppConfig, remotes: Record<string, RemoteConfig>): void {
   config.remotes = remotes;
 
   if (remotes.origin) {

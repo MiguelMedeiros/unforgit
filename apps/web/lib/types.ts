@@ -111,7 +111,7 @@ export interface MemoryLink {
   createdAt: Date;
 }
 
-export interface HippoConfig {
+export interface AppConfig {
   remote: {
     url: string;
     orgId: string;

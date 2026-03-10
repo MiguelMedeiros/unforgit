@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTempHippoDir } from "../helpers.js";
+import { createTempDataDir } from "../helpers.js";
 import { LocalStore } from "@unforgit/db";
 import { loadConfig, saveConfig } from "@unforgit/config";
 import fs from "node:fs";
 import YAML from "yaml";
 
 describe("config command", () => {
-  let tmpDir: ReturnType<typeof createTempHippoDir>;
+  let tmpDir: ReturnType<typeof createTempDataDir>;
   let originalCwd: string;
 
   beforeEach(() => {
     originalCwd = process.cwd();
-    tmpDir = createTempHippoDir();
+    tmpDir = createTempDataDir();
     process.chdir(tmpDir.dir);
     const store = new LocalStore(tmpDir.dbPath);
     store.close();
@@ -59,7 +59,7 @@ describe("config command", () => {
   });
 
   it("throws when not initialized", () => {
-    const emptyDir = fs.mkdtempSync("/tmp/hippo-empty-");
+    const emptyDir = fs.mkdtempSync("/tmp/unforgit-empty-");
     try {
       expect(() => loadConfig(emptyDir)).toThrow("not initialized");
     } finally {

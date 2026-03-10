@@ -3,7 +3,7 @@ import { isInitialized, loadConfig, saveConfig } from "@unforgit/config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";
-import type { HippoConfig } from "@unforgit/shared";
+import type { AppConfig } from "@unforgit/shared";
 
 export const configCommand = new Command("config")
   .description("Manage unforgit configuration");
@@ -149,7 +149,7 @@ configCommand
     logger.info(`Unset ${key}`);
   });
 
-function getConfigValue(config: HippoConfig, key: string): unknown {
+function getConfigValue(config: AppConfig, key: string): unknown {
   const parts = key.split(".");
   let current: unknown = config;
 
@@ -164,7 +164,7 @@ function getConfigValue(config: HippoConfig, key: string): unknown {
   return current;
 }
 
-function setConfigValue(config: HippoConfig, key: string, value: string): void {
+function setConfigValue(config: AppConfig, key: string, value: string): void {
   const parts = key.split(".");
 
   if (parts.length === 1) {
@@ -184,7 +184,7 @@ function setConfigValue(config: HippoConfig, key: string, value: string): void {
   current[parts[parts.length - 1]] = coerceConfigValue(value);
 }
 
-function unsetConfigValue(config: HippoConfig, key: string): void {
+function unsetConfigValue(config: AppConfig, key: string): void {
   const parts = key.split(".");
 
   if (parts.length === 1) {

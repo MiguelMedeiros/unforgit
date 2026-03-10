@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
-  hippoConfigSchema,
+  appConfigSchema,
   validateMemoryType,
   parseConfidence,
   parseTtl,
   parsePositiveInt,
 } from "@unforgit/config";
 
-describe("hippoConfigSchema", () => {
+describe("appConfigSchema", () => {
   const validConfig = {
     remote: {
       url: "http://localhost:3737",
@@ -21,7 +21,7 @@ describe("hippoConfigSchema", () => {
   };
 
   it("accepts valid minimal config", () => {
-    const result = hippoConfigSchema.safeParse(validConfig);
+    const result = appConfigSchema.safeParse(validConfig);
     expect(result.success).toBe(true);
   });
 
@@ -41,12 +41,12 @@ describe("hippoConfigSchema", () => {
         autoGenerate: true,
       },
     };
-    const result = hippoConfigSchema.safeParse(full);
+    const result = appConfigSchema.safeParse(full);
     expect(result.success).toBe(true);
   });
 
   it("rejects missing remote", () => {
-    const result = hippoConfigSchema.safeParse({ defaults: validConfig.defaults });
+    const result = appConfigSchema.safeParse({ defaults: validConfig.defaults });
     expect(result.success).toBe(false);
   });
 
@@ -55,7 +55,7 @@ describe("hippoConfigSchema", () => {
       ...validConfig,
       defaults: { ...validConfig.defaults, visibility: "invalid" },
     };
-    const result = hippoConfigSchema.safeParse(bad);
+    const result = appConfigSchema.safeParse(bad);
     expect(result.success).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe("hippoConfigSchema", () => {
       ...validConfig,
       defaults: { ...validConfig.defaults, memoryType: "invalid" },
     };
-    const result = hippoConfigSchema.safeParse(bad);
+    const result = appConfigSchema.safeParse(bad);
     expect(result.success).toBe(false);
   });
 
@@ -78,7 +78,7 @@ describe("hippoConfigSchema", () => {
         autoResolveConflicts: "last_write_wins",
       },
     };
-    const result = hippoConfigSchema.safeParse(bad);
+    const result = appConfigSchema.safeParse(bad);
     expect(result.success).toBe(false);
   });
 });

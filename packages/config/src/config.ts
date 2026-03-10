@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import YAML from "yaml";
-import type { HippoConfig } from "@unforgit/shared";
+import type { AppConfig } from "@unforgit/shared";
 import { resolveLifecycleConfig } from "@unforgit/core";
-import { hippoConfigSchema } from "./config-schemas.js";
+import { appConfigSchema } from "./config-schemas.js";
 
-const HIPPO_DIR = ".unforgit";
+const DATA_DIR = ".unforgit";
 const CONFIG_FILE = "unforgit.yaml";
 const DB_FILE = "local.db";
 
@@ -34,20 +34,20 @@ export function detectGitInfo(cwd: string = process.cwd()): {
   return { orgId: "", repoId: "" };
 }
 
-export function getHippoDir(cwd: string = process.cwd()): string {
-  return path.join(cwd, HIPPO_DIR);
+export function getDataDir(cwd: string = process.cwd()): string {
+  return path.join(cwd, DATA_DIR);
 }
 
 export function getDbPath(cwd: string = process.cwd()): string {
-  return path.join(getHippoDir(cwd), DB_FILE);
+  return path.join(getDataDir(cwd), DB_FILE);
 }
 
 export function getConfigPath(cwd: string = process.cwd()): string {
-  return path.join(getHippoDir(cwd), CONFIG_FILE);
+  return path.join(getDataDir(cwd), CONFIG_FILE);
 }
 
 export function isInitialized(cwd: string = process.cwd()): boolean {
-  return fs.existsSync(getHippoDir(cwd)) && fs.existsSync(getConfigPath(cwd));
+  return fs.existsSync(getDataDir(cwd)) && fs.existsSync(getConfigPath(cwd));
 }
 
 const CURRENT_CONFIG_VERSION = 2;
@@ -86,7 +86,7 @@ function warnDeprecatedKeys(parsed: Record<string, unknown>): void {
   }
 }
 
-export function loadConfig(cwd: string = process.cwd()): HippoConfig {
+export function loadConfig(cwd: string = process.cwd()): AppConfig {
   const configPath = getConfigPath(cwd);
   if (!fs.existsSync(configPath)) {
     throw new Error(
@@ -100,7 +100,7 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
 
   warnDeprecatedKeys(migrated);
 
-  const result = hippoConfigSchema.safeParse(migrated);
+  const result = appConfigSchema.safeParse(migrated);
   if (!result.success) {
     const issues = result.error.issues
       .map((i) => `  - ${(i.path as (string | number)[]).join(".")}: ${i.message}`)
@@ -139,18 +139,18 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
       ...(result.data.embeddings ?? {}),
     },
     lifecycle: resolveLifecycleConfig(result.data.lifecycle),
-  } as HippoConfig;
+  } as AppConfig;
 }
 
 export function saveConfig(
-  config: HippoConfig,
+  config: AppConfig,
   cwd: string = process.cwd(),
 ): void {
   const configPath = getConfigPath(cwd);
   fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 }
 
-export function defaultConfig(): HippoConfig & { configVersion: number } {
+export function defaultConfig(): AppConfig & { configVersion: number } {
   return {
     configVersion: CURRENT_CONFIG_VERSION,
     remote: {

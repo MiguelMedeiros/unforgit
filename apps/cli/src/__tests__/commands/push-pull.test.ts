@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { createTempHippoDir, mockFetch, restoreFetch } from "../helpers.js";
+import { createTempDataDir, mockFetch, restoreFetch } from "../helpers.js";
 import { LocalStore } from "@unforgit/db";
 
 describe("push/pull logic", () => {
-  let tmp: ReturnType<typeof createTempHippoDir>;
+  let tmp: ReturnType<typeof createTempDataDir>;
   let store: LocalStore;
 
   beforeEach(() => {
-    tmp = createTempHippoDir();
+    tmp = createTempDataDir();
     store = new LocalStore(tmp.dbPath);
   });
 

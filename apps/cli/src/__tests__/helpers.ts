@@ -4,20 +4,20 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
 import YAML from "yaml";
-import type { HippoConfig } from "@unforgit/shared";
+import type { AppConfig } from "@unforgit/shared";
 
-export function createTempHippoDir(configOverrides?: Partial<HippoConfig>): {
+export function createTempDataDir(configOverrides?: Partial<AppConfig>): {
   dir: string;
-  hippoDir: string;
+  dataDir: string;
   configPath: string;
   dbPath: string;
   cleanup: () => void;
 } {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hippo-test-"));
-  const hippoDir = path.join(dir, ".unforgit");
-  fs.mkdirSync(hippoDir, { recursive: true });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "unforgit-test-"));
+  const dataDir = path.join(dir, ".unforgit");
+  fs.mkdirSync(dataDir, { recursive: true });
 
-  const config: HippoConfig = {
+  const config: AppConfig = {
     remote: {
       url: "http://localhost:3737",
       orgId: "test-org",
@@ -44,14 +44,14 @@ export function createTempHippoDir(configOverrides?: Partial<HippoConfig>): {
     },
   };
 
-  const configPath = path.join(hippoDir, "unforgit.yaml");
+  const configPath = path.join(dataDir, "unforgit.yaml");
   fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
 
-  const dbPath = path.join(hippoDir, "local.db");
+  const dbPath = path.join(dataDir, "local.db");
 
   return {
     dir,
-    hippoDir,
+    dataDir,
     configPath,
     dbPath,
     cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),

@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTempHippoDir, writeConfig } from "./helpers.js";
+import { createTempDataDir, writeConfig } from "./helpers.js";
 import {
   loadConfig,
   saveConfig,
   isInitialized,
-  getHippoDir,
+  getDataDir,
   getDbPath,
   getConfigPath,
   defaultConfig,
 } from "@unforgit/config";
 
 describe("config", () => {
-  let tmp: ReturnType<typeof createTempHippoDir>;
+  let tmp: ReturnType<typeof createTempDataDir>;
 
   beforeEach(() => {
-    tmp = createTempHippoDir();
+    tmp = createTempDataDir();
   });
 
   afterEach(() => {
@@ -32,8 +32,8 @@ describe("config", () => {
   });
 
   describe("path helpers", () => {
-    it("getHippoDir returns correct path", () => {
-      expect(getHippoDir(tmp.dir)).toBe(tmp.hippoDir);
+    it("getDataDir returns correct path", () => {
+      expect(getDataDir(tmp.dir)).toBe(tmp.dataDir);
     });
 
     it("getDbPath returns correct path", () => {

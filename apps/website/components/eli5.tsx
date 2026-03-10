@@ -13,7 +13,7 @@ const faqs: { question: ReactNode; answer: ReactNode }[] = [
   {
     question: <>What does <UnforgitBrand capitalize /> do?</>,
     answer:
-      "It gives AI agents a memory. Like how your brain's hippocampus helps you remember things, this tool helps AI remember what happened in your project.",
+      "It gives AI agents a memory. Like how your brain stores long-term memories, this tool helps AI remember what happened in your project.",
   },
   {
     question: "How does it work?",

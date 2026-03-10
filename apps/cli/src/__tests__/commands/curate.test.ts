@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTempHippoDir, runCommand } from "../helpers.js";
+import { createTempDataDir, runCommand } from "../helpers.js";
 import { LocalStore } from "@unforgit/db";
 
 describe("curate command", () => {
-  let tmp: ReturnType<typeof createTempHippoDir>;
+  let tmp: ReturnType<typeof createTempDataDir>;
   let originalCwd: string;
 
   beforeEach(() => {
     originalCwd = process.cwd();
-    tmp = createTempHippoDir();
+    tmp = createTempDataDir();
     process.chdir(tmp.dir);
   });
 

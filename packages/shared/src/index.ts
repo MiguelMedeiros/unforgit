@@ -22,7 +22,7 @@ export type {
   LifecycleUsageBoostConfig,
   LifecycleMaintenanceConfig,
   LifecycleConfig,
-  HippoConfig,
+  AppConfig,
   ConsolidateMemoriesInput,
   ConsolidateMemoriesResult,
   ReconsolidateInput,
