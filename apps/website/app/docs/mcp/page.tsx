@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Download,
 } from "lucide-react";
+import { UnforgitBrand } from "@/components/unforgit-brand";
 import Link from "next/link";
 
 const MCP_CONFIG_BASE64 = "eyJjb21tYW5kIjoidW5mb3JnaXQtbWNwIiwiYXJncyI6W119";
@@ -185,7 +186,7 @@ export default function McpSetupPage() {
           MCP Server Setup
         </h1>
         <p className="text-lg text-dracula-foreground/70">
-          Connect Unforgit to your IDE so AI agents can recall and store
+          Connect <UnforgitBrand capitalize /> to your IDE so AI agents can recall and store
           memories natively, without shell commands.
         </p>
       </motion.div>
@@ -195,7 +196,7 @@ export default function McpSetupPage() {
         <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-5 mb-6">
           <ul className="text-sm text-dracula-foreground/70 space-y-3">
             <li>
-              Unforgit ships a local{" "}
+              <UnforgitBrand capitalize /> ships a local{" "}
               <code className="text-dracula-foreground/80">unforgit-mcp</code>{" "}
               binary that speaks the{" "}
               <a
@@ -233,7 +234,7 @@ export default function McpSetupPage() {
       {/* ── Prerequisites ────────────────────────────── */}
       <Section id="mcp-prerequisites" title="Prerequisites">
         <p className="text-dracula-foreground/70 mb-4">
-          Install Unforgit globally and initialize it in your project before
+          Install <UnforgitBrand capitalize /> globally and initialize it in your project before
           configuring any IDE.
         </p>
         <div className="space-y-4">
@@ -429,7 +430,7 @@ $ unforgit init`}
 
         <Subsection id="mcp-other" title="Other Clients">
           <p className="text-sm text-dracula-foreground/70 mb-4">
-            Any MCP-compatible client can connect to Unforgit. The pattern is
+            Any MCP-compatible client can connect to <UnforgitBrand capitalize />. The pattern is
             always the same:
           </p>
           <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
@@ -531,7 +532,7 @@ $ unforgit init`}
             />
           </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
-            Without this key, Unforgit is fully functional &mdash; local recall
+            Without this key, <UnforgitBrand capitalize /> is fully functional &mdash; local recall
             uses FTS5 text search. You can also set{" "}
             <code className="text-dracula-foreground/70">OPENAI_API_KEY</code>{" "}
             as an environment variable instead.
@@ -543,7 +544,7 @@ $ unforgit init`}
       <Section id="mcp-remote" title="Remote Server Setup">
         <Subsection id="mcp-remote-config" title="Configure the Remote URL">
           <p className="text-sm text-dracula-foreground/70 mb-4">
-            Point your local Unforgit at a remote API server for team-shared
+            Point your local <UnforgitBrand capitalize /> at a remote API server for team-shared
             memory, hybrid recall, and server-side AI features.
           </p>
           <div className="space-y-4">

@@ -27,9 +27,9 @@ export default function Home() {
       <Divider />
       <HowItWorks />
       <Divider />
-      <SemanticSearch />
-      <Divider />
       <TeamMemory />
+      <Divider />
+      <SemanticSearch />
       <Divider />
       <DashboardShowcase />
       <Divider />

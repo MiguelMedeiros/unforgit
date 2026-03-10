@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Terminal } from "@/components/terminal";
 import { CommandReference } from "@/components/command-reference";
 import { ApiEndpoint } from "@/components/api-endpoint";
+import { UnforgitBrand } from "@/components/unforgit-brand";
 import {
   Database,
   Terminal as TerminalIcon,
@@ -80,7 +81,7 @@ export default function DocsPage() {
           className="prose prose-invert max-w-none"
         >
           <p className="text-dracula-foreground/80 text-lg leading-relaxed mb-6">
-            Unforgit is a local-first repository memory system for agents and
+            <UnforgitBrand capitalize /> is a local-first repository memory system for agents and
             developers. It stores private workspace memory in SQLite, can sync
             shared memory to a remote API, and now exposes a full lifecycle
             loop: capture broadly, strengthen reused knowledge, consolidate
@@ -300,7 +301,7 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
 
         <Subsection id="embeddings" title="Embeddings And Hybrid Search">
           <p className="text-dracula-foreground/70 mb-4">
-            OpenAI is optional. Without it, Unforgit still works with local
+            OpenAI is optional. Without it, <UnforgitBrand capitalize /> still works with local
             FTS recall, sync, links, lifecycle, and manual consolidation. With
             OpenAI, you unlock embeddings, server-side hybrid recall, and
             LLM-based consolidation flows.
@@ -334,7 +335,7 @@ $ unforgit embeddings clear --yes`}
           <div className="space-y-4">
             <CommandReference
               name="unforgit init"
-              description="Initialize Unforgit in the current repository"
+              description="Initialize unforgit in the current repository"
               usage="unforgit init [options]"
               options={[
                 { flag: "--org-id <orgId>", description: "Override detected org ID" },

@@ -12,11 +12,12 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UnforgitBrand } from "./unforgit-brand";
 
 const navLinks = [
   { href: "#get-started", label: "get started", icon: Rocket },
-  { href: "#semantic-search", label: "semantic search", icon: Search },
   { href: "#team-memory", label: "team memory", icon: Users },
+  { href: "#semantic-search", label: "semantic search", icon: Search },
   { href: "#dashboard", label: "dashboard", icon: LayoutDashboard },
   { href: "#mcp-integrations", label: "mcp server", icon: Server },
   { href: "/docs", label: "docs", external: true, icon: FileText },
@@ -109,9 +110,7 @@ export function Navbar() {
               className="text-dracula-foreground hover:text-dracula-foreground transition-colors"
               onClick={scrollToTop}
             >
-              <span className="font-bold text-lg tracking-tight">
-                <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit
-              </span>
+              <UnforgitBrand className="font-bold text-lg tracking-tight" />
             </a>
 
             <div className="hidden md:flex items-center gap-7">

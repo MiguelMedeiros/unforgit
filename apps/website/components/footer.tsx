@@ -3,6 +3,7 @@
 import { Github, BookOpen, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { UnforgitBrand } from "./unforgit-brand";
 
 const links = [
   {
@@ -38,7 +39,7 @@ export function Footer() {
             className="md:col-span-2"
           >
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-xl font-bold tracking-tight"><span className="underline decoration-2 underline-offset-[3px]">un</span>forgit</span>
+              <UnforgitBrand className="text-xl font-bold tracking-tight" />
             </div>
             <p className="text-muted-foreground max-w-sm">
               Repository memory system for AI agents and developers. Store,

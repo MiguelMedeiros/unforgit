@@ -1,6 +1,7 @@
 "use client";
 
-import { Brain, ArrowRight, Terminal, Copy, Check, ChevronDown } from "lucide-react";
+import { ArrowRight, Terminal, Copy, Check, ChevronDown } from "lucide-react";
+import { UnforgitBrand } from "./unforgit-brand";
 import { useState, useEffect } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -95,18 +96,6 @@ export function Hero() {
       />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-32 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-current/50 border border-dracula-comment/30 mb-8"
-        >
-          <Brain className="w-4 h-4 text-dracula-foreground/70" />
-          <span className="text-sm text-dracula-foreground/80">
-            Local-First Repository Memory
-          </span>
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -131,8 +120,8 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-xl md:text-2xl text-dracula-foreground/90 max-w-2xl mx-auto mb-8"
         >
-          Long-term memory for AI agents and developer workflows.<br />
-          <span className="text-dracula-foreground">Capture locally, rank by reuse, share when it matters.</span>
+          <UnforgitBrand className="font-semibold text-dracula-foreground" /> gives your AI agents persistent memory.<br />
+          Local, fast, open-source.
         </motion.p>
 
         <motion.div
@@ -199,7 +188,7 @@ export function Hero() {
                 <span className="text-dracula-comment">$</span>{" "}
                 <span className="text-dracula-foreground">npm</span>{" "}
                 <span className="text-dracula-foreground">install -g</span>{" "}
-                <span className="text-dracula-foreground font-semibold">unforgit</span>
+                <UnforgitBrand className="text-dracula-foreground font-semibold" />
               </code>
               <motion.button
                 whileHover={{ scale: 1.1 }}

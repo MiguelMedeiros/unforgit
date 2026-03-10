@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
+import { UnforgitBrand } from "./unforgit-brand";
 
 export function SemanticSearch() {
   return (
@@ -21,7 +22,7 @@ export function SemanticSearch() {
           </h2>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Traditional search finds files. Unforgit finds{" "}
+            Traditional search finds files. <UnforgitBrand capitalize /> finds{" "}
             <em>knowledge</em>. Ask naturally and get the right context
             back — powered by semantic ranking.
           </p>
@@ -67,7 +68,7 @@ export function SemanticSearch() {
             <div className="p-5 bg-dracula-current/25">
               <p className="text-xs text-dracula-foreground/70 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Brain className="w-3 h-3" />
-                Unforgit
+                <UnforgitBrand capitalize />
               </p>
               <ul className="space-y-2">
                 {[

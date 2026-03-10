@@ -1,15 +1,17 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UnforgitBrand } from "./unforgit-brand";
 
-const faqs = [
+const faqs: { question: ReactNode; answer: ReactNode }[] = [
   {
-    question: "Is Unforgit free?",
+    question: <>Is <UnforgitBrand capitalize /> free?</>,
     answer:
-      "Yes — Unforgit is 100% open source under the MIT license. You can use it, modify it, and self-host it with zero cost.",
+      <>Yes — <UnforgitBrand capitalize /> is 100% open source under the MIT license. You can use it, modify it, and self-host it with zero cost.</>,
   },
   {
     question: "Where are memories stored?",
@@ -19,7 +21,7 @@ const faqs = [
   {
     question: "Which AI tools does it support?",
     answer:
-      "Any MCP-compatible client works out of the box: Cursor, Claude Desktop, VS Code, Windsurf, GitHub Copilot, and more. If your tool speaks MCP, it speaks Unforgit.",
+      <>Any MCP-compatible client works out of the box: Cursor, Claude Desktop, VS Code, Windsurf, GitHub Copilot, and more. If your tool speaks MCP, it speaks <UnforgitBrand capitalize />.</>,
   },
   {
     question: "How does semantic search differ from regular search?",
@@ -29,12 +31,12 @@ const faqs = [
   {
     question: "Does it work with teams?",
     answer:
-      "Yes. You can keep memories private or share them across your team through a shared Unforgit server. Every teammate's AI agent benefits from collective knowledge.",
+      <>Yes. You can keep memories private or share them across your team through a shared <UnforgitBrand capitalize /> server. Every teammate&apos;s AI agent benefits from collective knowledge.</>,
   },
   {
     question: "Can I self-host it?",
     answer:
-      "Absolutely. Unforgit is designed to be self-hosted. Run it locally with a single command or deploy it on your own infrastructure with Docker.",
+      <>Absolutely. <UnforgitBrand capitalize /> is designed to be self-hosted. Run it locally with a single command or deploy it on your own infrastructure with Docker.</>,
   },
   {
     question: "How long does setup take?",
@@ -54,7 +56,7 @@ function FAQItem({
   isOpen,
   onToggle,
 }: {
-  item: (typeof faqs)[0];
+  item: { question: ReactNode; answer: ReactNode };
   index: number;
   isOpen: boolean;
   onToggle: () => void;
@@ -125,14 +127,14 @@ export function FAQ() {
             <span className="text-dracula-foreground">Questions</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Everything you need to know about Unforgit.
+            Everything you need to know about <UnforgitBrand capitalize />.
           </p>
         </motion.div>
 
         <div className="flex flex-col gap-3">
           {faqs.map((item, i) => (
             <FAQItem
-              key={item.question}
+              key={i}
               item={item}
               index={i}
               isOpen={openIndex === i}

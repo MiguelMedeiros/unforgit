@@ -1,15 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { UnforgitBrand } from "./unforgit-brand";
+import type { ReactNode } from "react";
 
-const faqs = [
+const faqs: { question: ReactNode; answer: ReactNode }[] = [
   {
     question: "What's the problem?",
     answer:
       "Every time you start a new chat with an AI agent, it forgets everything. You have to explain the same things over and over again.",
   },
   {
-    question: "What does Unforgit do?",
+    question: <>What does <UnforgitBrand capitalize /> do?</>,
     answer:
       "It gives AI agents a memory. Like how your brain's hippocampus helps you remember things, this tool helps AI remember what happened in your project.",
   },
@@ -37,7 +39,7 @@ export function ELI5() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            <span className="text-gradient">Why Unforgit?</span>
+            <span className="text-gradient">Why <UnforgitBrand capitalize />?</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             The problem, the solution, and how it all works.
@@ -47,7 +49,7 @@ export function ELI5() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {faqs.map((item, index) => (
             <motion.div
-              key={item.question}
+              key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -81,7 +83,7 @@ export function ELI5() {
           <p className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-dracula-current/20 bg-dracula-current/5 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">TL;DR</span>
             <span className="w-px h-4 bg-dracula-current/30" />
-            Unforgit = long-term memory for AI agents.
+            <UnforgitBrand capitalize /> = long-term memory for AI agents.
           </p>
         </motion.div>
       </div>
