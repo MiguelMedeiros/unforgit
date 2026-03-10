@@ -36,7 +36,7 @@ describe("config command", () => {
     fs.writeFileSync(tmpDir.configPath, YAML.stringify(raw), "utf-8");
 
     const reloaded = loadConfig(tmpDir.dir);
-    expect((reloaded as Record<string, unknown>).openaiApiKey).toBeUndefined();
+    expect((reloaded as unknown as Record<string, unknown>).openaiApiKey).toBeUndefined();
   });
 
   it("preserves remotes when saving", () => {
