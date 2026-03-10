@@ -484,8 +484,7 @@ $ unforgit remote add staging https://unforgit.example.com --org my-org --repo m
               code={`$ unforgit log --all --page 2
 $ unforgit doctor
 $ unforgit completion zsh >> ~/.zshrc
-$ unforgit auth status
-$ unforgit auth openai-remove`}
+$ unforgit auth status`}
             />
           </div>
         </Subsection>
@@ -802,8 +801,8 @@ $ unforgit auth openai-remove`}
           <p className="text-sm text-dracula-foreground/70 mb-4">
             The repository config lives at{" "}
             <code className="text-dracula-foreground/80">.unforgit/unforgit.yaml</code>.
-            It controls the default remote, lifecycle tuning, and optional
-            OpenAI usage.
+            It controls the default remote, lifecycle tuning, and sync
+            settings. Secrets are configured via environment variables.
           </p>
           <Terminal
             title=".unforgit/unforgit.yaml"
@@ -814,7 +813,6 @@ remote:
   url: http://localhost:3737
   orgId: your-org
   repoId: your-repo
-  apiKey: hk_your_api_key_here
 
 remotes:
   origin:
@@ -825,8 +823,6 @@ remotes:
 defaults:
   visibility: auto
   memoryType: episodic
-
-openaiApiKey: sk-your-openai-key
 
 lifecycle:
   ttlSecondsByType:
@@ -876,8 +872,10 @@ embeddings:
                 scheduling.
               </li>
               <li>
-                <code className="text-dracula-foreground/80">openaiApiKey</code> is used
-                by local embedding backfill and AI consolidation flows.
+                Secrets like API keys are configured via environment variables
+                (<code className="text-dracula-foreground/80">UNFORGIT_API_KEY</code>,{" "}
+                <code className="text-dracula-foreground/80">OPENAI_API_KEY</code>),
+                not stored in the config file.
               </li>
             </ul>
           </div>

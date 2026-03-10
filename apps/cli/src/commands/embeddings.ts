@@ -26,11 +26,11 @@ embeddingsCommand
     }
 
     const config = loadConfig(cwd);
-    const apiKey = process.env.OPENAI_API_KEY || config.openaiApiKey;
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey && !opts.dryRun) {
       logger.error("OpenAI API key not set.");
-      logger.error("Set OPENAI_API_KEY env var or run 'unforgit auth openai <key>'.");
+      logger.error("Set the OPENAI_API_KEY environment variable.");
       process.exit(EXIT_ERROR);
     }
 

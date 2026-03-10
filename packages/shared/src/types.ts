@@ -190,7 +190,6 @@ export interface HippoConfig {
     url: string;
     orgId: string;
     repoId: string;
-    apiKey?: string;
   };
   defaults: {
     visibility: Visibility;
@@ -199,7 +198,6 @@ export interface HippoConfig {
   sync?: SyncConfig;
   embeddings?: EmbeddingConfig;
   lifecycle?: LifecycleConfig;
-  openaiApiKey?: string;
   remotes?: Record<string, RemoteConfig>;
 }
 
@@ -295,7 +293,6 @@ export interface RemoteConfig {
   url: string;
   orgId: string;
   repoId: string;
-  apiKey?: string;
 }
 
 export interface StatusSummary {

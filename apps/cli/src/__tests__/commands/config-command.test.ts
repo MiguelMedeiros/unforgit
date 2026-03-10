@@ -30,13 +30,13 @@ describe("config command", () => {
     expect(config.defaults.memoryType).toBe("episodic");
   });
 
-  it("preserves openaiApiKey when saving", () => {
-    const config = loadConfig(tmpDir.dir);
-    config.openaiApiKey = "sk-test123";
-    saveConfig(config, tmpDir.dir);
+  it("strips deprecated openaiApiKey from loaded config", () => {
+    const raw = YAML.parse(fs.readFileSync(tmpDir.configPath, "utf-8"));
+    raw.openaiApiKey = "sk-test123";
+    fs.writeFileSync(tmpDir.configPath, YAML.stringify(raw), "utf-8");
 
     const reloaded = loadConfig(tmpDir.dir);
-    expect(reloaded.openaiApiKey).toBe("sk-test123");
+    expect((reloaded as Record<string, unknown>).openaiApiKey).toBeUndefined();
   });
 
   it("preserves remotes when saving", () => {

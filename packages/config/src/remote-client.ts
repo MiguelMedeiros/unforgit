@@ -40,7 +40,7 @@ export class RemoteClient {
     if (res.status === 401) {
       throw new Error(
         `Authentication failed for ${operation}: Invalid or missing API key. ` +
-        `Configure your API key in .unforgit/unforgit.yaml under remote.apiKey`
+        `Set the UNFORGIT_API_KEY environment variable.`
       );
     }
     if (res.status === 404 && operation === "resetAll") {

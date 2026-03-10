@@ -100,13 +100,13 @@ export const doctorCommand = new Command("doctor")
         store.close();
       }
 
-      const apiKey = config.remote.apiKey || process.env.UNFORGIT_API_KEY;
+      const apiKey = process.env.UNFORGIT_API_KEY;
       if (config.remote.url) {
         if (!apiKey) {
           results.push({
             check: "auth",
             status: "warn",
-            message: "No API key configured. Run 'unforgit auth set <key>' or set UNFORGIT_API_KEY",
+            message: "No API key configured. Set the UNFORGIT_API_KEY environment variable.",
           });
         } else {
           results.push({
@@ -122,7 +122,7 @@ export const doctorCommand = new Command("doctor")
             results.push({ check: "remote", status: "ok", message: `Server reachable at ${config.remote.url}` });
 
             if (apiKey) {
-              const client = new RemoteClient(config.remote.url, apiKey);
+              const client = new RemoteClient(config.remote.url);
               try {
                 await client.listApiKeys();
                 results.push({ check: "remote-auth", status: "ok", message: "API key is valid" });
@@ -148,7 +148,7 @@ export const doctorCommand = new Command("doctor")
         results.push({ check: "remote", status: "warn", message: "No remote URL configured" });
       }
 
-      const openaiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+      const openaiKey = process.env.OPENAI_API_KEY;
       if (openaiKey) {
         results.push({ check: "openai", status: "ok", message: `OpenAI API key configured: ${maskKey(openaiKey)}` });
       } else {

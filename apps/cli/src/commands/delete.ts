@@ -31,7 +31,7 @@ Examples:
 
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         await client.delete(id, opts.by, opts.hard);
@@ -78,7 +78,7 @@ export const restoreCommand = new Command("restore")
   .action(async (id, opts) => {
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         await client.restore(id);

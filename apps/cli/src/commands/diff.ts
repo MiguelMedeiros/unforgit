@@ -33,7 +33,7 @@ Examples:
         process.exit(EXIT_CONFIG_ERROR);
       }
 
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       if (memoryId) {
         await diffSingleMemory(store, client, memoryId, orgId, repoId);

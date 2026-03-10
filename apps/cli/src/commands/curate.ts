@@ -50,7 +50,7 @@ Examples:
 
     try {
       const result = opts.remote
-        ? await runRemoteCurate(config.remote.url, config.remote.apiKey, {
+        ? await runRemoteCurate(config.remote.url, {
             orgId,
             repoId,
             dryRun,
@@ -143,7 +143,6 @@ async function runLocalCurate(
 
 async function runRemoteCurate(
   remoteUrl: string,
-  apiKey: string | undefined,
   options: {
     orgId: string;
     repoId: string;
@@ -156,6 +155,6 @@ async function runRemoteCurate(
     throw new Error("Remote URL not configured. Update unforgit.yaml or omit --remote.");
   }
 
-  const client = new RemoteClient(remoteUrl, apiKey);
+  const client = new RemoteClient(remoteUrl);
   return client.runLifecycle(options);
 }

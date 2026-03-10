@@ -137,10 +137,10 @@ export const autoConsolidateCommand = new Command("auto-consolidate")
         return;
       }
 
-      const openaiKey = process.env.OPENAI_API_KEY || config.openaiApiKey;
+      const openaiKey = process.env.OPENAI_API_KEY;
       if (!openaiKey) {
         logger.error("OpenAI API key not set.");
-        logger.error("Set OPENAI_API_KEY env var or run 'unforgit auth openai <key>'.");
+        logger.error("Set the OPENAI_API_KEY environment variable.");
         process.exit(EXIT_ERROR);
       }
       process.env.OPENAI_API_KEY = openaiKey;

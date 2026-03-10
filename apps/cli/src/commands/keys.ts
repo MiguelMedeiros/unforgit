@@ -19,10 +19,10 @@ function requireRemote(): { url: string; apiKey: string } {
     process.exit(EXIT_CONFIG_ERROR);
   }
 
-  const apiKey = config.remote.apiKey || process.env.UNFORGIT_API_KEY;
+  const apiKey = process.env.UNFORGIT_API_KEY;
   if (!apiKey) {
     logger.fatal("No API key configured.");
-    logger.error("Run 'unforgit auth set <key>' or set UNFORGIT_API_KEY env var.");
+    logger.error("Set the UNFORGIT_API_KEY environment variable.");
     process.exit(EXIT_CONFIG_ERROR);
   }
 
@@ -62,10 +62,9 @@ Examples:
       logger.info("");
       logger.info("Store this key securely. It will not be shown again.");
       logger.info("");
-      logger.info("To use this key, add it to .unforgit/unforgit.yaml:");
+      logger.info("To use this key, set it as an environment variable:");
       logger.info("");
-      logger.info("  remote:");
-      logger.info(`    apiKey: "${result.key}"`);
+      logger.info(`  export UNFORGIT_API_KEY="${result.key}"`);
     } catch (err) {
       logger.fatal(err instanceof Error ? err.message : String(err));
       process.exit(EXIT_ERROR);

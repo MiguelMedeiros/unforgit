@@ -293,7 +293,11 @@ $ unforgit init`}
   "mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "UNFORGIT_API_KEY": "hk_your_api_key",
+        "OPENAI_API_KEY": "sk-your-openai-key"
+      }
     }
   }
 }`}
@@ -339,7 +343,11 @@ $ unforgit init`}
     "unforgit": {
       "command": "unforgit-mcp",
       "args": [],
-      "cwd": "/absolute/path/to/your-project"
+      "cwd": "/absolute/path/to/your-project",
+      "env": {
+        "UNFORGIT_API_KEY": "hk_your_api_key",
+        "OPENAI_API_KEY": "sk-your-openai-key"
+      }
     }
   }
 }`}
@@ -370,7 +378,11 @@ $ unforgit init`}
   "mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "UNFORGIT_API_KEY": "hk_your_api_key",
+        "OPENAI_API_KEY": "sk-your-openai-key"
+      }
     }
   }
 }`}
@@ -403,7 +415,11 @@ $ unforgit init`}
   "github.copilot.chat.mcpServers": {
     "unforgit": {
       "command": "unforgit-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "UNFORGIT_API_KEY": "hk_your_api_key",
+        "OPENAI_API_KEY": "sk-your-openai-key"
+      }
     }
   }
 }`}
@@ -424,7 +440,10 @@ $ unforgit init`}
             code={`mcpServers:
   - name: unforgit
     command: unforgit-mcp
-    args: []`}
+    args: []
+    env:
+      UNFORGIT_API_KEY: hk_your_api_key
+      OPENAI_API_KEY: sk-your-openai-key`}
           />
         </Subsection>
 
@@ -449,6 +468,13 @@ $ unforgit init`}
                 <strong>Working directory:</strong> the project root where{" "}
                 <code className="text-dracula-foreground/80">.unforgit/</code>{" "}
                 lives
+              </li>
+              <li>
+                <strong>Environment:</strong>{" "}
+                <code className="text-dracula-foreground/80">UNFORGIT_API_KEY</code>{" "}
+                and{" "}
+                <code className="text-dracula-foreground/80">OPENAI_API_KEY</code>{" "}
+                (optional) via the <code className="text-dracula-foreground/80">env</code> block
               </li>
             </ul>
           </div>
@@ -476,8 +502,8 @@ $ unforgit init`}
           </p>
           <div className="space-y-4">
             <Terminal
-              title="Set the remote API key"
-              code={`$ unforgit auth set hk_your_api_key`}
+              title="Set the remote API key via environment variable"
+              code={`$ export UNFORGIT_API_KEY=hk_your_api_key`}
             />
             <Terminal
               title="Check authentication status"
@@ -487,22 +513,13 @@ $ unforgit init`}
           <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
             <ul className="text-sm text-dracula-foreground/70 space-y-2">
               <li>
-                The key is stored in{" "}
-                <code className="text-dracula-foreground/80">
-                  .unforgit/unforgit.yaml
-                </code>{" "}
-                under{" "}
-                <code className="text-dracula-foreground/80">
-                  remote.apiKey
-                </code>
-                .
-              </li>
-              <li>
-                You can also set it via the{" "}
+                Set the{" "}
                 <code className="text-dracula-foreground/80">
                   UNFORGIT_API_KEY
                 </code>{" "}
-                environment variable.
+                environment variable in your shell or in the MCP server&apos;s{" "}
+                <code className="text-dracula-foreground/80">env</code>{" "}
+                configuration block.
               </li>
               <li>
                 The MCP server itself does not need this key &mdash; it operates
@@ -523,19 +540,16 @@ $ unforgit init`}
           </p>
           <div className="space-y-4">
             <Terminal
-              title="Add your OpenAI key"
-              code={`$ unforgit auth openai sk-your-openai-key`}
-            />
-            <Terminal
-              title="Remove it anytime"
-              code={`$ unforgit auth openai-remove`}
+              title="Set your OpenAI key via environment variable"
+              code={`$ export OPENAI_API_KEY=sk-your-openai-key`}
             />
           </div>
           <p className="text-sm text-dracula-foreground/60 mt-3">
             Without this key, <UnforgitBrand capitalize /> is fully functional &mdash; local recall
-            uses FTS5 text search. You can also set{" "}
+            uses FTS5 text search. Set the{" "}
             <code className="text-dracula-foreground/70">OPENAI_API_KEY</code>{" "}
-            as an environment variable instead.
+            environment variable or configure it in the MCP server&apos;s{" "}
+            <code className="text-dracula-foreground/70">env</code> block.
           </p>
         </Subsection>
       </Section>
@@ -613,7 +627,7 @@ CONSOLIDATION_MODEL=gpt-5.4`}
           <Terminal
             title="Full connection flow"
             code={`$ unforgit config set remote.url https://unforgit.example.com
-$ unforgit auth set hk_your_api_key
+$ export UNFORGIT_API_KEY=hk_your_api_key
 $ unforgit push origin
 $ unforgit pull origin
 $ unforgit recall "deploy" --remote-only`}

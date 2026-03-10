@@ -55,7 +55,6 @@ const remoteConfigSchema = z.object({
   url: z.string(),
   orgId: z.string(),
   repoId: z.string(),
-  apiKey: z.string().optional(),
 });
 
 export const hippoConfigSchema = z.object({
@@ -68,7 +67,6 @@ export const hippoConfigSchema = z.object({
   sync: syncConfigSchema.optional(),
   embeddings: embeddingConfigSchema.optional(),
   lifecycle: lifecycleConfigSchema.optional(),
-  openaiApiKey: z.string().optional(),
   remotes: z.record(z.string(), remoteConfigSchema).optional(),
 });
 

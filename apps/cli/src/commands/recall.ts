@@ -91,7 +91,7 @@ Examples:
 
     if (!opts.localOnly && config.remote.url) {
       try {
-        const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+        const client = new RemoteClient(config.remote.url);
         const response = await client.recall(recallQuery);
         remoteResults = response.results.map((r) => ({
           ...r,

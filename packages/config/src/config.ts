@@ -70,6 +70,22 @@ function migrateConfig(parsed: Record<string, unknown>, configPath: string): Rec
   return parsed;
 }
 
+function warnDeprecatedKeys(parsed: Record<string, unknown>): void {
+  const deprecated: string[] = [];
+  if ((parsed.remote as Record<string, unknown>)?.apiKey) {
+    deprecated.push("remote.apiKey → use UNFORGIT_API_KEY env var instead");
+  }
+  if (parsed.openaiApiKey) {
+    deprecated.push("openaiApiKey → use OPENAI_API_KEY env var instead");
+  }
+  if (deprecated.length > 0) {
+    console.error(
+      `[unforgit] Deprecated keys found in unforgit.yaml (ignored):\n${deprecated.map((d) => `  - ${d}`).join("\n")}\n` +
+      `Remove them from your config. Secrets should be set via environment variables.\n`,
+    );
+  }
+}
+
 export function loadConfig(cwd: string = process.cwd()): HippoConfig {
   const configPath = getConfigPath(cwd);
   if (!fs.existsSync(configPath)) {
@@ -81,6 +97,8 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
   const parsed = YAML.parse(raw) ?? {};
 
   const migrated = migrateConfig(parsed, configPath);
+
+  warnDeprecatedKeys(migrated);
 
   const result = hippoConfigSchema.safeParse(migrated);
   if (!result.success) {
@@ -94,9 +112,15 @@ export function loadConfig(cwd: string = process.cwd()): HippoConfig {
 
   const defaults = defaultConfig();
 
+  const { openaiApiKey: _oai, ...cleanMigrated } = migrated as Record<string, unknown> & { openaiApiKey?: unknown };
+  if (cleanMigrated.remote && typeof cleanMigrated.remote === "object") {
+    const { apiKey: _ak, ...cleanRemote } = cleanMigrated.remote as Record<string, unknown>;
+    cleanMigrated.remote = cleanRemote;
+  }
+
   return {
     ...defaults,
-    ...migrated,
+    ...cleanMigrated,
     ...result.data,
     remote: {
       ...defaults.remote,

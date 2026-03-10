@@ -29,7 +29,7 @@ export const pullCommand = new Command("pull")
         process.exit(EXIT_CONFIG_ERROR);
       }
 
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       logger.info(`Fetching from ${remote} (${config.remote.url})...`);
 

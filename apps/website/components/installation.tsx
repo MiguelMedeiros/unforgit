@@ -28,13 +28,13 @@ const installSteps: Step[] = [
   {
     number: "04",
     title: "Authenticate",
-    command: "unforgit auth set hk_your_api_key",
-    description: "Configure the remote API key for push, pull, and shared recall.",
+    command: "export UNFORGIT_API_KEY=hk_your_api_key",
+    description: "Set the remote API key for push, pull, and shared recall.",
   },
   {
     number: "05",
     title: "Enable AI features (optional)",
-    command: "unforgit auth openai sk_your_openai_key",
+    command: "export OPENAI_API_KEY=sk-your-openai-key",
     description: "Unlock embeddings, hybrid recall, and LLM-assisted consolidation.",
   },
 ];

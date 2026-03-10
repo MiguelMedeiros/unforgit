@@ -37,7 +37,7 @@ Examples:
       if (opts.sourcePr) sourceRefs.pr_url = opts.sourcePr;
       if (opts.sourceCommit) sourceRefs.commit_sha = opts.sourceCommit;
 
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       const result = await client.store({
         orgId: config.remote.orgId || memory.orgId,

@@ -64,7 +64,7 @@ Examples:
         return;
       }
 
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
       const orgId = config.remote.orgId;
       const repoId = config.remote.repoId;
 

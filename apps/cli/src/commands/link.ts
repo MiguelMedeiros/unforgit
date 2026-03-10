@@ -42,7 +42,7 @@ Examples:
 
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         const result = await client.link(sourceId, targetId, opts.type);
@@ -117,7 +117,7 @@ export const unlinkCommand = new Command("unlink")
 
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         await client.unlink(sourceId, targetId, opts.type);
@@ -169,7 +169,7 @@ export const linksCommand = new Command("links")
 
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         const result = await client.getLinks(memoryId, opts.type);

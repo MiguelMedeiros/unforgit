@@ -3,7 +3,7 @@
     "unforgit": {
       "command": "unforgit-mcp",
       "args": [],
-      "cwd": "/Users/miguelmedeiros/code/hippocampus"
+      "cwd": "/Users/miguelmedeiros/code/unforgit"
     }
   }
 }

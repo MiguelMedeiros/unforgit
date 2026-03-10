@@ -18,7 +18,7 @@ export const consolidateCommand = new Command("consolidate")
       process.exit(EXIT_CONFIG_ERROR);
     }
 
-    const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+    const client = new RemoteClient(config.remote.url);
 
     const body: Record<string, unknown> = {
       orgId: config.remote.orgId,

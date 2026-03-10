@@ -34,7 +34,7 @@ Examples:
 
     if (opts.remote) {
       const config = loadConfig();
-      const client = new RemoteClient(config.remote.url, config.remote.apiKey);
+      const client = new RemoteClient(config.remote.url);
 
       try {
         await client.supersede(oldId, opts.with);

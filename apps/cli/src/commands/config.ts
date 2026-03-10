@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { isInitialized, loadConfig, saveConfig } from "@unforgit/config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import { maskKey, isJsonMode, outputJson } from "../utils.js";
+import { isJsonMode, outputJson } from "../utils.js";
 import type { HippoConfig } from "@unforgit/shared";
 
 export const configCommand = new Command("config")
@@ -21,10 +21,7 @@ configCommand
     const config = loadConfig();
 
     if (isJsonMode()) {
-      const safeConfig = { ...config };
-      if (safeConfig.remote.apiKey) safeConfig.remote = { ...safeConfig.remote, apiKey: maskKey(safeConfig.remote.apiKey) };
-      if (safeConfig.openaiApiKey) safeConfig.openaiApiKey = maskKey(safeConfig.openaiApiKey);
-      outputJson(safeConfig);
+      outputJson(config);
       return;
     }
 
@@ -32,8 +29,6 @@ configCommand
     logger.info(`remote.url = ${config.remote.url || "(not set)"}`);
     logger.info(`remote.orgId = ${config.remote.orgId || "(not set)"}`);
     logger.info(`remote.repoId = ${config.remote.repoId || "(not set)"}`);
-    logger.info(`remote.apiKey = ${config.remote.apiKey ? maskKey(config.remote.apiKey) : "(not set)"}`);
-    logger.info(`openaiApiKey = ${config.openaiApiKey ? maskKey(config.openaiApiKey) : "(not set)"}`);
     logger.info(`defaults.visibility = ${config.defaults.visibility}`);
     logger.info(`defaults.memoryType = ${config.defaults.memoryType}`);
     logger.info(`lifecycle.ttlSecondsByType.episodic = ${config.lifecycle?.ttlSecondsByType?.episodic ?? "(none)"}`);
@@ -56,7 +51,7 @@ configCommand
 configCommand
   .command("get")
   .description("Get a configuration value")
-  .argument("<key>", "Configuration key (e.g., remote.url, openaiApiKey)")
+  .argument("<key>", "Configuration key (e.g., remote.url, defaults.memoryType)")
   .action((key) => {
     if (!isInitialized()) {
       logger.fatal("not an unforgit repository");
@@ -72,22 +67,17 @@ configCommand
     }
 
     if (isJsonMode()) {
-      outputJson({ key, value: key.includes("apiKey") || key.includes("ApiKey") ? maskKey(String(value)) : value });
+      outputJson({ key, value });
       return;
     }
 
-    if (key.includes("apiKey") || key.includes("ApiKey")) {
-      logger.info(value ? maskKey(String(value)) : "(not set)");
-    } else {
-      logger.info(String(value));
-    }
+    logger.info(String(value));
   });
 
 const VALID_CONFIG_KEYS = [
   "remote.url",
   "remote.orgId",
   "remote.repoId",
-  "remote.apiKey",
   "defaults.visibility",
   "defaults.memoryType",
   "lifecycle.ttlSecondsByType.episodic",
@@ -108,7 +98,6 @@ const VALID_CONFIG_KEYS = [
   "lifecycle.maintenance.autoRunOnStore",
   "lifecycle.maintenance.autoRunOnRecall",
   "lifecycle.maintenance.debounceMs",
-  "openaiApiKey",
   "configVersion",
 ] as const;
 
@@ -140,11 +129,7 @@ Examples:
     setConfigValue(config, key, value);
     saveConfig(config);
 
-    if (key.includes("apiKey") || key.includes("ApiKey")) {
-      logger.info(`${key} = ${maskKey(value)}`);
-    } else {
-      logger.info(`${key} = ${value}`);
-    }
+    logger.info(`${key} = ${value}`);
   });
 
 configCommand
