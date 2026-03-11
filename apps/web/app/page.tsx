@@ -39,7 +39,17 @@ interface TagData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [timeframe, setTimeframe] = useState<Timeframe>("all");
+  const [timeframe, setTimeframeState] = useState<Timeframe>("all");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("unforgit-dashboard-timeframe") as Timeframe | null;
+    if (saved) setTimeframeState(saved);
+  }, []);
+
+  const setTimeframe = useCallback((value: Timeframe) => {
+    setTimeframeState(value);
+    localStorage.setItem("unforgit-dashboard-timeframe", value);
+  }, []);
   const [stats, setStats] = useState<{
     local: StoreStats;
     remote: StoreStats;
@@ -141,8 +151,8 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Activity Heatmap - only show when viewing all time */}
-          {activity && timeframe === "all" && (
+          {/* Activity Heatmap */}
+          {activity && (
             <ActivityHeatmap dailyCounts={activity.dailyCounts} />
           )}
 
@@ -159,14 +169,14 @@ export default function DashboardPage() {
                     <p className="text-[13px] text-muted-foreground">
                       {consolidationInfo.candidateGroups > 0 ? (
                         <>
-                          <span className="font-medium text-dracula-orange">{consolidationInfo.candidateGroups} groups</span>
+                          <span className="font-medium text-foreground">{consolidationInfo.candidateGroups} groups</span>
                           {" "}with{" "}
-                          <span className="font-medium text-dracula-cyan">{consolidationInfo.totalMemoriesInGroups} memories</span>
+                          <span className="font-medium text-foreground">{consolidationInfo.totalMemoriesInGroups} memories</span>
                           {" "}can be consolidated
                         </>
                       ) : stats.local.byStatus.superseded > 0 ? (
                         <>
-                          <span className="font-medium text-dracula-green">{stats.local.byStatus.superseded} memories</span>
+                          <span className="font-medium text-foreground">{stats.local.byStatus.superseded} memories</span>
                           {" "}already consolidated
                         </>
                       ) : (

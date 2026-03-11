@@ -66,16 +66,16 @@ interface GraphLink {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  episodic: "#fb923c",
-  semantic: "#a78bfa",
-  procedural: "#4ade80",
+  episodic: "#fafafa",
+  semantic: "#a1a1aa",
+  procedural: "#52525b",
 };
 
 const LINK_TYPE_COLORS: Record<string, string> = {
-  related_to: "#a78bfa",
-  derived_from: "#22d3ee",
-  contradicts: "#f87171",
-  depends_on: "#fb923c",
+  related_to: "#d4d4d8",
+  derived_from: "#a1a1aa",
+  contradicts: "#fafafa",
+  depends_on: "#71717a",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -86,23 +86,23 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const typeColorClasses: Record<string, string> = {
-  episodic: "bg-dracula-orange/10 text-dracula-orange",
-  semantic: "bg-dracula-purple/10 text-dracula-purple",
-  procedural: "bg-dracula-green/10 text-dracula-green",
+  episodic: "bg-white/[0.08] text-foreground",
+  semantic: "bg-white/[0.06] text-muted-foreground",
+  procedural: "bg-white/[0.04] text-muted-foreground/80",
 };
 
 const linkTypeColorClasses: Record<string, string> = {
-  related_to: "bg-dracula-purple/10 text-dracula-purple",
-  derived_from: "bg-dracula-cyan/10 text-dracula-cyan",
-  contradicts: "bg-dracula-red/10 text-dracula-red",
-  depends_on: "bg-dracula-orange/10 text-dracula-orange",
+  related_to: "bg-white/[0.08] text-foreground",
+  derived_from: "bg-white/[0.06] text-muted-foreground",
+  contradicts: "bg-white/[0.08] text-foreground",
+  depends_on: "bg-white/[0.04] text-muted-foreground/80",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "#4ade80",
-  superseded: "#22d3ee",
-  deprecated: "#fb923c",
-  deleted: "#f87171",
+  active: "#fafafa",
+  superseded: "#a1a1aa",
+  deprecated: "#71717a",
+  deleted: "#3f3f46",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -746,8 +746,8 @@ export function MemoryGraph() {
             onClick={() => setSource(source === "local" ? "remote" : "local")}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 transition-colors ${
               source === "local"
-                ? "bg-dracula-green/20 text-dracula-green"
-                : "bg-dracula-pink/20 text-dracula-pink"
+                ? "bg-white/10 text-foreground"
+                : "bg-white/[0.06] text-muted-foreground"
             }`}
             title={source === "local" ? "Showing local data - Click to show remote" : "Showing remote data - Click to show local"}
           >
@@ -870,8 +870,8 @@ export function MemoryGraph() {
           <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
             <span className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md ${
               source === "local"
-                ? "bg-dracula-green/10 text-dracula-green"
-                : "bg-dracula-pink/10 text-dracula-pink"
+                ? "bg-white/[0.08] text-foreground"
+                : "bg-white/[0.06] text-muted-foreground"
             }`}>
               {source === "local" ? (
                 <HardDrive className="h-3 w-3" />

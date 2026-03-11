@@ -69,7 +69,7 @@ export function MemoryCard({
                 source === "remote"
                   ? "bg-white/[0.06] text-muted-foreground"
                   : visibility === "repo"
-                    ? "bg-dracula-green/10 text-dracula-green"
+                    ? "bg-white/[0.08] text-foreground"
                     : "bg-white/[0.06] text-muted-foreground"
               )}
             >
@@ -95,7 +95,7 @@ export function MemoryCard({
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
                 "bg-white/[0.06] hover:bg-white/[0.12] text-muted-foreground",
-                copied && "bg-dracula-green/20 text-dracula-green"
+                copied && "bg-foreground/20 text-foreground"
               )}
               title="Copy memory ID"
             >

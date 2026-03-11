@@ -114,8 +114,8 @@ function SyncSettings() {
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              settings.autoSyncEnabled ? "translate-x-6" : "translate-x-1"
+            className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
+              settings.autoSyncEnabled ? "translate-x-6 bg-background" : "translate-x-1 bg-white"
             }`}
           />
         </button>
@@ -138,8 +138,8 @@ function SyncSettings() {
         {status ? (
           <Badge className={`border-0 ${
             status.pendingSync > 0 
-              ? "bg-dracula-orange/15 text-dracula-orange" 
-              : "bg-dracula-green/15 text-dracula-green"
+              ? "bg-foreground/10 text-foreground" 
+              : "bg-white/[0.06] text-muted-foreground"
           }`}>
             {status.pendingSync} {status.pendingSync === 1 ? "memory" : "memories"}
           </Badge>
@@ -151,8 +151,8 @@ function SyncSettings() {
         {status ? (
           <Badge className={`border-0 ${
             (status.pendingDeletions ?? 0) > 0 
-              ? "bg-dracula-orange/15 text-dracula-orange" 
-              : "bg-dracula-green/15 text-dracula-green"
+              ? "bg-foreground/10 text-foreground" 
+              : "bg-white/[0.06] text-muted-foreground"
           }`}>
             <Trash2 className="mr-1 h-3 w-3" />
             {status.pendingDeletions ?? 0} {(status.pendingDeletions ?? 0) === 1 ? "deletion" : "deletions"}
@@ -164,12 +164,12 @@ function SyncSettings() {
       <SettingsRow label="Remote Status">
         {status?.remoteConfigured ? (
           status.remoteConnected ? (
-            <Badge className="bg-dracula-green/15 text-dracula-green border-0">
+            <Badge className="bg-foreground/10 text-foreground border-0">
               <CheckCircle2 className="mr-1 h-3 w-3" />
               Connected
             </Badge>
           ) : (
-            <Badge className="bg-dracula-red/15 text-dracula-red border-0">
+            <Badge className="bg-white/[0.06] text-muted-foreground border-0">
               <XCircle className="mr-1 h-3 w-3" />
               Disconnected
             </Badge>
@@ -189,10 +189,10 @@ function SyncSettings() {
       {/* Conflicts warning */}
       {hasConflicts && (
         <div className="py-3">
-          <div className="flex items-center gap-3 rounded-xl bg-dracula-red/10 border border-dracula-red/20 p-3">
-            <AlertTriangle className="h-4 w-4 text-dracula-red shrink-0" />
+          <div className="flex items-center gap-3 rounded-xl bg-foreground/5 border border-foreground/10 p-3">
+            <AlertTriangle className="h-4 w-4 text-foreground shrink-0" />
             <div className="flex-1">
-              <p className="text-[13px] font-medium text-dracula-red">
+              <p className="text-[13px] font-medium text-foreground">
                 {conflictCount} sync conflict{conflictCount > 1 ? 's' : ''} detected
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -211,17 +211,17 @@ function SyncSettings() {
           </h4>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
-              <ArrowUp className="h-3.5 w-3.5 text-dracula-cyan" />
+              <ArrowUp className="h-3.5 w-3.5 text-foreground" />
               <span className="text-[12px] text-muted-foreground">Pushed:</span>
               <span className="text-[12px] font-medium">{lastSyncResult.pushed}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
-              <ArrowDown className="h-3.5 w-3.5 text-dracula-green" />
+              <ArrowDown className="h-3.5 w-3.5 text-foreground" />
               <span className="text-[12px] text-muted-foreground">Pulled:</span>
               <span className="text-[12px] font-medium">{lastSyncResult.pulled}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
-              <Trash2 className="h-3.5 w-3.5 text-dracula-orange" />
+              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[12px] text-muted-foreground">Deletions:</span>
               <span className="text-[12px] font-medium">{lastSyncResult.deletionsPropagated}</span>
             </div>
@@ -232,8 +232,8 @@ function SyncSettings() {
             </div>
           </div>
           {lastSyncResult.errors && lastSyncResult.errors.length > 0 && (
-            <div className="mt-2 rounded-lg bg-dracula-red/10 border border-dracula-red/20 p-2">
-              <p className="text-[11px] font-medium text-dracula-red mb-1">
+            <div className="mt-2 rounded-lg bg-foreground/5 border border-foreground/10 p-2">
+              <p className="text-[11px] font-medium text-foreground mb-1">
                 {lastSyncResult.errors.length} error{lastSyncResult.errors.length > 1 ? 's' : ''}:
               </p>
               <div className="space-y-1 max-h-20 overflow-y-auto">
@@ -328,12 +328,12 @@ export default function SettingsPage() {
           >
             <SettingsRow label="Status">
               {config.initialized ? (
-                <Badge className="bg-dracula-green/15 text-dracula-green border-0">
+                <Badge className="bg-foreground/10 text-foreground border-0">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Initialized
                 </Badge>
               ) : (
-                <Badge className="bg-dracula-red/15 text-dracula-red border-0">
+                <Badge className="bg-white/[0.06] text-muted-foreground border-0">
                   <XCircle className="mr-1 h-3 w-3" />
                   Not initialized
                 </Badge>
@@ -362,17 +362,17 @@ export default function SettingsPage() {
           >
             <SettingsRow label="API Key Status">
               {config.openaiStatus === "valid" ? (
-                <Badge className="bg-dracula-green/15 text-dracula-green border-0">
+                <Badge className="bg-foreground/10 text-foreground border-0">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Connected
                 </Badge>
               ) : config.openaiStatus === "invalid" ? (
-                <Badge className="bg-dracula-red/15 text-dracula-red border-0">
+                <Badge className="bg-white/[0.06] text-muted-foreground border-0">
                   <XCircle className="mr-1 h-3 w-3" />
                   Invalid Key
                 </Badge>
               ) : config.openaiStatus === "configured" ? (
-                <Badge className="bg-dracula-orange/15 text-dracula-orange border-0">
+                <Badge className="bg-foreground/5 text-muted-foreground border-0">
                   <AlertTriangle className="mr-1 h-3 w-3" />
                   Configured (unverified)
                 </Badge>
@@ -389,9 +389,9 @@ export default function SettingsPage() {
             </SettingsRow>
             {config.openaiStatus === "not_configured" && (
               <div className="py-3">
-                <div className="rounded-xl bg-dracula-orange/10 border border-dracula-orange/20 p-3">
+                <div className="rounded-xl bg-foreground/5 border border-foreground/10 p-3">
                   <p className="text-[12px] text-muted-foreground">
-                    Set the <code className="font-mono text-dracula-cyan">OPENAI_API_KEY</code> environment variable to enable AI features.
+                    Set the <code className="font-mono text-foreground">OPENAI_API_KEY</code> environment variable to enable AI features.
                   </p>
                 </div>
               </div>

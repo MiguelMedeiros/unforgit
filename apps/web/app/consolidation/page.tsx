@@ -340,11 +340,11 @@ export default function ConsolidationPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "episodic":
-        return "bg-dracula-orange/20 text-dracula-orange border-dracula-orange/30";
+        return "bg-white/[0.08] text-foreground border-foreground/20";
       case "semantic":
-        return "bg-dracula-purple/20 text-dracula-purple border-dracula-purple/30";
+        return "bg-white/[0.06] text-muted-foreground border-muted-foreground/20";
       case "procedural":
-        return "bg-dracula-green/20 text-dracula-green border-dracula-green/30";
+        return "bg-white/[0.04] text-muted-foreground/80 border-muted-foreground/15";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -477,9 +477,9 @@ export default function ConsolidationPage() {
                       key={groupKey}
                       className={`transition-all ${
                         status === "success"
-                          ? "border-dracula-green/50 bg-dracula-green/5"
+                          ? "border-foreground/30 bg-foreground/5"
                           : status === "error"
-                            ? "border-dracula-red/50 bg-dracula-red/5"
+                            ? "border-muted-foreground/50 bg-muted-foreground/5"
                             : ""
                       }`}
                     >
@@ -536,7 +536,7 @@ export default function ConsolidationPage() {
                               </Button>
                             )}
                             {status === "success" && (
-                              <Button size="sm" variant="outline" disabled className="gap-2 text-dracula-green border-dracula-green/50">
+                              <Button size="sm" variant="outline" disabled className="gap-2 text-foreground border-foreground/30">
                                 <Check className="h-3.5 w-3.5" />
                                 Done
                               </Button>
@@ -546,7 +546,7 @@ export default function ConsolidationPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => consolidateGroup(index, candidate)}
-                                className="gap-2 text-dracula-red border-dracula-red/50"
+                                className="gap-2 text-muted-foreground border-muted-foreground/50"
                               >
                                 <AlertCircle className="h-3.5 w-3.5" />
                                 Retry
@@ -572,8 +572,8 @@ export default function ConsolidationPage() {
                         <CardContent className="pt-0">
                           <div className="space-y-3 border-t border-border/40 pt-4">
                             {result && (
-                              <div className="mb-4 rounded-lg border border-dracula-green/30 bg-dracula-green/10 p-4">
-                                <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-dracula-green">
+                              <div className="mb-4 rounded-lg border border-foreground/20 bg-foreground/5 p-4">
+                                <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-foreground">
                                   <Check className="h-3.5 w-3.5" />
                                   Consolidated Memory ({result.id.slice(0, 8)})
                                 </div>
@@ -653,7 +653,7 @@ export default function ConsolidationPage() {
             {historyLoading ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-cyan border-t-transparent" />
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                   <span className="text-[13px] text-muted-foreground">Loading history...</span>
                 </div>
               </div>
@@ -679,7 +679,7 @@ export default function ConsolidationPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-dracula-cyan/20 text-dracula-cyan border-0 gap-1">
+                              <Badge className="bg-white/[0.08] text-foreground border-0 gap-1">
                                 <Layers className="h-3 w-3" />
                                 v{item.consolidationVersion}
                               </Badge>
@@ -714,7 +714,7 @@ export default function ConsolidationPage() {
                                   size="sm"
                                   variant="outline"
                                   disabled={isReverting}
-                                  className="gap-2 border-dracula-orange/30 text-dracula-orange hover:bg-dracula-orange/10"
+                                  className="gap-2 border-muted-foreground/30 text-muted-foreground hover:bg-white/[0.06]"
                                 >
                                   {isReverting ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -746,7 +746,7 @@ export default function ConsolidationPage() {
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => revertConsolidation(item.id)}
-                                    className="bg-dracula-orange hover:bg-dracula-orange/80"
+                                    className="bg-foreground text-background hover:bg-foreground/90"
                                   >
                                     <Undo2 className="mr-1 h-3.5 w-3.5" />
                                     Revert

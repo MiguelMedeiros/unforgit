@@ -37,23 +37,23 @@ const eventConfig = {
   created: {
     icon: Plus,
     label: "Created",
-    color: "bg-dracula-green",
-    iconColor: "text-dracula-green",
-    borderColor: "border-dracula-green/30",
+    color: "bg-foreground",
+    iconColor: "text-foreground",
+    borderColor: "border-foreground/30",
   },
   deprecated: {
     icon: Archive,
     label: "Deprecated",
-    color: "bg-dracula-yellow",
-    iconColor: "text-dracula-yellow",
-    borderColor: "border-dracula-yellow/30",
+    color: "bg-muted-foreground",
+    iconColor: "text-muted-foreground",
+    borderColor: "border-muted-foreground/30",
   },
   superseded: {
     icon: GitMerge,
     label: "Superseded",
-    color: "bg-dracula-purple",
-    iconColor: "text-dracula-purple",
-    borderColor: "border-dracula-purple/30",
+    color: "bg-muted-foreground/60",
+    iconColor: "text-muted-foreground/60",
+    borderColor: "border-muted-foreground/20",
   },
 };
 
@@ -137,7 +137,7 @@ export function TimelineEvent({
                     memory.source === "remote"
                       ? "bg-white/[0.06] text-muted-foreground"
                       : memory.visibility === "repo"
-                        ? "bg-dracula-green/10 text-dracula-green"
+                        ? "bg-white/[0.08] text-foreground"
                         : "bg-white/[0.06] text-muted-foreground"
                   )}
                 >
@@ -163,7 +163,7 @@ export function TimelineEvent({
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
                     "bg-white/[0.06] hover:bg-white/[0.12] text-muted-foreground",
-                    copied && "bg-dracula-green/20 text-dracula-green"
+                    copied && "bg-foreground/20 text-foreground"
                   )}
                   title="Copy memory ID"
                 >

@@ -29,13 +29,13 @@
   --color-dracula-current: #18181b;
   --color-dracula-foreground: #fafafa;
   --color-dracula-comment: #71717a;
-  --color-dracula-cyan: #22d3ee;
-  --color-dracula-green: #4ade80;
-  --color-dracula-orange: #fb923c;
-  --color-dracula-pink: #f472b6;
-  --color-dracula-purple: #a78bfa;
-  --color-dracula-red: #f87171;
-  --color-dracula-yellow: #fbbf24;
+  --color-dracula-cyan: #d4d4d8;
+  --color-dracula-green: #e4e4e7;
+  --color-dracula-orange: #a1a1aa;
+  --color-dracula-pink: #d4d4d8;
+  --color-dracula-purple: #fafafa;
+  --color-dracula-red: #71717a;
+  --color-dracula-yellow: #a1a1aa;
 }
 
 :root {
@@ -89,6 +89,24 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  button,
+  a,
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="link"],
+  [role="menuitem"],
+  [role="option"],
+  [tabindex]:not([tabindex="-1"]),
+  summary {
+    cursor: pointer;
   }
 }
 

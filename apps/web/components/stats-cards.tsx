@@ -23,16 +23,14 @@ interface StatsCardsProps {
 const statItems = [
   {
     key: "total" as const,
-    label: "Total",
+    label: "Total Memories",
     icon: Brain,
-    iconColor: "text-dracula-purple",
     getValue: (c: ReturnType<typeof getCombined>) => c.total,
   },
   {
     key: "episodic" as const,
     label: "Episodic",
     icon: Activity,
-    iconColor: "text-dracula-orange",
     getValue: (c: ReturnType<typeof getCombined>) => c.episodic,
     subtitle: "Events & observations",
   },
@@ -40,7 +38,6 @@ const statItems = [
     key: "semantic" as const,
     label: "Semantic",
     icon: Lightbulb,
-    iconColor: "text-dracula-pink",
     getValue: (c: ReturnType<typeof getCombined>) => c.semantic,
     subtitle: "Facts & decisions",
   },
@@ -48,7 +45,6 @@ const statItems = [
     key: "procedural" as const,
     label: "Procedural",
     icon: BookOpen,
-    iconColor: "text-dracula-green",
     getValue: (c: ReturnType<typeof getCombined>) => c.procedural,
     subtitle: "Playbooks & workflows",
   },
@@ -68,9 +64,10 @@ function getCombined(local: StoreStats, remote: StoreStats) {
 
 export function StatsCards({ local, remote, remoteAvailable }: StatsCardsProps) {
   const combined = getCombined(local, remote);
+  const total = combined.active + combined.deprecated + combined.superseded;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {statItems.map((item, i) => {
           const value = item.getValue(combined);
@@ -80,22 +77,25 @@ export function StatsCards({ local, remote, remoteAvailable }: StatsCardsProps) 
               className="rounded-xl border border-border/30 bg-dracula-current p-4 transition-colors duration-150 hover:bg-dracula-current/35 animate-scale-in"
               style={{ animationDelay: `${i * 80}ms`, animationFillMode: "both" }}
             >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[12px] font-medium text-muted-foreground">
-                  {item.label}
-                </span>
-                <item.icon className={`h-4 w-4 ${item.iconColor} opacity-70`} />
-              </div>
-              <div className="text-[28px] font-bold tracking-tight leading-none">
-                {value}
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/6">
+                  <item.icon className="h-[18px] w-[18px] text-foreground/80" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground leading-tight">
+                    {item.label}
+                  </p>
+                  <p className="mt-0.5 text-[22px] font-bold tracking-tight leading-none">
+                    {value}
+                  </p>
+                </div>
               </div>
               {item.key === "total" ? (
-                <p className="mt-1.5 text-[11px] text-muted-foreground/70">
-                  {local.total} local
-                  {remoteAvailable ? ` · ${remote.total} remote` : ""}
+                <p className="mt-3 text-[11px] text-muted-foreground/60">
+                  {local.total} local{remoteAvailable ? ` · ${remote.total} remote` : ""}
                 </p>
               ) : item.subtitle ? (
-                <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                <p className="mt-3 text-[11px] text-muted-foreground/60">
                   {item.subtitle}
                 </p>
               ) : null}
@@ -104,22 +104,46 @@ export function StatsCards({ local, remote, remoteAvailable }: StatsCardsProps) 
         })}
       </div>
 
-      {/* Status row */}
-      <div className="flex gap-3">
-        {[
-          { label: "Active", value: combined.active, color: "bg-dracula-green" },
-          { label: "Deprecated", value: combined.deprecated, color: "bg-dracula-yellow" },
-          { label: "Superseded", value: combined.superseded, color: "bg-dracula-comment" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="flex flex-1 items-center gap-3 rounded-xl border border-border/30 bg-dracula-current px-4 py-3 transition-colors duration-150 hover:bg-dracula-current/35"
-          >
-            <div className={`h-2 w-2 rounded-full ${s.color}`} />
-            <span className="text-[12px] text-muted-foreground">{s.label}</span>
-            <span className="ml-auto text-[15px] font-semibold">{s.value}</span>
-          </div>
-        ))}
+      {/* Status bar */}
+      <div className="rounded-xl border border-border/30 bg-dracula-current px-4 py-3">
+        <div className="flex items-center gap-6">
+          {[
+            { label: "Active", value: combined.active, color: "bg-foreground" },
+            { label: "Deprecated", value: combined.deprecated, color: "bg-muted-foreground/60" },
+            { label: "Superseded", value: combined.superseded, color: "bg-muted-foreground/30" },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${s.color}`} />
+              <span className="text-[12px] text-muted-foreground">{s.label}</span>
+              <span className="text-[13px] font-semibold text-foreground">{s.value}</span>
+            </div>
+          ))}
+
+          {total > 0 && (
+            <>
+              <div className="ml-auto flex h-1.5 flex-1 max-w-[180px] overflow-hidden rounded-full bg-white/4">
+                {combined.active > 0 && (
+                  <div
+                    className="h-full bg-foreground rounded-full"
+                    style={{ width: `${(combined.active / total) * 100}%` }}
+                  />
+                )}
+                {combined.deprecated > 0 && (
+                  <div
+                    className="h-full bg-muted-foreground/60"
+                    style={{ width: `${(combined.deprecated / total) * 100}%` }}
+                  />
+                )}
+                {combined.superseded > 0 && (
+                  <div
+                    className="h-full bg-muted-foreground/30"
+                    style={{ width: `${(combined.superseded / total) * 100}%` }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,8 +6,6 @@ import {
   Cell,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   ResponsiveContainer,
@@ -26,9 +24,9 @@ interface DashboardChartsProps {
 }
 
 const TYPE_COLORS = {
-  episodic: "#fb923c",
-  semantic: "#a78bfa",
-  procedural: "#4ade80",
+  episodic: "#fafafa",
+  semantic: "#a1a1aa",
+  procedural: "#52525b",
 };
 
 export function MemoryTypeChart({ stats }: DashboardChartsProps) {
@@ -49,8 +47,8 @@ export function MemoryTypeChart({ stats }: DashboardChartsProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[15px] font-semibold">By Type</h3>
-      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center">
-        <div className="flex items-center gap-6 w-full">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center justify-center">
+        <div className="flex items-center gap-6">
           <ResponsiveContainer width={120} height={120}>
             <PieChart>
               <Pie
@@ -224,41 +222,23 @@ export function TopTagsChart({ tags }: TopTagsChartProps) {
         <h3 className="text-[15px] font-semibold">Top Tags</h3>
         <p className="text-[12px] text-muted-foreground">{tags.length} tags</p>
       </div>
-      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={tags}
-            layout="vertical"
-            margin={{ left: 0, right: 12, top: 0, bottom: 0 }}
-          >
-            <XAxis type="number" hide domain={[0, maxCount]} />
-            <YAxis
-              type="category"
-              dataKey="tag"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#98989d", fontSize: 11 }}
-              width={80}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "rgba(28, 28, 30, 0.95)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-              itemStyle={{ color: "#f5f5f7" }}
-              formatter={(value) => [`${value ?? 0} memories`, ""]}
-              labelFormatter={(label) => `#${label}`}
-            />
-            <Bar
-              dataKey="count"
-              fill="#d4d4d8"
-              radius={[0, 4, 4, 0]}
-              barSize={14}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="rounded-xl border border-border/30 bg-dracula-current px-6 py-5 h-[180px] flex flex-col justify-center gap-2.5">
+        {tags.map((t) => (
+          <div key={t.tag} className="flex items-center gap-3">
+            <span className="text-[12px] text-foreground/80 w-[72px] text-right truncate shrink-0">
+              #{t.tag}
+            </span>
+            <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-white/25"
+                style={{ width: `${(t.count / maxCount) * 100}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-muted-foreground w-5 text-right shrink-0">
+              {t.count}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -272,14 +252,14 @@ interface MemoryLifecycleProps {
 }
 
 const LIFECYCLE_COLORS = {
-  active: "#4ade80",
-  superseded: "#fb923c",
-  deprecated: "#71717a",
+  active: "#fafafa",
+  superseded: "#a1a1aa",
+  deprecated: "#3f3f46",
 };
 
 const VISIBILITY_COLORS = {
-  private: "#a78bfa",
-  repo: "#22d3ee",
+  private: "#d4d4d8",
+  repo: "#71717a",
 };
 
 export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
@@ -313,8 +293,8 @@ export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[15px] font-semibold">Memory Health</h3>
-      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center">
-        <div className="flex items-center gap-6 w-full">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center justify-center">
+        <div className="flex items-center gap-6">
           <div className="relative">
             <ResponsiveContainer width={120} height={120}>
               <PieChart>
@@ -343,11 +323,11 @@ export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[18px] font-bold text-dracula-green">{healthScore}%</span>
+              <span className="text-[18px] font-bold text-foreground">{healthScore}%</span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 flex-1">
+          <div className="flex flex-col gap-3">
             <div className="space-y-1.5">
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">Status</span>
               <div className="flex flex-col gap-1">
@@ -358,7 +338,7 @@ export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
                       style={{ backgroundColor: item.color }}
                     />
                     <span className="text-[12px] text-foreground">{item.name}</span>
-                    <span className="text-[12px] text-muted-foreground ml-auto">{item.value}</span>
+                    <span className="text-[12px] text-muted-foreground/70">{item.value}</span>
                   </div>
                 ))}
               </div>

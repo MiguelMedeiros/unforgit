@@ -54,10 +54,10 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
   function getColorClass(count: number): string {
     if (count === 0) return "bg-white/[0.04]";
     const intensity = count / maxCount;
-    if (intensity <= 0.25) return "bg-dracula-green/30";
-    if (intensity <= 0.5) return "bg-dracula-green/50";
-    if (intensity <= 0.75) return "bg-dracula-green/70";
-    return "bg-dracula-green";
+    if (intensity <= 0.25) return "bg-green-500/30";
+    if (intensity <= 0.5) return "bg-green-500/50";
+    if (intensity <= 0.75) return "bg-green-500/70";
+    return "bg-green-500";
   }
 
   function formatDate(dateStr: string): string {
@@ -172,10 +172,10 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
             <span>Less</span>
             <div className="flex gap-[2px]">
               <div className="h-[10px] w-[10px] rounded-[2px] bg-white/[0.04]" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/30" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/50" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green/70" />
-              <div className="h-[10px] w-[10px] rounded-[2px] bg-dracula-green" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500/30" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500/50" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500/70" />
+              <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500" />
             </div>
             <span>More</span>
           </div>

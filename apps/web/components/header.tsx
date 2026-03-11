@@ -72,7 +72,7 @@ export function Header() {
       <header className="flex items-center justify-between border-b border-border/50 bg-[rgba(18,18,18,0.8)] px-6 py-4 glass-subtle">
         <Link href="/" className="text-foreground hover:text-foreground transition-colors">
           <span className="text-lg font-bold tracking-tight">
-            <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit
+            <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit<span className="text-foreground/40">.local</span>
           </span>
         </Link>
 
