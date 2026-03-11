@@ -1,0 +1,124 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getToken, clearToken } from "@/lib/api";
+
+const navItems = [
+  { href: "/keys", label: "api keys" },
+];
+
+export function Header() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getToken());
+  }, [pathname]);
+
+  const handleLogout = () => {
+    clearToken();
+    router.push("/");
+  };
+
+  const isLoginPage = pathname === "/";
+
+  return (
+    <>
+      <header className="flex items-center justify-between border-b border-border/50 bg-[rgba(18,18,18,0.8)] px-6 py-4 glass-subtle">
+        <Link href={isAuthenticated ? "/keys" : "/"} className="text-foreground hover:text-foreground transition-colors">
+          <span className="text-lg font-bold tracking-tight">
+            <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit<span className="text-foreground/40">.remote</span>
+          </span>
+        </Link>
+
+        {!isLoginPage && isAuthenticated && (
+          <>
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-7">
+              <nav className="flex items-center gap-7">
+                {navItems.map((item) => {
+                  const active = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "relative text-sm transition-colors",
+                        active
+                          ? "text-foreground"
+                          : "text-foreground/50 hover:text-foreground"
+                      )}
+                    >
+                      {item.label}
+                      {active && (
+                        <span className="absolute -bottom-1 left-0 right-0 h-px bg-foreground/70 rounded-full" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-sm text-foreground/50 transition-colors hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+                logout
+              </button>
+            </div>
+
+            {/* Mobile: hamburger */}
+            <div className="flex md:hidden items-center gap-3">
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="text-foreground/70 hover:text-foreground transition-colors p-1"
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
+          </>
+        )}
+      </header>
+
+      {/* Mobile menu panel */}
+      {mobileOpen && !isLoginPage && isAuthenticated && (
+        <div className="md:hidden border-b border-border/50 bg-[rgba(18,18,18,0.95)] backdrop-blur-xl px-6 py-4 space-y-1">
+          {navItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "block rounded-lg px-3 py-2.5 text-sm transition-colors",
+                  active
+                    ? "text-foreground bg-white/10"
+                    : "text-foreground/50 hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-foreground/50 transition-colors hover:text-foreground hover:bg-white/5"
+          >
+            <LogOut className="h-4 w-4" />
+            logout
+          </button>
+        </div>
+      )}
+    </>
+  );
+}

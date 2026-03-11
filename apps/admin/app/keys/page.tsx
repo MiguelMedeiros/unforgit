@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, RefreshCw, Loader2, Key, ShieldCheck, ShieldOff } from "lucide-react";
-import { AdminHeader } from "@/components/admin-header";
 import { AuthGuard } from "@/components/auth-guard";
 import { KeyTable } from "@/components/key-table";
 import { CreateKeyDialog } from "@/components/create-key-dialog";
@@ -43,16 +42,15 @@ export default function KeysPage() {
 
   return (
     <AuthGuard>
-      <AdminHeader />
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="h-full overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-8 py-10">
           <div className="animate-fade-in space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[24px] font-bold tracking-tight">API Keys</h1>
+                <h1 className="text-[28px] font-bold tracking-tight">API Keys</h1>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Manage API keys for your Unforgit server
+                  Manage API keys for your repositories
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -66,7 +64,7 @@ export default function KeysPage() {
                 </button>
                 <button
                   onClick={() => setDialogOpen(true)}
-                  className="flex items-center gap-2 rounded-xl bg-dracula-purple px-4 py-2 text-[13px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90"
+                  className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-[13px] font-medium text-foreground transition-all hover:bg-white/15"
                 >
                   <Plus className="h-4 w-4" />
                   Create Key
@@ -76,46 +74,46 @@ export default function KeysPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border/50 bg-dracula-current/20 p-4">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06]">
-                    <Key className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                    <Key className="h-5 w-5 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[22px] font-bold">{keys.length}</p>
-                    <p className="text-[11px] text-muted-foreground">Total Keys</p>
+                    <p className="text-[24px] font-bold">{keys.length}</p>
+                    <p className="text-[12px] text-muted-foreground">Total Keys</p>
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/50 bg-dracula-current/20 p-4">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-dracula-green/10">
-                    <ShieldCheck className="h-4 w-4 text-dracula-green" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                    <ShieldCheck className="h-5 w-5 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[22px] font-bold text-dracula-green">{activeCount}</p>
-                    <p className="text-[11px] text-muted-foreground">Active</p>
+                    <p className="text-[24px] font-bold">{activeCount}</p>
+                    <p className="text-[12px] text-muted-foreground">Active</p>
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/50 bg-dracula-current/20 p-4">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.06]">
-                    <ShieldOff className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                    <ShieldOff className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-[22px] font-bold">{inactiveCount}</p>
-                    <p className="text-[11px] text-muted-foreground">Inactive</p>
+                    <p className="text-[24px] font-bold">{inactiveCount}</p>
+                    <p className="text-[12px] text-muted-foreground">Inactive</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Table */}
-            <div className="rounded-2xl border border-border/50 bg-dracula-current/20 overflow-hidden">
+            <div className="rounded-2xl border border-border/30 bg-dracula-current overflow-hidden">
               {loading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-6 w-6 animate-spin text-dracula-purple" />
+                  <Loader2 className="h-6 w-6 animate-spin text-foreground" />
                 </div>
               ) : (
                 <KeyTable keys={keys} onRefresh={fetchKeys} />

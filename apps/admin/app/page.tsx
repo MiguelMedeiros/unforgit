@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, Loader2, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { getToken, setToken } from "@/lib/api";
 
 export default function LoginPage() {
@@ -46,24 +46,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex h-full items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-b from-dracula-purple/90 to-dracula-purple shadow-[0_4px_16px_rgba(189,147,249,0.3)]">
-            <Brain className="h-7 w-7 text-white" />
-          </div>
           <div className="text-center">
-            <h1 className="text-[22px] font-bold tracking-tight">
-              Unforgit Admin
+            <h1 className="text-[28px] font-bold tracking-tight">
+              <span className="underline decoration-2 underline-offset-[3px]">un</span>forgit<span className="text-foreground/40">.remote</span>
             </h1>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-2 text-[13px] text-muted-foreground">
               Enter your password to continue
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl border border-border/50 bg-dracula-current/20 p-6">
+          <div className="rounded-2xl border border-border/30 bg-dracula-current p-6">
             <div className="space-y-4">
               <div>
                 <label
@@ -82,21 +79,21 @@ export default function LoginPage() {
                     placeholder="Enter admin password"
                     autoFocus
                     required
-                    className="w-full rounded-xl border border-border/50 bg-white/[0.04] py-2.5 pl-10 pr-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-dracula-purple/50 focus:outline-none focus:ring-1 focus:ring-dracula-purple/30 transition-colors"
+                    className="w-full rounded-xl border border-border/50 bg-white/[0.04] py-2.5 pl-10 pr-4 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
                   />
                 </div>
               </div>
 
               {error && (
-                <div className="rounded-lg bg-dracula-red/10 border border-dracula-red/20 px-3 py-2">
-                  <p className="text-[13px] text-dracula-red">{error}</p>
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
+                  <p className="text-[13px] text-destructive">{error}</p>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={loading || !password}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-dracula-purple px-4 py-2.5 text-[14px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-[14px] font-medium text-foreground transition-all hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>

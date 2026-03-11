@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Unforgit Admin",
-  description: "Admin panel for Unforgit MCP server",
+  title: "unforgit.remote",
+  description: "Remote admin panel for Unforgit",
 };
 
 export default function RootLayout({
@@ -24,8 +26,10 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-[family-name:var(--font-inter),-apple-system,BlinkMacSystemFont,system-ui,sans-serif]`}
       >
-        <div className="flex min-h-screen flex-col bg-background">
-          {children}
+        <div className="flex h-screen flex-col overflow-hidden bg-background">
+          <Header />
+          <main className="flex-1 overflow-hidden">{children}</main>
+          <Footer />
         </div>
         <Toaster
           theme="dark"

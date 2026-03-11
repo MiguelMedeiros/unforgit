@@ -79,7 +79,7 @@ function KeyRow({ apiKey, onRefresh }: { apiKey: ApiKeyData; onRefresh: () => vo
     <tr className="border-b border-border/20 last:border-0 transition-colors hover:bg-white/[0.02]">
       <td className="px-4 py-3.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06]">
             <Key className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
           <div>
@@ -96,18 +96,18 @@ function KeyRow({ apiKey, onRefresh }: { apiKey: ApiKeyData; onRefresh: () => vo
         >
           <div
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              apiKey.isActive ? "bg-dracula-green/60" : "bg-white/10"
+              apiKey.isActive ? "bg-foreground/60" : "bg-white/10"
             } ${toggling ? "opacity-50" : "cursor-pointer"}`}
           >
             <span
-              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                apiKey.isActive ? "translate-x-4" : "translate-x-0.5"
+              className={`inline-block h-3.5 w-3.5 transform rounded-full transition-transform ${
+                apiKey.isActive ? "translate-x-4 bg-background" : "translate-x-0.5 bg-white"
               }`}
             />
           </div>
           <span
             className={`text-[12px] font-medium ${
-              apiKey.isActive ? "text-dracula-green" : "text-muted-foreground"
+              apiKey.isActive ? "text-foreground" : "text-muted-foreground"
             }`}
           >
             {apiKey.isActive ? "Active" : "Inactive"}
@@ -130,7 +130,7 @@ function KeyRow({ apiKey, onRefresh }: { apiKey: ApiKeyData; onRefresh: () => vo
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="rounded-lg bg-dracula-red/15 px-2.5 py-1 text-[11px] font-medium text-dracula-red transition-colors hover:bg-dracula-red/25"
+              className="rounded-lg bg-destructive/15 px-2.5 py-1 text-[11px] font-medium text-destructive transition-colors hover:bg-destructive/25"
             >
               {deleting ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -148,7 +148,7 @@ function KeyRow({ apiKey, onRefresh }: { apiKey: ApiKeyData; onRefresh: () => vo
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-dracula-red/10 hover:text-dracula-red"
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

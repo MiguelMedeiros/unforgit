@@ -100,7 +100,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full max-w-md animate-scale-in rounded-2xl border border-border/50 bg-[rgba(30,31,41,0.98)] p-6 shadow-2xl">
+      <div className="relative w-full max-w-md animate-scale-in rounded-2xl border border-border/30 bg-dracula-current p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[16px] font-semibold">
             {createdKey ? "Key Created" : "Create API Key"}
@@ -115,8 +115,8 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
 
         {createdKey ? (
           <div className="space-y-4">
-            <div className="rounded-xl bg-dracula-orange/10 border border-dracula-orange/20 p-3">
-              <p className="text-[12px] text-dracula-orange font-medium">
+            <div className="rounded-xl bg-foreground/10 border border-foreground/20 p-3">
+              <p className="text-[12px] text-foreground font-medium">
                 Copy this key now. It will not be shown again.
               </p>
             </div>
@@ -126,7 +126,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
                 API Key
               </label>
               <div className="flex gap-2">
-                <code className="flex-1 rounded-lg bg-white/[0.04] border border-border/50 px-3 py-2 text-[13px] font-mono text-dracula-green break-all">
+                <code className="flex-1 rounded-lg bg-white/[0.04] border border-border/50 px-3 py-2 text-[13px] font-mono text-foreground break-all">
                   {createdKey.key}
                 </code>
                 <button
@@ -134,7 +134,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-white/[0.04] transition-colors hover:bg-white/[0.08]"
                 >
                   {copied ? (
-                    <Check className="h-4 w-4 text-dracula-green" />
+                    <Check className="h-4 w-4 text-foreground" />
                   ) : (
                     <Copy className="h-4 w-4 text-muted-foreground" />
                   )}
@@ -144,7 +144,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
 
             <div>
               <label className="mb-1 block text-[12px] text-muted-foreground">Repository</label>
-              <p className="text-[13px] text-dracula-cyan">{createdKey.name}</p>
+              <p className="text-[13px] text-foreground">{createdKey.name}</p>
             </div>
 
             <button
@@ -168,18 +168,18 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
                 placeholder="https://github.com/org/repo or org/repo"
                 autoFocus
                 required
-                className="w-full rounded-xl border border-border/50 bg-white/[0.04] px-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-dracula-purple/50 focus:outline-none focus:ring-1 focus:ring-dracula-purple/30 transition-colors"
+                className="w-full rounded-xl border border-border/50 bg-white/[0.04] px-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
               />
               {parsed && (
                 <p className="mt-1.5 text-[12px] text-muted-foreground">
-                  Key for <span className="text-dracula-cyan font-medium">{parsed.name}</span>
+                  Key for <span className="text-foreground font-medium">{parsed.name}</span>
                 </p>
               )}
             </div>
 
             {error && (
-              <div className="rounded-lg bg-dracula-red/10 border border-dracula-red/20 px-3 py-2">
-                <p className="text-[13px] text-dracula-red">{error}</p>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
+                <p className="text-[13px] text-destructive">{error}</p>
               </div>
             )}
 
@@ -194,7 +194,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
               <button
                 type="submit"
                 disabled={loading || !repo}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-dracula-purple px-4 py-2.5 text-[13px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-[13px] font-medium text-foreground transition-all hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
