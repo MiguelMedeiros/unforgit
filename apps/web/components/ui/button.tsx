@@ -9,15 +9,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-dracula-purple text-dracula-background shadow-[0_2px_8px_rgba(189,147,249,0.25)] hover:bg-dracula-purple/90",
+          "bg-foreground text-background hover:bg-foreground/90",
         destructive:
-          "bg-dracula-red text-white shadow-[0_2px_8px_rgba(255,85,85,0.25)] hover:bg-dracula-red/90",
+          "bg-dracula-red text-white hover:bg-dracula-red/90",
         outline:
           "border border-border/60 bg-transparent hover:bg-white/[0.05] hover:border-border",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-white/[0.06]",
-        link: "text-dracula-purple underline-offset-4 hover:underline",
+        link: "text-foreground underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

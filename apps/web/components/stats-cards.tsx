@@ -77,7 +77,7 @@ export function StatsCards({ local, remote, remoteAvailable }: StatsCardsProps) 
           return (
             <div
               key={item.key}
-              className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 transition-colors duration-150 hover:bg-dracula-current/35 animate-scale-in"
+              className="rounded-xl border border-border/30 bg-dracula-current p-4 transition-colors duration-150 hover:bg-dracula-current/35 animate-scale-in"
               style={{ animationDelay: `${i * 80}ms`, animationFillMode: "both" }}
             >
               <div className="mb-3 flex items-center justify-between">
@@ -113,7 +113,7 @@ export function StatsCards({ local, remote, remoteAvailable }: StatsCardsProps) 
         ].map((s) => (
           <div
             key={s.label}
-            className="flex flex-1 items-center gap-3 rounded-xl border border-border/30 bg-dracula-current/20 px-4 py-3 transition-colors duration-150 hover:bg-dracula-current/35"
+            className="flex flex-1 items-center gap-3 rounded-xl border border-border/30 bg-dracula-current px-4 py-3 transition-colors duration-150 hover:bg-dracula-current/35"
           >
             <div className={`h-2 w-2 rounded-full ${s.color}`} />
             <span className="text-[12px] text-muted-foreground">{s.label}</span>

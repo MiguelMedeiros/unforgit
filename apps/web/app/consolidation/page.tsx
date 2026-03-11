@@ -340,9 +340,9 @@ export default function ConsolidationPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "episodic":
-        return "bg-dracula-purple/20 text-dracula-purple border-dracula-purple/30";
+        return "bg-dracula-orange/20 text-dracula-orange border-dracula-orange/30";
       case "semantic":
-        return "bg-dracula-cyan/20 text-dracula-cyan border-dracula-cyan/30";
+        return "bg-dracula-purple/20 text-dracula-purple border-dracula-purple/30";
       case "procedural":
         return "bg-dracula-green/20 text-dracula-green border-dracula-green/30";
       default:
@@ -430,7 +430,7 @@ export default function ConsolidationPage() {
                   size="sm"
                   onClick={consolidateAll}
                   disabled={consolidatingAll || loading}
-                  className="gap-2 bg-dracula-purple hover:bg-dracula-purple/80"
+                  className="gap-2 bg-foreground text-background hover:bg-foreground/90"
                 >
                   {consolidatingAll ? (
                     <>
@@ -450,7 +450,7 @@ export default function ConsolidationPage() {
             {loading ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                   <span className="text-[13px] text-muted-foreground">Scanning memories...</span>
                 </div>
               </div>
@@ -487,7 +487,7 @@ export default function ConsolidationPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <CardTitle className="flex items-center gap-2 text-base font-medium">
-                              <Layers className="h-4 w-4 text-dracula-purple" />
+                              <Layers className="h-4 w-4 text-foreground" />
                               Group {index + 1}
                               <Badge variant="outline" className="ml-2 text-[11px]">
                                 {candidate.memories.length} memories
@@ -523,7 +523,7 @@ export default function ConsolidationPage() {
                               <Button
                                 size="sm"
                                 onClick={() => consolidateGroup(index, candidate)}
-                                className="gap-2 bg-dracula-purple hover:bg-dracula-purple/80"
+                                className="gap-2 bg-foreground text-background hover:bg-foreground/90"
                               >
                                 <Sparkles className="h-3.5 w-3.5" />
                                 Consolidate

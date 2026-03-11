@@ -90,16 +90,16 @@ interface MemoryDetailSheetProps {
 }
 
 const typeConfig: Record<string, { bg: string; text: string }> = {
-  episodic: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
-  semantic: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
-  procedural: { bg: "bg-dracula-green/10", text: "text-dracula-green" },
+  episodic: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
+  semantic: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
+  procedural: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
 };
 
 const linkTypeConfig: Record<string, { bg: string; text: string }> = {
-  related_to: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
-  derived_from: { bg: "bg-dracula-cyan/10", text: "text-dracula-cyan" },
-  contradicts: { bg: "bg-dracula-red/10", text: "text-dracula-red" },
-  depends_on: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
+  related_to: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
+  derived_from: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
+  contradicts: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
+  depends_on: { bg: "bg-white/[0.06]", text: "text-muted-foreground" },
 };
 
 
@@ -193,9 +193,9 @@ function SourceRefItem({
         rel="noopener noreferrer"
         className="flex items-center gap-2.5 rounded-lg bg-white/[0.03] px-3 py-2 text-[12px] transition-colors hover:bg-white/[0.06] group"
       >
-        <span className="text-dracula-cyan">{icon}</span>
+        <span className="text-muted-foreground">{icon}</span>
         <span className="text-muted-foreground">{label}:</span>
-        <span className="text-foreground/80 group-hover:text-dracula-cyan transition-colors truncate">
+        <span className="text-foreground/80 group-hover:text-foreground transition-colors truncate">
           {extractLinkDisplay(value)}
         </span>
         <ExternalLink className="h-3 w-3 text-muted-foreground/50 ml-auto shrink-0" />
@@ -207,7 +207,7 @@ function SourceRefItem({
     return (
       <div className="rounded-lg bg-white/[0.03] px-3 py-2.5 text-[12px]">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-dracula-cyan shrink-0">{icon}</span>
+          <span className="text-muted-foreground shrink-0">{icon}</span>
           <span className="text-muted-foreground shrink-0">{label}</span>
           <span className="text-muted-foreground/50 text-[11px]">({value.length})</span>
         </div>
@@ -216,7 +216,7 @@ function SourceRefItem({
             <button
               key={uuid}
               onClick={() => onNavigate?.(uuid)}
-              className="inline-flex items-center gap-1 rounded-md bg-dracula-purple/10 px-2 py-1 text-[11px] font-mono text-dracula-purple hover:bg-dracula-purple/20 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-md bg-white/[0.06] px-2 py-1 text-[11px] font-mono text-foreground/70 hover:bg-white/10 transition-colors cursor-pointer"
               title={uuid}
             >
               <span>{truncateUuid(uuid)}</span>
@@ -410,7 +410,7 @@ export function MemoryDetailSheet({
           <>
             <DialogTitle className="sr-only">Loading memory details</DialogTitle>
             <div className="flex h-32 items-center justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
             </div>
           </>
         )}
@@ -440,7 +440,7 @@ export function MemoryDetailSheet({
                   {source === "remote" ? (
                     <Cloud className="h-3 w-3 text-muted-foreground" />
                   ) : memory.visibility === "repo" ? (
-                    <CloudCheck className="h-3 w-3 text-dracula-green" />
+                    <CloudCheck className="h-3 w-3 text-muted-foreground" />
                   ) : (
                     <HardDrive className="h-3 w-3 text-muted-foreground" />
                   )}
@@ -453,9 +453,9 @@ export function MemoryDetailSheet({
                 >
                   {memory.id.slice(0, 12)}...
                   {copied ? (
-                    <Check className="h-3 w-3 text-dracula-green" />
+                    <Check className="h-3 w-3 text-foreground" />
                   ) : (
-                    <Copy className="h-3 w-3" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   )}
                 </button>
               </DialogDescription>
@@ -475,7 +475,7 @@ export function MemoryDetailSheet({
                 <Badge variant="outline">{memory.status}</Badge>
                 <Badge variant="outline">{memory.visibility}</Badge>
                 {memory.isConsolidation && (
-                  <Badge className="bg-dracula-cyan/10 text-dracula-cyan border-0 gap-1" variant="secondary">
+                  <Badge className="bg-white/[0.06] text-muted-foreground border-0 gap-1" variant="secondary">
                     <Layers className="h-3 w-3" />
                     Consolidated v{memory.consolidationVersion ?? 1}
                   </Badge>
@@ -524,7 +524,7 @@ export function MemoryDetailSheet({
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 flex-1 rounded-full bg-white/[0.06]">
                       <div
-                        className="h-1.5 rounded-full bg-dracula-purple"
+                        className="h-1.5 rounded-full bg-foreground"
                         style={{ width: `${memory.confidence * 100}%` }}
                       />
                     </div>
@@ -553,8 +553,8 @@ export function MemoryDetailSheet({
               <div className="rounded-xl bg-white/[0.02] p-3 space-y-3">
                 {(memory.authorName || memory.authorId) && (
                   <div className="flex items-center gap-2.5 pb-3 border-b border-border/10">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-dracula-purple/10">
-                      <User className="h-3.5 w-3.5 text-dracula-purple" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium text-foreground/90 truncate">
@@ -597,7 +597,7 @@ export function MemoryDetailSheet({
                         <button
                           key={link.id}
                           onClick={() => onNavigate?.(linked.id)}
-                          className="group w-full rounded-xl border border-border/20 bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-dracula-purple/40 cursor-pointer"
+                          className="group w-full rounded-xl border border-border/20 bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-border cursor-pointer"
                         >
                           <div className="mb-1.5 flex items-center gap-1.5">
                             <Badge
@@ -612,7 +612,7 @@ export function MemoryDetailSheet({
                             >
                               {linked.memoryType}
                             </Badge>
-                            <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/30 transition-all group-hover:text-dracula-purple group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                            <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/30 transition-all group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                           </div>
                           <p className="line-clamp-2 text-[12px] leading-relaxed text-foreground/70 group-hover:text-foreground/90 transition-colors">
                             {linked.text}
@@ -626,10 +626,10 @@ export function MemoryDetailSheet({
 
               {/* Deleted banner */}
               {memory.status === "deleted" && (
-                <div className="flex items-center gap-3 rounded-xl bg-dracula-red/10 border border-dracula-red/20 p-3">
-                  <AlertTriangle className="h-4 w-4 text-dracula-red shrink-0" />
+                <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-border/30 p-3">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-dracula-red">This memory has been deleted</p>
+                    <p className="text-[13px] font-medium text-foreground">This memory has been deleted</p>
                     {memory.deletedAt && (
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         Deleted {formatDate(memory.deletedAt)}
@@ -641,7 +641,7 @@ export function MemoryDetailSheet({
                     variant="outline"
                     size="sm"
                     onClick={handleRestore}
-                    className="shrink-0 border-dracula-green/30 text-dracula-green hover:bg-dracula-green/10"
+                    className="shrink-0"
                   >
                     <RotateCcw className="mr-1 h-3.5 w-3.5" />
                     Restore
@@ -656,11 +656,7 @@ export function MemoryDetailSheet({
                     {memory.isConsolidation && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-dracula-cyan/30 text-dracula-cyan hover:bg-dracula-cyan/10"
-                          >
+                          <Button variant="outline" size="sm">
                             <Undo2 className="mr-1 h-3.5 w-3.5" />
                             Revert Consolidation
                           </Button>
@@ -686,7 +682,7 @@ export function MemoryDetailSheet({
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={handleUnconsolidate}
-                              className="bg-dracula-cyan hover:bg-dracula-cyan/80"
+                              className="bg-foreground text-background hover:bg-foreground/80"
                             >
                               <Undo2 className="mr-1 h-3.5 w-3.5" />
                               Revert
@@ -707,11 +703,7 @@ export function MemoryDetailSheet({
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-dracula-red/30 text-dracula-red hover:bg-dracula-red/10"
-                        >
+                        <Button variant="outline" size="sm">
                           <Trash2 className="mr-1 h-3.5 w-3.5" />
                           Delete
                         </Button>
@@ -726,10 +718,10 @@ export function MemoryDetailSheet({
                         <div className="space-y-3 py-4">
                           <button
                             onClick={() => handleDelete(false)}
-                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-dracula-orange/30"
+                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-border"
                           >
                             <div className="flex items-center gap-2 text-[14px] font-medium">
-                              <Trash2 className="h-4 w-4 text-dracula-orange" />
+                              <Trash2 className="h-4 w-4 text-muted-foreground" />
                               Soft Delete
                             </div>
                             <p className="mt-1 text-[12px] text-muted-foreground">
@@ -738,10 +730,10 @@ export function MemoryDetailSheet({
                           </button>
                           <button
                             onClick={() => handleDelete(true)}
-                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-dracula-red/30"
+                            className="w-full rounded-lg border border-border/30 p-4 text-left transition-colors hover:bg-white/[0.03] hover:border-border"
                           >
                             <div className="flex items-center gap-2 text-[14px] font-medium">
-                              <AlertTriangle className="h-4 w-4 text-dracula-red" />
+                              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                               Hard Delete
                             </div>
                             <p className="mt-1 text-[12px] text-muted-foreground">
@@ -768,7 +760,7 @@ export function MemoryDetailSheet({
                   </Button>
                 )}
                 {source === "local" && memory.visibility === "repo" && (
-                  <div className="flex items-center gap-1.5 text-[12px] text-dracula-green">
+                  <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                     <CloudCheck className="h-3.5 w-3.5" />
                     Synced to remote
                   </div>

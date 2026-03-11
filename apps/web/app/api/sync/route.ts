@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import type { Memory, Tombstone, SyncResult, SyncConflict, ConflictResolution, LinkType } from "@/lib/types";
 
+function getRemoteHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const apiKey = process.env.UNFORGIT_API_KEY;
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
 interface RemoteMemory {
   id: string;
   orgId: string;
@@ -105,7 +114,7 @@ export async function POST(request: NextRequest) {
   try {
     const tombstonesRes = await fetch(
       `${config.remote.url}/v1/sync/tombstones?orgId=${orgId}&repoId=${repoId}`,
-      { method: "GET", headers: { "Content-Type": "application/json" } }
+      { method: "GET", headers: getRemoteHeaders() }
     );
 
     if (tombstonesRes.ok) {
@@ -133,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     const pullRes = await fetch(pullUrl, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: getRemoteHeaders(),
     });
 
     if (pullRes.ok) {
@@ -176,7 +185,7 @@ export async function POST(request: NextRequest) {
     try {
       const res = await fetch(`${config.remote.url}/v1/sync/tombstones`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getRemoteHeaders(),
         body: JSON.stringify({
           memoryId: tombstone.memoryId,
           orgId: tombstone.orgId,
@@ -213,7 +222,7 @@ export async function POST(request: NextRequest) {
     try {
       const res = await fetch(`${config.remote.url}/v1/sync/push`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getRemoteHeaders(),
         body: JSON.stringify({
           id: memory.id,
           orgId: memory.orgId,
@@ -272,7 +281,7 @@ export async function POST(request: NextRequest) {
   try {
     const linksRes = await fetch(
       `${config.remote.url}/v1/sync/links?orgId=${orgId}&repoId=${repoId}`,
-      { method: "GET", headers: { "Content-Type": "application/json" } }
+      { method: "GET", headers: getRemoteHeaders() }
     );
 
     if (linksRes.ok) {
@@ -307,7 +316,7 @@ export async function POST(request: NextRequest) {
     try {
       const res = await fetch(`${config.remote.url}/v1/memory/${link.sourceId}/link`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getRemoteHeaders(),
         body: JSON.stringify({
           targetId: link.targetId,
           linkType: link.linkType,

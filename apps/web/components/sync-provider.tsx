@@ -77,6 +77,8 @@ export function SyncProvider({ children }: SyncProviderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSyncingRef = useRef(false);
+  const initialSyncDoneRef = useRef(false);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -91,8 +93,9 @@ export function SyncProvider({ children }: SyncProviderProps) {
   }, []);
 
   const syncNow = useCallback(async (): Promise<SyncResult | null> => {
-    if (isSyncing) return null;
+    if (isSyncingRef.current) return null;
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     try {
       const res = await fetch("/api/sync", {
@@ -113,9 +116,10 @@ export function SyncProvider({ children }: SyncProviderProps) {
     } catch {
       return null;
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [isSyncing, refreshStatus]);
+  }, [refreshStatus]);
 
   const updateSettingsHandler = useCallback(
     (newSettings: Partial<SyncSettings>) => {
@@ -129,6 +133,24 @@ export function SyncProvider({ children }: SyncProviderProps) {
     refreshStatus();
   }, [refreshStatus]);
 
+  // Initial auto-sync on first load (runs only once)
+  useEffect(() => {
+    if (
+      !initialSyncDoneRef.current &&
+      settings.autoSyncEnabled &&
+      status?.pendingSync &&
+      status.pendingSync > 0 &&
+      status.remoteConnected
+    ) {
+      initialSyncDoneRef.current = true;
+      const timerId = setTimeout(() => {
+        syncNow();
+      }, 5000);
+      return () => clearTimeout(timerId);
+    }
+  }, [settings.autoSyncEnabled, status, syncNow]);
+
+  // Periodic auto-sync interval
   useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -147,18 +169,6 @@ export function SyncProvider({ children }: SyncProviderProps) {
           await syncNow();
         }
       }, intervalMs);
-
-      if (status?.pendingSync && status.pendingSync > 0 && status.remoteConnected) {
-        const timerId = setTimeout(() => {
-          syncNow();
-        }, 5000);
-        return () => {
-          clearTimeout(timerId);
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-        };
-      }
     }
 
     return () => {
@@ -166,7 +176,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [settings.autoSyncEnabled, settings.syncIntervalMinutes, syncNow, status?.pendingSync, status?.remoteConnected]);
+  }, [settings.autoSyncEnabled, settings.syncIntervalMinutes, syncNow]);
 
   const hasConflicts = (lastSyncResult?.conflicts?.length ?? 0) > 0;
   const conflictCount = lastSyncResult?.conflicts?.length ?? 0;

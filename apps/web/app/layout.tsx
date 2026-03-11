@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -12,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Unforgit",
+  title: "unforgit",
   description: "Repository memory system for agents and developers",
 };
 
@@ -30,6 +31,7 @@ export default function RootLayout({
           <div className="flex h-screen flex-col overflow-hidden bg-background">
             <Header />
             <main className="flex-1 overflow-hidden">{children}</main>
+            <Footer />
           </div>
         </Providers>
         <Toaster

@@ -35,7 +35,7 @@ export function ScrollToTop({
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-dracula-purple text-dracula-background shadow-lg transition-all hover:bg-dracula-purple/90 hover:scale-105 active:scale-95"
+      className="fixed bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-all hover:bg-foreground/90 hover:scale-105 active:scale-95"
       title="Scroll to top"
     >
       <ArrowUp className="h-5 w-5" />

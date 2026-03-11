@@ -68,10 +68,13 @@ COPY --from=builder /app/packages/db/dist packages/db/dist
 COPY --from=builder /app/packages/db/src/generated packages/db/src/generated
 COPY --from=builder /app/apps/api/dist apps/api/dist
 
+COPY apps/api/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 ENV NODE_ENV=production
 ENV PORT=3737
 ENV HOST=0.0.0.0
 
 EXPOSE 3737
 
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["/app/entrypoint.sh"]

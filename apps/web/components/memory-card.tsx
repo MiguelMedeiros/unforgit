@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { HardDrive, Cloud, CloudCheck, Copy, Check } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { typeConfig, typeConfigDefault, statusConfig, statusConfigDefault } from "./memory-styles";
 
 interface MemoryCardProps {
   id: string;
@@ -16,30 +17,6 @@ interface MemoryCardProps {
   createdAt: string;
   onClick?: () => void;
 }
-
-const typeConfig: Record<string, { bg: string; text: string; dot: string }> = {
-  episodic: {
-    bg: "bg-dracula-orange/10",
-    text: "text-dracula-orange",
-    dot: "bg-dracula-orange",
-  },
-  semantic: {
-    bg: "bg-dracula-purple/10",
-    text: "text-dracula-purple",
-    dot: "bg-dracula-purple",
-  },
-  procedural: {
-    bg: "bg-dracula-green/10",
-    text: "text-dracula-green",
-    dot: "bg-dracula-green",
-  },
-};
-
-const statusConfig: Record<string, { dot: string }> = {
-  active: { dot: "bg-dracula-green" },
-  deprecated: { dot: "bg-dracula-yellow" },
-  superseded: { dot: "bg-dracula-comment" },
-};
 
 export function MemoryCard({
   id,
@@ -65,12 +42,12 @@ export function MemoryCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const tc = typeConfig[memoryType] ?? { bg: "bg-white/5", text: "text-[#98989d]", dot: "bg-[#98989d]" };
-  const sc = statusConfig[status] ?? { dot: "bg-[#98989d]" };
+  const tc = typeConfig[memoryType] ?? typeConfigDefault;
+  const sc = statusConfig[status] ?? statusConfigDefault;
 
   return (
     <div
-      className="group cursor-pointer rounded-xl border border-border/30 bg-dracula-current/20 p-4 transition-colors duration-150 hover:bg-dracula-current/35 active:scale-[0.995]"
+      className="group cursor-pointer rounded-xl border border-border/30 bg-dracula-current p-4 transition-colors duration-150 hover:bg-dracula-current/35 active:scale-[0.995]"
       onClick={onClick}
     >
       <div className="flex flex-col gap-3">
@@ -117,7 +94,7 @@ export function MemoryCard({
               onClick={copyId}
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
-                "bg-white/[0.06] hover:bg-white/[0.12] text-dracula-cyan",
+                "bg-white/[0.06] hover:bg-white/[0.12] text-muted-foreground",
                 copied && "bg-dracula-green/20 text-dracula-green"
               )}
               title="Copy memory ID"

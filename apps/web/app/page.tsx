@@ -108,7 +108,7 @@ export default function DashboardPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">Loading...</span>
         </div>
       </div>
@@ -148,11 +148,11 @@ export default function DashboardPage() {
 
           {/* Consolidation Card */}
           {consolidationInfo && stats && (
-            <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-5">
+            <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-dracula-purple/20">
-                    <GitMerge className="h-6 w-6 text-dracula-purple" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                    <GitMerge className="h-6 w-6 text-foreground" />
                   </div>
                   <div>
                     <h3 className="text-[15px] font-semibold">Memory Consolidation</h3>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => router.push("/consolidation")}
-                  className="flex items-center gap-2 rounded-lg bg-dracula-purple/20 px-4 py-2 text-[13px] font-medium text-dracula-purple hover:bg-dracula-purple/30 transition-colors"
+                  className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-[13px] font-medium text-foreground hover:bg-white/15 transition-colors"
                 >
                   <Sparkles className="h-4 w-4" />
                   {consolidationInfo.candidateGroups > 0 ? "Review & Merge" : "View"}
@@ -209,7 +209,7 @@ export default function DashboardPage() {
               {recentMemories.length > 0 && (
                 <button
                   onClick={() => router.push("/memories")}
-                  className="flex items-center gap-1.5 rounded-lg bg-dracula-purple/15 px-3 py-1.5 text-[13px] font-medium text-dracula-purple hover:bg-dracula-purple/25 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-[13px] font-medium text-foreground hover:bg-white/15 transition-colors"
                 >
                   View All
                   <ArrowRight className="h-3.5 w-3.5" />

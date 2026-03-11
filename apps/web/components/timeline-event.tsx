@@ -13,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { typeConfig, typeConfigDefault } from "./memory-styles";
 
 interface Memory {
   id: string;
@@ -31,12 +32,6 @@ interface TimelineEventProps {
   onClick?: () => void;
   isLast?: boolean;
 }
-
-const typeConfig: Record<string, { bg: string; text: string }> = {
-  episodic: { bg: "bg-dracula-orange/10", text: "text-dracula-orange" },
-  semantic: { bg: "bg-dracula-purple/10", text: "text-dracula-purple" },
-  procedural: { bg: "bg-dracula-green/10", text: "text-dracula-green" },
-};
 
 const eventConfig = {
   created: {
@@ -83,10 +78,7 @@ export function TimelineEvent({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const tc = typeConfig[memory.memoryType] ?? {
-    bg: "bg-white/5",
-    text: "text-[#98989d]",
-  };
+  const tc = typeConfig[memory.memoryType] ?? typeConfigDefault;
   const ec = eventConfig[type];
   const EventIcon = ec.icon;
 
@@ -112,7 +104,7 @@ export function TimelineEvent({
       <div className="flex-1 pb-6">
         <div
           className={cn(
-            "group cursor-pointer rounded-xl border border-border/30 bg-dracula-current/20 p-4 transition-colors duration-150",
+            "group cursor-pointer rounded-xl border border-border/30 bg-dracula-current p-4 transition-colors duration-150",
             "hover:bg-dracula-current/35 active:scale-[0.995]"
           )}
           onClick={onClick}
@@ -170,7 +162,7 @@ export function TimelineEvent({
                   onClick={copyId}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-all",
-                    "bg-white/[0.06] hover:bg-white/[0.12] text-dracula-cyan",
+                    "bg-white/[0.06] hover:bg-white/[0.12] text-muted-foreground",
                     copied && "bg-dracula-green/20 text-dracula-green"
                   )}
                   title="Copy memory ID"

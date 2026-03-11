@@ -26,9 +26,9 @@ interface DashboardChartsProps {
 }
 
 const TYPE_COLORS = {
-  episodic: "#ffb86c",
-  semantic: "#bd93f9",
-  procedural: "#50fa7b",
+  episodic: "#fb923c",
+  semantic: "#a78bfa",
+  procedural: "#4ade80",
 };
 
 export function MemoryTypeChart({ stats }: DashboardChartsProps) {
@@ -49,7 +49,7 @@ export function MemoryTypeChart({ stats }: DashboardChartsProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[15px] font-semibold">By Type</h3>
-      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px] flex items-center">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center">
         <div className="flex items-center gap-6 w-full">
           <ResponsiveContainer width={120} height={120}>
             <PieChart>
@@ -157,13 +157,13 @@ export function DailyMemoriesChart({ dailyCounts, hourlyCounts, days = 30, title
         <h3 className="text-[15px] font-semibold">{chartTitle}</h3>
         <p className="text-[12px] text-muted-foreground">{total} memories</p>
       </div>
-      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px]">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#bd93f9" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#bd93f9" stopOpacity={0} />
+                <stop offset="5%" stopColor="#d4d4d8" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#d4d4d8" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -189,7 +189,7 @@ export function DailyMemoriesChart({ dailyCounts, hourlyCounts, days = 30, title
             <Area
               type="monotone"
               dataKey="count"
-              stroke="#bd93f9"
+              stroke="#d4d4d8"
               strokeWidth={2}
               fill="url(#colorCount)"
             />
@@ -209,7 +209,7 @@ export function TopTagsChart({ tags }: TopTagsChartProps) {
     return (
       <div className="space-y-3">
         <h3 className="text-[15px] font-semibold">Top Tags</h3>
-        <div className="flex h-[180px] items-center justify-center rounded-xl border border-border/30 bg-dracula-current/20 text-[13px] text-muted-foreground">
+        <div className="flex h-[180px] items-center justify-center rounded-xl border border-border/30 bg-dracula-current text-[13px] text-muted-foreground">
           No tags yet
         </div>
       </div>
@@ -224,7 +224,7 @@ export function TopTagsChart({ tags }: TopTagsChartProps) {
         <h3 className="text-[15px] font-semibold">Top Tags</h3>
         <p className="text-[12px] text-muted-foreground">{tags.length} tags</p>
       </div>
-      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px]">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={tags}
@@ -253,7 +253,7 @@ export function TopTagsChart({ tags }: TopTagsChartProps) {
             />
             <Bar
               dataKey="count"
-              fill="#8be9fd"
+              fill="#d4d4d8"
               radius={[0, 4, 4, 0]}
               barSize={14}
             />
@@ -272,14 +272,14 @@ interface MemoryLifecycleProps {
 }
 
 const LIFECYCLE_COLORS = {
-  active: "#50fa7b",
-  superseded: "#ffb86c",
-  deprecated: "#6272a4",
+  active: "#4ade80",
+  superseded: "#fb923c",
+  deprecated: "#71717a",
 };
 
 const VISIBILITY_COLORS = {
-  private: "#bd93f9",
-  repo: "#8be9fd",
+  private: "#a78bfa",
+  repo: "#22d3ee",
 };
 
 export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
@@ -301,7 +301,7 @@ export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
     return (
       <div className="space-y-3">
         <h3 className="text-[15px] font-semibold">Memory Health</h3>
-        <div className="flex h-[180px] items-center justify-center rounded-xl border border-border/30 bg-dracula-current/20 text-[13px] text-muted-foreground">
+        <div className="flex h-[180px] items-center justify-center rounded-xl border border-border/30 bg-dracula-current text-[13px] text-muted-foreground">
           No data
         </div>
       </div>
@@ -313,7 +313,7 @@ export function MemoryLifecycleChart({ stats }: MemoryLifecycleProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[15px] font-semibold">Memory Health</h3>
-      <div className="rounded-xl border border-border/30 bg-dracula-current/20 p-4 h-[180px] flex items-center">
+      <div className="rounded-xl border border-border/30 bg-dracula-current p-4 h-[180px] flex items-center">
         <div className="flex items-center gap-6 w-full">
           <div className="relative">
             <ResponsiveContainer width={120} height={120}>

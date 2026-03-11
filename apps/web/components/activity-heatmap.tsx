@@ -103,7 +103,7 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
         </p>
       </div>
 
-      <div className="w-full rounded-xl border border-border/30 bg-dracula-current/20 p-4">
+      <div className="w-full rounded-xl border border-border/30 bg-dracula-current p-4">
         <div className="w-full">
           <div 
             className="relative h-4 mb-1 flex"

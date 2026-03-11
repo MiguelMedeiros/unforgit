@@ -66,16 +66,16 @@ interface GraphLink {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  episodic: "#ffb86c",
-  semantic: "#bd93f9",
-  procedural: "#50fa7b",
+  episodic: "#fb923c",
+  semantic: "#a78bfa",
+  procedural: "#4ade80",
 };
 
 const LINK_TYPE_COLORS: Record<string, string> = {
-  related_to: "#bd93f9",
-  derived_from: "#8be9fd",
-  contradicts: "#ff5555",
-  depends_on: "#ffb86c",
+  related_to: "#a78bfa",
+  derived_from: "#22d3ee",
+  contradicts: "#f87171",
+  depends_on: "#fb923c",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -99,10 +99,10 @@ const linkTypeColorClasses: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "#50fa7b",
-  superseded: "#8be9fd",
-  deprecated: "#ffb86c",
-  deleted: "#ff5555",
+  active: "#4ade80",
+  superseded: "#22d3ee",
+  deprecated: "#fb923c",
+  deleted: "#f87171",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -632,7 +632,7 @@ export function MemoryGraph() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">
             Loading graph...
           </span>
@@ -727,7 +727,7 @@ export function MemoryGraph() {
             onClick={() => setShowOrphans(!showOrphans)}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 transition-colors ${
               showOrphans
-                ? "bg-dracula-purple/20 text-dracula-purple"
+                ? "bg-white/10 text-white"
                 : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"
             }`}
             title={showOrphans ? "Hide orphan nodes" : "Show orphan nodes"}

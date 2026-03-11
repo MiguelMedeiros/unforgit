@@ -25,65 +25,62 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Dracula Theme Colors */
-  --color-dracula-background: #282a36;
-  --color-dracula-current: #44475a;
-  --color-dracula-foreground: #f8f8f2;
-  --color-dracula-comment: #6272a4;
-  --color-dracula-cyan: #8be9fd;
-  --color-dracula-green: #50fa7b;
-  --color-dracula-orange: #ffb86c;
-  --color-dracula-pink: #ff79c6;
-  --color-dracula-purple: #bd93f9;
-  --color-dracula-red: #ff5555;
-  --color-dracula-yellow: #f1fa8c;
+  --color-dracula-background: #09090b;
+  --color-dracula-current: #18181b;
+  --color-dracula-foreground: #fafafa;
+  --color-dracula-comment: #71717a;
+  --color-dracula-cyan: #22d3ee;
+  --color-dracula-green: #4ade80;
+  --color-dracula-orange: #fb923c;
+  --color-dracula-pink: #f472b6;
+  --color-dracula-purple: #a78bfa;
+  --color-dracula-red: #f87171;
+  --color-dracula-yellow: #fbbf24;
 }
 
 :root {
   --radius: 0.75rem;
-  /* Light mode - Dracula inspired light variant */
-  --background: #f8f8f2;
-  --foreground: #282a36;
+  --background: #fafafa;
+  --foreground: #09090b;
   --card: #ffffff;
-  --card-foreground: #282a36;
+  --card-foreground: #09090b;
   --popover: #ffffff;
-  --popover-foreground: #282a36;
-  --primary: #bd93f9;
-  --primary-foreground: #282a36;
-  --secondary: #f1f1f4;
-  --secondary-foreground: #282a36;
-  --muted: #e8e8ec;
-  --muted-foreground: #6272a4;
-  --accent: #f1f1f4;
-  --accent-foreground: #282a36;
-  --destructive: #ff5555;
-  --destructive-foreground: #ffffff;
-  --border: #d4d4dc;
-  --input: #d4d4dc;
-  --ring: #bd93f9;
+  --popover-foreground: #09090b;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #e4e4e7;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #71717a;
+  --destructive-foreground: #fafafa;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
 }
 
 .dark {
-  /* Dark mode - Full Dracula Theme (darker variant) */
-  --background: #1e1f29;
-  --foreground: #f8f8f2;
-  --card: rgba(68, 71, 90, 0.6);
-  --card-foreground: #f8f8f2;
-  --popover: rgba(68, 71, 90, 0.95);
-  --popover-foreground: #f8f8f2;
-  --primary: #bd93f9;
-  --primary-foreground: #282a36;
-  --secondary: rgba(68, 71, 90, 0.5);
-  --secondary-foreground: #f8f8f2;
-  --muted: rgba(68, 71, 90, 0.4);
-  --muted-foreground: #6272a4;
-  --accent: rgba(68, 71, 90, 0.6);
-  --accent-foreground: #f8f8f2;
-  --destructive: #ff5555;
-  --destructive-foreground: #f8f8f2;
-  --border: rgba(98, 114, 164, 0.4);
-  --input: rgba(98, 114, 164, 0.4);
-  --ring: #bd93f9;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --popover: rgba(24, 24, 27, 0.95);
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --secondary: rgba(39, 39, 42, 0.5);
+  --secondary-foreground: #fafafa;
+  --muted: rgba(39, 39, 42, 0.4);
+  --muted-foreground: #71717a;
+  --accent: rgba(39, 39, 42, 0.6);
+  --accent-foreground: #fafafa;
+  --destructive: #f87171;
+  --destructive-foreground: #fafafa;
+  --border: rgba(63, 63, 70, 0.5);
+  --input: rgba(63, 63, 70, 0.5);
+  --ring: #a1a1aa;
 }
 
 @layer base {
@@ -107,7 +104,7 @@
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #f8f8f2 0%, #bd93f9 100%);
+    background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

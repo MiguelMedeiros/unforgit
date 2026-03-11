@@ -30,7 +30,7 @@ export function TimeframeSelector({ value, onChange, className }: TimeframeSelec
           className={cn(
             "rounded-md px-3 py-1.5 text-[12px] font-medium transition-all",
             value === option.value
-              ? "bg-dracula-purple text-white shadow-sm"
+              ? "bg-foreground text-background shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-white/6"
           )}
         >

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- next dev -p 3838",
+    "dev": "UNFORGIT_WORKSPACE=../.. dotenv -e ../../.env -- next dev -p 3838",
     "build": "next build",
     "start": "dotenv -e ../../.env -- next start -p 3838"
   },

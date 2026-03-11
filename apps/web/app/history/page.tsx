@@ -206,7 +206,7 @@ function HistoryContent() {
           {loading ? (
             <div className="flex h-60 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                 <span className="text-[13px] text-muted-foreground">
                   Loading timeline...
                 </span>
@@ -272,7 +272,7 @@ function HistoryContent() {
               {loadingMore && (
                 <div className="flex justify-center py-6">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
                     <span className="text-[12px] text-muted-foreground">
                       Loading more...
                     </span>
@@ -311,7 +311,7 @@ export default function HistoryPage() {
       fallback={
         <div className="flex h-full items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
             <span className="text-[13px] text-muted-foreground">
               Loading...
             </span>

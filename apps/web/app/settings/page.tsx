@@ -55,7 +55,7 @@ function SettingsGroup({ title, icon: Icon, description, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-dracula-current/20 overflow-hidden">
+    <div className="rounded-2xl border border-border/50 bg-dracula-current overflow-hidden">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border/20">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06]">
           <Icon className="h-4 w-4 text-muted-foreground" />
@@ -110,7 +110,7 @@ function SyncSettings() {
         <button
           onClick={() => updateSettings({ autoSyncEnabled: !settings.autoSyncEnabled })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            settings.autoSyncEnabled ? "bg-dracula-purple" : "bg-white/10"
+            settings.autoSyncEnabled ? "bg-foreground" : "bg-white/10"
           }`}
         >
           <span
@@ -226,7 +226,7 @@ function SyncSettings() {
               <span className="text-[12px] font-medium">{lastSyncResult.deletionsPropagated}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
-              <Link2 className="h-3.5 w-3.5 text-dracula-purple" />
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[12px] text-muted-foreground">Links:</span>
               <span className="text-[12px] font-medium">{lastSyncResult.linksSynced}</span>
             </div>
@@ -257,7 +257,7 @@ function SyncSettings() {
         <button
           onClick={() => syncNow()}
           disabled={isSyncing || !status?.remoteConnected}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-dracula-purple px-4 py-2.5 text-[13px] font-medium text-dracula-background transition-all hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-all hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSyncing ? (
             <>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-dracula-purple border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
           <span className="text-[13px] text-muted-foreground">Loading...</span>
         </div>
       </div>
