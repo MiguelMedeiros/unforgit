@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "unforgit",
+  title: "unforgit.local",
   description: "Repository memory system for agents and developers",
 };
 

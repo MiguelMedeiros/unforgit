@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Brain, ArrowRight, Sparkles, GitMerge } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
-import { MemoryCard } from "@/components/memory-card";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
 import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, MemoryLifecycleChart } from "@/components/dashboard-charts";
 import { TimeframeSelector, type Timeframe, getTimeframeDays } from "@/components/timeframe-selector";
@@ -14,16 +13,6 @@ interface StoreStats {
   byType: { episodic: number; semantic: number; procedural: number };
   byStatus: { active: number; deprecated: number; superseded: number };
   byVisibility: Record<string, number>;
-}
-
-interface MemoryItem {
-  id: string;
-  memoryType: string;
-  text: string;
-  tags: string[];
-  status: string;
-  source: "local" | "remote";
-  createdAt: string;
 }
 
 interface ActivityData {
@@ -55,7 +44,6 @@ export default function DashboardPage() {
     remote: StoreStats;
     remoteAvailable: boolean;
   } | null>(null);
-  const [recentMemories, setRecentMemories] = useState<MemoryItem[]>([]);
   const [activity, setActivity] = useState<ActivityData | null>(null);
   const [topTags, setTopTags] = useState<TagData[]>([]);
   const [consolidationInfo, setConsolidationInfo] = useState<{
@@ -67,9 +55,8 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     try {
       const timeframeParam = timeframe !== "all" ? `timeframe=${timeframe}` : "";
-      const [statsRes, memoriesRes, activityRes, tagsRes, consolidationRes] = await Promise.all([
+      const [statsRes, activityRes, tagsRes, consolidationRes] = await Promise.all([
         fetch(`/api/stats${timeframeParam ? `?${timeframeParam}` : ""}`),
-        fetch("/api/memories?source=local&limit=3&sortBy=createdAt&sortOrder=desc"),
         fetch(`/api/stats/activity${timeframeParam ? `?${timeframeParam}` : ""}`),
         fetch(`/api/stats/tags?limit=6${timeframeParam ? `&${timeframeParam}` : ""}`),
         fetch("/api/consolidation/candidates?maxGroups=100&threshold=0.4"),
@@ -77,11 +64,6 @@ export default function DashboardPage() {
 
       if (statsRes.ok) {
         setStats(await statsRes.json());
-      }
-
-      if (memoriesRes.ok) {
-        const data = await memoriesRes.json();
-        setRecentMemories(data.memories);
       }
 
       if (activityRes.ok) {
@@ -212,54 +194,39 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Recent */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[17px] font-semibold">Recent Memories</h2>
-              {recentMemories.length > 0 && (
+          {/* Memories Card */}
+          {stats && (
+            <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                    <Brain className="h-6 w-6 text-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold">Memories</h3>
+                    <p className="text-[13px] text-muted-foreground">
+                      <span className="font-medium text-foreground">{stats.local.total}</span>
+                      {" "}memories stored locally
+                      {stats.remoteAvailable && stats.remote.total > 0 && (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground">{stats.remote.total}</span>
+                          {" "}remote
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => router.push("/memories")}
-                  className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-[13px] font-medium text-foreground hover:bg-white/15 transition-colors"
+                  className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-[13px] font-medium text-foreground hover:bg-white/15 transition-colors"
                 >
                   View All
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-4 w-4" />
                 </button>
-              )}
+              </div>
             </div>
-
-            {recentMemories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/40 py-16">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04]">
-                  <Brain className="h-6 w-6 text-muted-foreground/40" />
-                </div>
-                <p className="text-[13px] text-muted-foreground">
-                  No memories yet
-                </p>
-                <p className="text-[12px] text-muted-foreground/60">
-                  Use{" "}
-                  <code className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px]">
-                    unforgit add
-                  </code>{" "}
-                  or the Memories page to create some
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentMemories.map((m, i) => (
-                  <div
-                    key={m.id}
-                    className="animate-slide-up"
-                    style={{ animationDelay: `${i * 50}ms`, animationFillMode: "both" }}
-                  >
-                    <MemoryCard
-                      {...m}
-                      onClick={() => router.push(`/memories?detail=${m.id}`)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

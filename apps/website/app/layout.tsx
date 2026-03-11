@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "unforgit - Repository Memory for AI Agents",
+  title: "unforgit - Like git, but for AI memory.",
   description:
     "A repository memory system that gives AI agents persistent knowledge across sessions. Store, recall, and share context with your team.",
   keywords: [
