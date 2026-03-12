@@ -1462,4 +1462,414 @@ export class RemoteStore {
       embeddingsDeleted,
     };
   }
+
+  async upsertUser(input: {
+    githubId: number;
+    githubLogin: string;
+    name?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<{
+    id: string;
+    githubId: number;
+    githubLogin: string;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    isAdmin: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    const userCount = await this.prisma.user.count();
+    const isFirstUser = userCount === 0;
+
+    const user = await this.prisma.user.upsert({
+      where: { githubId: input.githubId },
+      create: {
+        githubId: input.githubId,
+        githubLogin: input.githubLogin,
+        name: input.name ?? null,
+        email: input.email ?? null,
+        avatarUrl: input.avatarUrl ?? null,
+        isAdmin: isFirstUser,
+      },
+      update: {
+        githubLogin: input.githubLogin,
+        name: input.name ?? null,
+        email: input.email ?? null,
+        avatarUrl: input.avatarUrl ?? null,
+      },
+    });
+
+    return user;
+  }
+
+  async getUserById(id: string): Promise<{
+    id: string;
+    githubId: number;
+    githubLogin: string;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    isAdmin: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  async getUserByGithubId(githubId: number): Promise<{
+    id: string;
+    githubId: number;
+    githubLogin: string;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    isAdmin: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    return this.prisma.user.findUnique({ where: { githubId } });
+  }
+
+  async listUsers(): Promise<Array<{
+    id: string;
+    githubId: number;
+    githubLogin: string;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    isAdmin: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }>> {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async setUserAdmin(id: string, isAdmin: boolean): Promise<boolean> {
+    try {
+      await this.prisma.user.update({
+        where: { id },
+        data: { isAdmin },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      await this.prisma.user.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async upsertRepoAccess(input: {
+    userId: string;
+    orgId: string;
+    repoId: string;
+    permission: string;
+    grantedBy?: string;
+  }): Promise<{
+    id: string;
+    userId: string;
+    orgId: string;
+    repoId: string;
+    permission: string;
+    grantedAt: Date;
+    grantedBy: string | null;
+  }> {
+    return this.prisma.userRepoAccess.upsert({
+      where: {
+        userId_orgId_repoId: {
+          userId: input.userId,
+          orgId: input.orgId,
+          repoId: input.repoId,
+        },
+      },
+      create: {
+        userId: input.userId,
+        orgId: input.orgId,
+        repoId: input.repoId,
+        permission: input.permission,
+        grantedBy: input.grantedBy ?? null,
+      },
+      update: {
+        permission: input.permission,
+        grantedBy: input.grantedBy ?? null,
+      },
+    });
+  }
+
+  async getUserRepoAccess(userId: string): Promise<Array<{
+    id: string;
+    userId: string;
+    orgId: string;
+    repoId: string;
+    permission: string;
+    grantedAt: Date;
+    grantedBy: string | null;
+  }>> {
+    return this.prisma.userRepoAccess.findMany({
+      where: { userId },
+      orderBy: [{ orgId: "asc" }, { repoId: "asc" }],
+    });
+  }
+
+  async getRepoUsers(orgId: string, repoId: string): Promise<Array<{
+    id: string;
+    userId: string;
+    orgId: string;
+    repoId: string;
+    permission: string;
+    grantedAt: Date;
+    grantedBy: string | null;
+    user: {
+      id: string;
+      githubLogin: string;
+      name: string | null;
+      avatarUrl: string | null;
+    };
+  }>> {
+    return this.prisma.userRepoAccess.findMany({
+      where: { orgId, repoId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            githubLogin: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { grantedAt: "desc" },
+    });
+  }
+
+  async revokeRepoAccess(userId: string, orgId: string, repoId: string): Promise<boolean> {
+    try {
+      await this.prisma.userRepoAccess.delete({
+        where: {
+          userId_orgId_repoId: { userId, orgId, repoId },
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async getAllRepos(): Promise<Array<{
+    orgId: string;
+    repoId: string;
+    userCount: number;
+    memoryCount: number;
+  }>> {
+    const repoAccess = await this.prisma.userRepoAccess.groupBy({
+      by: ["orgId", "repoId"],
+      _count: { userId: true },
+    });
+
+    const memoryCounts = await this.prisma.memory.groupBy({
+      by: ["orgId", "repoId"],
+      _count: { id: true },
+      where: { status: "active" },
+    });
+
+    const memoryMap = new Map<string, number>();
+    for (const m of memoryCounts) {
+      memoryMap.set(`${m.orgId}/${m.repoId}`, m._count.id);
+    }
+
+    return repoAccess.map((r) => ({
+      orgId: r.orgId,
+      repoId: r.repoId,
+      userCount: r._count.userId,
+      memoryCount: memoryMap.get(`${r.orgId}/${r.repoId}`) ?? 0,
+    }));
+  }
+
+  async createApiKeyForUser(
+    name: string,
+    orgId: string,
+    repoId: string | null,
+    userId: string,
+    createdBy: string
+  ): Promise<{ id: string; key: string; name: string; orgId: string; repoId: string | null; userId: string }> {
+    const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
+
+    const apiKey = await this.prisma.apiKey.create({
+      data: {
+        key,
+        name,
+        orgId,
+        repoId,
+        userId,
+        createdBy,
+      },
+    });
+
+    return {
+      id: apiKey.id,
+      key: apiKey.key,
+      name: apiKey.name,
+      orgId: apiKey.orgId,
+      repoId: apiKey.repoId,
+      userId: apiKey.userId!,
+    };
+  }
+
+  async getUserApiKeys(userId: string): Promise<Array<{
+    id: string;
+    key: string;
+    name: string;
+    orgId: string;
+    repoId: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+  }>> {
+    return this.prisma.apiKey.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async listApiKeysWithUsers(): Promise<Array<{
+    id: string;
+    key: string;
+    name: string;
+    orgId: string;
+    repoId: string | null;
+    userId: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+    user: { id: string; githubLogin: string; name: string | null } | null;
+  }>> {
+    return this.prisma.apiKey.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            githubLogin: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async dailyCounts(
+    orgId: string,
+    repoId: string,
+    days: number,
+    sinceDate?: Date
+  ): Promise<Array<{ date: string; count: number }>> {
+    const startDate = sinceDate ?? new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const rows = await this.prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM memories
+      WHERE org_id = ${orgId}
+        AND repo_id = ${repoId}
+        AND created_at >= ${startDate}
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
+
+    return rows.map((r) => ({
+      date: r.date,
+      count: Number(r.count),
+    }));
+  }
+
+  async hourlyCounts(
+    orgId: string,
+    repoId: string
+  ): Promise<Array<{ hour: number; count: number }>> {
+    const rows = await this.prisma.$queryRaw<Array<{ hour: number; count: bigint }>>`
+      SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as count
+      FROM memories
+      WHERE org_id = ${orgId}
+        AND repo_id = ${repoId}
+        AND created_at >= NOW() - INTERVAL '24 hours'
+      GROUP BY EXTRACT(HOUR FROM created_at)
+      ORDER BY hour ASC
+    `;
+
+    return rows.map((r) => ({
+      hour: r.hour,
+      count: Number(r.count),
+    }));
+  }
+
+  async weeklyTrend(
+    orgId: string,
+    repoId: string,
+    weeks: number
+  ): Promise<Array<{ week: string; count: number }>> {
+    const startDate = new Date(Date.now() - weeks * 7 * 24 * 60 * 60 * 1000);
+
+    const rows = await this.prisma.$queryRaw<Array<{ week: string; count: bigint }>>`
+      SELECT TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-WW') as week, COUNT(*) as count
+      FROM memories
+      WHERE org_id = ${orgId}
+        AND repo_id = ${repoId}
+        AND created_at >= ${startDate}
+      GROUP BY DATE_TRUNC('week', created_at)
+      ORDER BY week ASC
+    `;
+
+    return rows.map((r) => ({
+      week: r.week,
+      count: Number(r.count),
+    }));
+  }
+
+  async topTags(
+    orgId: string,
+    repoId: string,
+    limit: number,
+    sinceDate?: Date
+  ): Promise<Array<{ tag: string; count: number }>> {
+    let rows: Array<{ tag: string; count: bigint }>;
+
+    if (sinceDate) {
+      rows = await this.prisma.$queryRaw<Array<{ tag: string; count: bigint }>>`
+        SELECT unnest(tags) as tag, COUNT(*) as count
+        FROM memories
+        WHERE org_id = ${orgId}
+          AND repo_id = ${repoId}
+          AND status = 'active'
+          AND created_at >= ${sinceDate}
+        GROUP BY tag
+        ORDER BY count DESC
+        LIMIT ${limit}
+      `;
+    } else {
+      rows = await this.prisma.$queryRaw<Array<{ tag: string; count: bigint }>>`
+        SELECT unnest(tags) as tag, COUNT(*) as count
+        FROM memories
+        WHERE org_id = ${orgId}
+          AND repo_id = ${repoId}
+          AND status = 'active'
+        GROUP BY tag
+        ORDER BY count DESC
+        LIMIT ${limit}
+      `;
+    }
+
+    return rows.map((r) => ({
+      tag: r.tag,
+      count: Number(r.count),
+    }));
+  }
 }

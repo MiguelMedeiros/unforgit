@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Check, Loader2, Plus, X } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { useState, useEffect, useRef } from "react";
+import { Copy, Check, Loader2, Plus, X, Users, GitBranch, Search } from "lucide-react";
+import { apiFetch, getApiBaseUrl, getToken } from "@/lib/api";
 import { toast } from "sonner";
 
 interface CreatedKey {
@@ -10,6 +10,20 @@ interface CreatedKey {
   key: string;
   name: string;
   orgId: string;
+  userId?: string;
+}
+
+interface User {
+  id: string;
+  githubLogin: string;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+interface RepoAccess {
+  orgId: string;
+  repoId: string;
+  permission: string;
 }
 
 interface CreateKeyDialogProps {
@@ -18,58 +32,110 @@ interface CreateKeyDialogProps {
   onCreated: () => void;
 }
 
-function parseRepoInput(input: string): { orgId: string; name: string } | null {
-  let cleaned = input.trim();
-
-  // Handle full GitHub URLs: https://github.com/org/repo(.git)
-  const urlMatch = cleaned.match(
-    /(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/.]+)/,
-  );
-  if (urlMatch) {
-    return { orgId: urlMatch[1], name: `${urlMatch[1]}/${urlMatch[2]}` };
-  }
-
-  // Handle SSH: git@github.com:org/repo.git
-  const sshMatch = cleaned.match(/git@github\.com:([^/]+)\/([^/.]+)/);
-  if (sshMatch) {
-    return { orgId: sshMatch[1], name: `${sshMatch[1]}/${sshMatch[2]}` };
-  }
-
-  // Handle org/repo format
-  cleaned = cleaned.replace(/\.git$/, "");
-  const parts = cleaned.split("/");
-  if (parts.length === 2 && parts[0] && parts[1]) {
-    return { orgId: parts[0], name: `${parts[0]}/${parts[1]}` };
-  }
-
-  return null;
-}
-
 export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogProps) {
-  const [repo, setRepo] = useState("");
+  const [repoSearch, setRepoSearch] = useState("");
+  const [selectedRepo, setSelectedRepo] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [repos, setRepos] = useState<RepoAccess[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const parsed = repo ? parseRepoInput(repo) : null;
+  const filteredRepos = repos.filter((repo) => {
+    const fullName = `${repo.orgId}/${repo.repoId}`.toLowerCase();
+    const search = repoSearch.toLowerCase();
+    return fullName.includes(search);
+  });
+
+  const parsed = selectedRepo ? (() => {
+    const parts = selectedRepo.split("/");
+    if (parts.length === 2) {
+      return { orgId: parts[0], name: selectedRepo, repoId: parts[1] };
+    }
+    return null;
+  })() : null;
+
+  useEffect(() => {
+    if (open) {
+      setLoadingUsers(true);
+      setLoadingRepos(true);
+      
+      apiFetch<{ users: User[] }>("/api/users")
+        .then((data) => setUsers(data.users))
+        .catch(() => setUsers([]))
+        .finally(() => setLoadingUsers(false));
+
+      const token = getToken();
+      if (token) {
+        fetch(`${getApiBaseUrl()}/v1/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.repos) {
+              setRepos(data.repos);
+            }
+          })
+          .catch(() => setRepos([]))
+          .finally(() => setLoadingRepos(false));
+      } else {
+        setLoadingRepos(false);
+      }
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node) &&
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (!parsed) {
-      setError("Invalid repository format. Use owner/repo or a GitHub URL.");
+      setError("Please select a repository.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const data = await apiFetch<CreatedKey>("/api/keys", {
-        method: "POST",
-        body: JSON.stringify({ name: parsed.name, orgId: parsed.orgId }),
-      });
+      let data: CreatedKey;
+      if (selectedUserId) {
+        data = await apiFetch<CreatedKey>(`/api/users/${selectedUserId}/api-keys`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: parsed.name,
+            orgId: parsed.orgId,
+            repoId: parsed.repoId,
+          }),
+        });
+      } else {
+        data = await apiFetch<CreatedKey>("/api/keys", {
+          method: "POST",
+          body: JSON.stringify({ name: parsed.name, orgId: parsed.orgId }),
+        });
+      }
       setCreatedKey(data);
       onCreated();
       toast.success("API key created successfully");
@@ -87,11 +153,52 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSelectRepo = (repo: RepoAccess) => {
+    const fullName = `${repo.orgId}/${repo.repoId}`;
+    setSelectedRepo(fullName);
+    setRepoSearch(fullName);
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    setError("");
+  };
+
+  const handleRepoInputChange = (value: string) => {
+    setRepoSearch(value);
+    setSelectedRepo("");
+    setShowSuggestions(true);
+    setHighlightedIndex(-1);
+    setError("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || filteredRepos.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => 
+        prev < filteredRepos.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      handleSelectRepo(filteredRepos[highlightedIndex]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+    }
+  };
+
   const handleClose = () => {
-    setRepo("");
+    setRepoSearch("");
+    setSelectedRepo("");
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
     setError("");
     setCreatedKey(null);
     setCopied(false);
+    setSelectedUserId("");
     onClose();
   };
 
@@ -160,21 +267,98 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
               <label htmlFor="key-repo" className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
                 Repository
               </label>
-              <input
-                id="key-repo"
-                type="text"
-                value={repo}
-                onChange={(e) => { setRepo(e.target.value); setError(""); }}
-                placeholder="https://github.com/org/repo or org/repo"
-                autoFocus
-                required
-                className="w-full rounded-xl border border-border/50 bg-white/[0.04] px-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
-              />
-              {parsed && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  ref={inputRef}
+                  id="key-repo"
+                  type="text"
+                  value={repoSearch}
+                  onChange={(e) => handleRepoInputChange(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={loadingRepos ? "Loading repositories..." : "Search repositories..."}
+                  autoComplete="off"
+                  autoFocus
+                  className="w-full rounded-xl border border-border/50 bg-white/[0.04] pl-10 pr-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
+                  disabled={loadingRepos}
+                />
+                {showSuggestions && !loadingRepos && filteredRepos.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-border/50 bg-dracula-current shadow-lg"
+                  >
+                    {filteredRepos.map((repo, index) => {
+                      const fullName = `${repo.orgId}/${repo.repoId}`;
+                      const isHighlighted = index === highlightedIndex;
+                      return (
+                        <button
+                          key={fullName}
+                          type="button"
+                          onClick={() => handleSelectRepo(repo)}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-[14px] transition-colors ${
+                            isHighlighted ? "bg-white/10" : "hover:bg-white/5"
+                          } ${index === 0 ? "rounded-t-xl" : ""} ${
+                            index === filteredRepos.length - 1 ? "rounded-b-xl" : ""
+                          }`}
+                        >
+                          <GitBranch className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-foreground truncate">{fullName}</span>
+                          <span className="ml-auto text-[11px] text-muted-foreground capitalize">
+                            {repo.permission}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {showSuggestions && !loadingRepos && repoSearch && filteredRepos.length === 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-xl border border-border/50 bg-dracula-current shadow-lg p-3">
+                    <p className="text-[13px] text-muted-foreground text-center">
+                      No repositories match "{repoSearch}"
+                    </p>
+                  </div>
+                )}
+              </div>
+              {selectedRepo && (
                 <p className="mt-1.5 text-[12px] text-muted-foreground">
-                  Key for <span className="text-foreground font-medium">{parsed.name}</span>
+                  Key will be created for <span className="text-foreground font-medium">{selectedRepo}</span>
                 </p>
               )}
+              {repos.length === 0 && !loadingRepos && !repoSearch && (
+                <p className="mt-1.5 text-[12px] text-muted-foreground">
+                  No repositories found. Make sure you have access to repositories on GitHub.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="key-user" className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
+                Assign to User (optional)
+              </label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <select
+                  id="key-user"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-border/50 bg-white/[0.04] pl-10 pr-3 py-2.5 text-[14px] text-foreground focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
+                  disabled={loadingUsers}
+                >
+                  <option value="">No user (legacy key)</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.githubLogin}{user.name ? ` (${user.name})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                {selectedUserId
+                  ? "Key will be linked to this user"
+                  : "Leave empty for a standalone key"}
+              </p>
             </div>
 
             {error && (
@@ -193,7 +377,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
               </button>
               <button
                 type="submit"
-                disabled={loading || !repo}
+                disabled={loading || !selectedRepo}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-[13px] font-medium text-foreground transition-all hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (

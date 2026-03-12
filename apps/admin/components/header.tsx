@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getToken, clearToken } from "@/lib/api";
+import { getToken, clearToken, getUser, type User } from "@/lib/api";
 
 const navItems = [
   { href: "/keys", label: "api keys" },
+  { href: "/users", label: "users" },
+  { href: "/repos", label: "repos" },
 ];
 
 export function Header() {
@@ -16,6 +19,7 @@ export function Header() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -23,6 +27,7 @@ export function Header() {
 
   useEffect(() => {
     setIsAuthenticated(!!getToken());
+    setUser(getUser());
   }, [pathname]);
 
   const handleLogout = () => {
@@ -67,6 +72,16 @@ export function Header() {
                   );
                 })}
               </nav>
+              {user && user.avatarUrl && (
+                <Image
+                  src={user.avatarUrl}
+                  alt={user.githubLogin}
+                  title={user.githubLogin}
+                  width={28}
+                  height={28}
+                  className="rounded-full"
+                />
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-sm text-foreground/50 transition-colors hover:text-foreground"

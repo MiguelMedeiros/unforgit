@@ -27,6 +27,11 @@ services:
       PORT: "3737"
       HOST: "0.0.0.0"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-change-me}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-}"
+      GITHUB_CALLBACK_URL: "${GITHUB_CALLBACK_URL:-http://localhost:3737/v1/auth/github/callback}"
+      ADMIN_DASHBOARD_URL: "${ADMIN_DASHBOARD_URL:-http://localhost:3939}"
+      JWT_SECRET: "${JWT_SECRET:-${ADMIN_PASSWORD:-change-me}}"
     depends_on:
       postgres:
         condition: service_healthy

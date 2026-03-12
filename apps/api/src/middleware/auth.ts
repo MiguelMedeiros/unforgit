@@ -12,13 +12,16 @@ declare module "fastify" {
 }
 
 const PUBLIC_ROUTES = ["/health"];
+const PUBLIC_PREFIXES = ["/v1/admin", "/v1/auth"];
 
 export function createAuthMiddleware(store: RemoteStore) {
   return async function authMiddleware(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
-    if (PUBLIC_ROUTES.includes(request.url) || request.url.startsWith("/v1/admin")) {
+    const urlPath = request.url.split("?")[0];
+    
+    if (PUBLIC_ROUTES.includes(urlPath) || PUBLIC_PREFIXES.some(prefix => urlPath.startsWith(prefix))) {
       return;
     }
 

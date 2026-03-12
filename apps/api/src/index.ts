@@ -14,6 +14,8 @@ import { autoConsolidateRoutes } from "./routes/auto-consolidate.js";
 import { suggestionsRoutes } from "./routes/suggestions.js";
 import { healthRoutes } from "./routes/health.js";
 import { adminRoutes } from "./routes/admin.js";
+import { authRoutes } from "./routes/auth.js";
+import { statsRoutes } from "./routes/stats.js";
 import { registerAuthMiddleware } from "./middleware/auth.js";
 import {
   isOpenAIConfigured,
@@ -65,7 +67,9 @@ export async function buildApp(connectionString: string) {
   await autoConsolidateRoutes(app, store);
   await suggestionsRoutes(app, store);
   await healthRoutes(app, store);
+  await statsRoutes(app, store);
   await app.register(adminRoutes, { store });
+  await app.register(authRoutes, { store });
 
   app.get("/health", async () => ({
     status: "ok",

@@ -102,11 +102,50 @@ model ApiKey {
   key        String    @unique
   name       String
   orgId      String    @map("org_id")
+  repoId     String?   @map("repo_id")
+  userId     String?   @map("user_id") @db.Uuid
+  createdBy  String?   @map("created_by") @db.Uuid
   isActive   Boolean   @default(true) @map("is_active")
   createdAt  DateTime  @default(now()) @map("created_at")
   lastUsedAt DateTime? @map("last_used_at")
 
+  user       User?     @relation(fields: [userId], references: [id])
+
   @@index([key])
   @@index([orgId])
+  @@index([userId])
   @@map("api_keys")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  githubId      Int       @unique @map("github_id")
+  githubLogin   String    @map("github_login")
+  name          String?
+  email         String?
+  avatarUrl     String?   @map("avatar_url")
+  isAdmin       Boolean   @default(false) @map("is_admin")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  apiKeys       ApiKey[]
+  repoAccess    UserRepoAccess[]
+
+  @@map("users")
+}
+
+model UserRepoAccess {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  orgId       String   @map("org_id")
+  repoId      String   @map("repo_id")
+  permission  String
+  grantedAt   DateTime @default(now()) @map("granted_at")
+  grantedBy   String?  @map("granted_by") @db.Uuid
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId, repoId])
+  @@index([orgId, repoId])
+  @@map("user_repo_access")
 }
