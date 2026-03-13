@@ -472,4 +472,85 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       return reply.send({ repos });
     },
   );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/memories",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const query = request.query as Record<string, string>;
+
+      const listQuery = {
+        orgId,
+        repoId,
+        types: query.types?.split(",").filter(Boolean),
+        status: query.status?.split(",").filter(Boolean),
+        tags: query.tags?.split(",").filter(Boolean),
+        search: query.search,
+        limit: query.limit ? parseInt(query.limit, 10) : 50,
+        offset: query.offset ? parseInt(query.offset, 10) : 0,
+        sortBy: query.sortBy ?? "createdAt",
+        sortOrder: query.sortOrder ?? "desc",
+      };
+
+      const memories = await store.list(listQuery);
+      const total = await store.count(listQuery);
+
+      return reply.send({ memories, total });
+    },
+  );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/stats",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const stats = await store.stats(orgId, repoId);
+
+      return reply.send({ stats });
+    },
+  );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/stats/activity",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const query = request.query as Record<string, string>;
+      const days = query.days ? parseInt(query.days, 10) : 365;
+
+      const [dailyCounts, hourlyCounts, weeklyTrend] = await Promise.all([
+        store.dailyCounts(orgId, repoId, days),
+        store.hourlyCounts(orgId, repoId),
+        store.weeklyTrend(orgId, repoId, 52),
+      ]);
+
+      return reply.send({ dailyCounts, hourlyCounts, weeklyTrend });
+    },
+  );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/stats/tags",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const query = request.query as Record<string, string>;
+      const limit = query.limit ? parseInt(query.limit, 10) : 20;
+
+      const tags = await store.topTags(orgId, repoId, limit);
+
+      return reply.send({ tags });
+    },
+  );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/links",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const links = await store.getAllLinks(orgId, repoId);
+
+      return reply.send({ links });
+    },
+  );
 };

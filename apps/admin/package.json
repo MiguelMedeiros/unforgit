@@ -8,6 +8,10 @@
     "start": "next start -p 3939"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
     "next": "^15.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

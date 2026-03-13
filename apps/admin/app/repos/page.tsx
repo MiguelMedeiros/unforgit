@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   FolderGit2,
@@ -12,6 +13,7 @@ import {
   Key,
   Eye,
   EyeOff,
+  ChevronRight,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { apiFetch } from "@/lib/api";
@@ -163,11 +165,14 @@ export default function ReposPage() {
                       repo.memoryCount === 0 ? "opacity-50" : ""
                     }`}
                   >
-                    <div className="flex items-center gap-4">
+                    <Link
+                      href={`/repos/${repo.orgId}/${repo.repoId}`}
+                      className="flex items-center gap-4 flex-1"
+                    >
                       <FolderGit2 className="h-5 w-5 text-foreground/50" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">
+                          <span className="font-mono font-medium group-hover:text-foreground transition-colors">
                             {repo.orgId}/{repo.repoId}
                           </span>
                           <a
@@ -175,12 +180,13 @@ export default function ReposPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-foreground/30 hover:text-foreground/70 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
                         </div>
                       </div>
-                    </div>
+                    </Link>
 
                     <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -192,12 +198,21 @@ export default function ReposPage() {
                         <span>{repo.userCount} users</span>
                       </div>
                       <button
-                        onClick={() => handleGenerateKey(repo)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGenerateKey(repo);
+                        }}
                         className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
                       >
                         <Key className="h-3.5 w-3.5" />
                         Generate Key
                       </button>
+                      <Link
+                        href={`/repos/${repo.orgId}/${repo.repoId}`}
+                        className="text-foreground/30 hover:text-foreground/70 transition-colors"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Link>
                     </div>
                   </div>
                 ))}
