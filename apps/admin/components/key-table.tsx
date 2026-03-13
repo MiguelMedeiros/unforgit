@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Loader2, Key } from "lucide-react";
+import { Trash2, Loader2, Key, User } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+
+interface ApiKeyUser {
+  id: string;
+  githubLogin: string;
+  name: string | null;
+}
 
 interface ApiKeyData {
   id: string;
@@ -13,6 +19,7 @@ interface ApiKeyData {
   isActive: boolean;
   createdAt: string;
   lastUsedAt: string | null;
+  user: ApiKeyUser | null;
 }
 
 interface KeyTableProps {
@@ -115,6 +122,22 @@ function KeyRow({ apiKey, onRefresh }: { apiKey: ApiKeyData; onRefresh: () => vo
         </button>
       </td>
       <td className="px-4 py-3.5">
+        {apiKey.user ? (
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.08]">
+              <User className="h-3 w-3 text-muted-foreground" />
+            </div>
+            <span className="text-[12px] text-foreground">
+              {apiKey.user.githubLogin}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[12px] text-muted-foreground/50 italic">
+            No user
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3.5">
         <span className="text-[12px] text-muted-foreground">
           {formatDate(apiKey.createdAt)}
         </span>
@@ -185,6 +208,9 @@ export function KeyTable({ keys, onRefresh }: KeyTableProps) {
             </th>
             <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
               Status
+            </th>
+            <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+              User
             </th>
             <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
               Created

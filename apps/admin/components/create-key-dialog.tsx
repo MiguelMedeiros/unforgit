@@ -283,7 +283,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
                   className="w-full rounded-xl border border-border/50 bg-white/[0.04] pl-10 pr-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-colors"
                   disabled={loadingRepos}
                 />
-                {showSuggestions && !loadingRepos && filteredRepos.length > 0 && (
+                {showSuggestions && !loadingRepos && repoSearch.trim() && filteredRepos.length > 0 && (
                   <div
                     ref={suggestionsRef}
                     className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-border/50 bg-dracula-current shadow-lg"

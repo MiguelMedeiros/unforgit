@@ -7,6 +7,12 @@ import { KeyTable } from "@/components/key-table";
 import { CreateKeyDialog } from "@/components/create-key-dialog";
 import { apiFetch } from "@/lib/api";
 
+interface ApiKeyUser {
+  id: string;
+  githubLogin: string;
+  name: string | null;
+}
+
 interface ApiKeyData {
   id: string;
   key: string;
@@ -15,6 +21,7 @@ interface ApiKeyData {
   isActive: boolean;
   createdAt: string;
   lastUsedAt: string | null;
+  user: ApiKeyUser | null;
 }
 
 export default function KeysPage() {

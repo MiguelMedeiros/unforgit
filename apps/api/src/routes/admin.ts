@@ -152,7 +152,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/admin/api-keys",
     { preHandler: adminAuthPreHandler },
     async (_request, reply) => {
-      const keys = await store.listApiKeys();
+      const keys = await store.listApiKeysWithUsers();
 
       return reply.send({
         keys: keys.map((k) => ({
@@ -163,6 +163,13 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           isActive: k.isActive,
           createdAt: k.createdAt.toISOString(),
           lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+          user: k.user
+            ? {
+                id: k.user.id,
+                githubLogin: k.user.githubLogin,
+                name: k.user.name,
+              }
+            : null,
         })),
       });
     },
