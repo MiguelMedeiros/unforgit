@@ -30,9 +30,10 @@ interface CreateKeyDialogProps {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  initialRepo?: string;
 }
 
-export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogProps) {
+export function CreateKeyDialog({ open, onClose, onCreated, initialRepo }: CreateKeyDialogProps) {
   const [repoSearch, setRepoSearch] = useState("");
   const [selectedRepo, setSelectedRepo] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -65,6 +66,11 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
 
   useEffect(() => {
     if (open) {
+      if (initialRepo) {
+        setSelectedRepo(initialRepo);
+        setRepoSearch(initialRepo);
+      }
+      
       setLoadingUsers(true);
       setLoadingRepos(true);
       
@@ -90,7 +96,7 @@ export function CreateKeyDialog({ open, onClose, onCreated }: CreateKeyDialogPro
         setLoadingRepos(false);
       }
     }
-  }, [open]);
+  }, [open, initialRepo]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -15,6 +15,9 @@ import {
   Check,
   Loader2,
   Shield,
+  Eye,
+  EyeOff,
+  Brain,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { apiFetch } from "@/lib/api";
@@ -24,6 +27,14 @@ interface RepoAccess {
   repoId: string;
   permission: string;
   grantedAt: string;
+  memoryCount?: number;
+}
+
+interface RepoWithMemories {
+  orgId: string;
+  repoId: string;
+  userCount: number;
+  memoryCount: number;
 }
 
 interface ApiKey {
@@ -73,33 +84,37 @@ export default function UserDetailPage({
   });
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showAllRepos, setShowAllRepos] = useState(false);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<UserDetail>(`/api/users/${id}`);
-      setUser(data);
+      const [userData, reposData] = await Promise.all([
+        apiFetch<UserDetail>(`/api/users/${id}`),
+        apiFetch<{ repos: RepoWithMemories[] }>("/api/repos"),
+      ]);
+
+      const memoryMap = new Map<string, number>();
+      for (const repo of reposData.repos) {
+        memoryMap.set(`${repo.orgId}/${repo.repoId}`, repo.memoryCount);
+      }
+
+      const enrichedRepos = userData.repos.map((repo) => ({
+        ...repo,
+        memoryCount: memoryMap.get(`${repo.orgId}/${repo.repoId}`) ?? 0,
+      }));
+
+      setUser({ ...userData, repos: enrichedRepos });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load user");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    const loadUser = async () => {
-      setLoading(true);
-      try {
-        const data = await apiFetch<UserDetail>(`/api/users/${id}`);
-        setUser(data);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to load user");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUser();
-  }, [id]);
+    fetchUser();
+  }, [fetchUser]);
 
   const createApiKey = async () => {
     if (!newKeyData.name || !newKeyData.orgId) {
@@ -227,37 +242,84 @@ export default function UserDetailPage({
         <div className="flex-1 overflow-auto p-6 space-y-6">
           {/* Repos */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <FolderGit2 className="h-4 w-4 text-foreground/70" />
-              <h2 className="text-sm font-medium">Repository Access</h2>
-              <span className="text-xs text-muted-foreground">
-                ({user.repos.length})
-              </span>
-            </div>
-            {user.repos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No repository access yet
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {user.repos.map((repo) => (
-                  <div
-                    key={`${repo.orgId}/${repo.repoId}`}
-                    className="flex items-center justify-between rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FolderGit2 className="h-4 w-4 text-foreground/50" />
-                      <span className="font-mono text-sm">
-                        {repo.orgId}/{repo.repoId}
+            {(() => {
+              const reposWithMemories = user.repos.filter((r) => (r.memoryCount ?? 0) > 0);
+              const reposWithoutMemories = user.repos.filter((r) => (r.memoryCount ?? 0) === 0);
+              const displayedRepos = showAllRepos ? user.repos : reposWithMemories;
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FolderGit2 className="h-4 w-4 text-foreground/70" />
+                      <h2 className="text-sm font-medium">Repositories with Memories</h2>
+                      <span className="text-xs text-muted-foreground">
+                        ({reposWithMemories.length})
                       </span>
+                      {reposWithoutMemories.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          ({reposWithoutMemories.length} without memories)
+                        </span>
+                      )}
                     </div>
-                    <span className="rounded bg-foreground/10 px-2 py-0.5 text-xs">
-                      {repo.permission}
-                    </span>
+                    {reposWithoutMemories.length > 0 && (
+                      <button
+                        onClick={() => setShowAllRepos(!showAllRepos)}
+                        className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                      >
+                        {showAllRepos ? (
+                          <>
+                            <EyeOff className="h-3.5 w-3.5" />
+                            Hide empty
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-3.5 w-3.5" />
+                            Show all
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                  {displayedRepos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {reposWithMemories.length === 0
+                        ? "No repositories with memories yet"
+                        : "No repositories to display"}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {displayedRepos
+                        .sort((a, b) => (b.memoryCount ?? 0) - (a.memoryCount ?? 0))
+                        .map((repo) => (
+                          <div
+                            key={`${repo.orgId}/${repo.repoId}`}
+                            className={`flex items-center justify-between rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3 ${
+                              (repo.memoryCount ?? 0) === 0 ? "opacity-50" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <FolderGit2 className="h-4 w-4 text-foreground/50" />
+                              <span className="font-mono text-sm">
+                                {repo.orgId}/{repo.repoId}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Brain className="h-3.5 w-3.5" />
+                                <span>{(repo.memoryCount ?? 0).toLocaleString()}</span>
+                              </div>
+                              <span className="rounded bg-foreground/10 px-2 py-0.5 text-xs">
+                                {repo.permission}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </section>
 
           {/* API Keys */}
