@@ -5,6 +5,12 @@ import type {
 } from "fastify";
 import { SignJWT, jwtVerify } from "jose";
 import { RemoteStore } from "@unforgit/db";
+import {
+  isOpenAIConfigured,
+  findConsolidationCandidatesRemote,
+  executeConsolidationRemote,
+  type ConsolidationCandidate,
+} from "@unforgit/core";
 import { verifyUserToken } from "./auth.js";
 
 interface LoginBody {
@@ -551,6 +557,194 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       const links = await store.getAllLinks(orgId, repoId);
 
       return reply.send({ links });
+    },
+  );
+
+  app.post<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/consolidation/candidates",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const body = request.body as Record<string, unknown>;
+
+      const threshold = typeof body.threshold === "number" ? body.threshold : 0.6;
+      const maxGroups = typeof body.maxGroups === "number" ? body.maxGroups : 10;
+      const minGroupSize = typeof body.minGroupSize === "number" ? body.minGroupSize : 2;
+
+      try {
+        const result = await findConsolidationCandidatesRemote(
+          store,
+          orgId,
+          repoId,
+          {
+            threshold,
+            maxGroups,
+            minGroupSize,
+            excludeConsolidations: true,
+          }
+        );
+
+        const candidatesFormatted = result.candidates.map((c) => ({
+          memories: c.memories.map((m) => ({
+            id: m.id,
+            memoryType: m.memoryType,
+            text: m.text,
+            tags: m.tags,
+            createdAt: m.createdAt,
+          })),
+          reason: c.reason,
+          suggestedTags: c.suggestedTags,
+          averageScore: c.averageScore,
+        }));
+
+        return reply.send({
+          candidates: candidatesFormatted,
+          totalMemoriesScanned: result.totalMemoriesScanned,
+          totalCandidateGroups: result.totalCandidateGroups,
+        });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Failed to find consolidation candidates",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  app.post<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/consolidation/execute",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      if (!isOpenAIConfigured()) {
+        return reply.status(503).send({
+          error: "OpenAI API key not configured on server",
+          hint: "Set OPENAI_API_KEY environment variable for LLM-powered consolidation",
+        });
+      }
+
+      const { orgId, repoId } = request.params;
+      const body = request.body as Record<string, unknown>;
+      const sourceIds = body.sourceIds as string[] | undefined;
+      const model = body.model as string | undefined;
+
+      if (!sourceIds || !Array.isArray(sourceIds) || sourceIds.length < 2) {
+        return reply.status(400).send({
+          error: "sourceIds must be an array with at least 2 IDs",
+        });
+      }
+
+      const memories = [];
+      for (const id of sourceIds) {
+        const memory = await store.getById(id);
+        if (!memory) {
+          return reply.status(404).send({ error: `Memory not found: ${id}` });
+        }
+        memories.push(memory);
+      }
+
+      const allTags = new Set<string>();
+      for (const m of memories) {
+        for (const tag of m.tags) {
+          allTags.add(tag);
+        }
+      }
+
+      const candidate: ConsolidationCandidate = {
+        memories,
+        reason: `Manual consolidation of ${memories.length} memories`,
+        suggestedTags: Array.from(allTags),
+        averageScore: 1.0,
+      };
+
+      try {
+        const result = await executeConsolidationRemote(
+          store,
+          candidate,
+          orgId,
+          repoId,
+          {
+            model: model ?? process.env.CONSOLIDATION_MODEL,
+            preserveOriginals: true,
+          }
+        );
+
+        return reply.send({
+          consolidatedId: result.consolidatedId,
+          sourceIds: result.sourceIds,
+          generatedText: result.generatedText,
+          suggestedTags: result.suggestedTags,
+          memoryType: result.memoryType,
+        });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Consolidation execution failed",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  app.get<{ Params: { orgId: string; repoId: string } }>(
+    "/v1/admin/repos/:orgId/:repoId/consolidation/history",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+
+      try {
+        const memories = await store.list({
+          orgId,
+          repoId,
+          limit: 1000,
+          offset: 0,
+        });
+
+        const consolidations = memories.filter((m) => {
+          const sourceRefs = m.sourceRefs as Record<string, unknown> | undefined;
+          return sourceRefs && (
+            sourceRefs.consolidated_from ||
+            sourceRefs.consolidatedFrom ||
+            (Array.isArray(sourceRefs.source_ids) && sourceRefs.source_ids.length > 0)
+          );
+        });
+
+        const formattedConsolidations = consolidations.map((m) => {
+          const sourceRefs = m.sourceRefs as Record<string, unknown>;
+          let sourceIds: string[] = [];
+          
+          if (Array.isArray(sourceRefs.consolidated_from)) {
+            sourceIds = sourceRefs.consolidated_from as string[];
+          } else if (Array.isArray(sourceRefs.consolidatedFrom)) {
+            sourceIds = sourceRefs.consolidatedFrom as string[];
+          } else if (Array.isArray(sourceRefs.source_ids)) {
+            sourceIds = sourceRefs.source_ids as string[];
+          }
+
+          return {
+            id: m.id,
+            text: m.text,
+            memoryType: m.memoryType,
+            tags: m.tags,
+            status: m.status,
+            consolidationVersion: 1,
+            createdAt: m.createdAt,
+            sourceCount: sourceIds.length,
+            sourceIds,
+          };
+        });
+
+        formattedConsolidations.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        return reply.send({
+          consolidations: formattedConsolidations,
+        });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Failed to fetch consolidation history",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
     },
   );
 };
