@@ -182,26 +182,23 @@ export default function RepoKeysPage({
                 Back to Repository
               </Link>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Key className="h-6 w-6 text-foreground/70" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-[28px] font-bold tracking-tight">
-                        API Keys
-                      </h1>
-                      <a
-                        href={`https://github.com/${org}/${repo}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground/30 hover:text-foreground/70 transition-colors"
-                      >
-                        <ExternalLink className="h-5 w-5" />
-                      </a>
-                    </div>
-                    <p className="text-[13px] text-muted-foreground">
-                      <span className="font-mono">{org}/{repo}</span> · Manage API keys for this repository
-                    </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-[28px] font-bold tracking-tight">
+                      API Keys
+                    </h1>
+                    <a
+                      href={`https://github.com/${org}/${repo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground/30 hover:text-foreground/70 transition-colors"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </a>
                   </div>
+                  <p className="text-[13px] text-muted-foreground">
+                    <span className="font-mono">{org}/{repo}</span> · Manage API keys for this repository
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

@@ -100,14 +100,11 @@ export default function UsersPage() {
           <div className="animate-fade-in space-y-8">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Users className="h-6 w-6 text-foreground/70" />
-                <div>
-                  <h1 className="text-[28px] font-bold tracking-tight">Users</h1>
-                  <p className="text-[13px] text-muted-foreground">
-                    {users.length} users · {adminCount} admins
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-[28px] font-bold tracking-tight">Users</h1>
+                <p className="text-[13px] text-muted-foreground">
+                  {users.length} users · {adminCount} admins
+                </p>
               </div>
               <button
                 onClick={fetchUsers}

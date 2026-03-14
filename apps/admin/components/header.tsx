@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getToken, clearToken, getUser, type User } from "@/lib/api";
 
@@ -72,14 +72,19 @@ export function Header() {
                 })}
               </nav>
               {user && user.avatarUrl && (
-                <Image
-                  src={user.avatarUrl}
-                  alt={user.githubLogin}
-                  title={user.githubLogin}
-                  width={28}
-                  height={28}
-                  className="rounded-full"
-                />
+                <Link
+                  href="/settings"
+                  className="rounded-full ring-2 ring-transparent transition-all hover:ring-foreground/30"
+                  title="Settings"
+                >
+                  <Image
+                    src={user.avatarUrl}
+                    alt={user.githubLogin}
+                    width={28}
+                    height={28}
+                    className="rounded-full"
+                  />
+                </Link>
               )}
               <button
                 onClick={handleLogout}
@@ -124,6 +129,18 @@ export function Header() {
               </Link>
             );
           })}
+          <Link
+            href="/settings"
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              pathname === "/settings"
+                ? "text-foreground bg-white/10"
+                : "text-foreground/50 hover:text-foreground hover:bg-white/5"
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            settings
+          </Link>
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-foreground/50 transition-colors hover:text-foreground hover:bg-white/5"

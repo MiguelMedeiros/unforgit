@@ -206,26 +206,23 @@ export default function RepoDetailPage({
                 Back to Repositories
               </Link>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <FolderGit2 className="h-6 w-6 text-foreground/70" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-[28px] font-bold tracking-tight font-mono">
-                        {org}/{repo}
-                      </h1>
-                      <a
-                        href={`https://github.com/${org}/${repo}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground/30 hover:text-foreground/70 transition-colors"
-                      >
-                        <ExternalLink className="h-5 w-5" />
-                      </a>
-                    </div>
-                    <p className="text-[13px] text-muted-foreground">
-                      Repository memory dashboard
-                    </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-[28px] font-bold tracking-tight font-mono">
+                      {org}/{repo}
+                    </h1>
+                    <a
+                      href={`https://github.com/${org}/${repo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground/30 hover:text-foreground/70 transition-colors"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </a>
                   </div>
+                  <p className="text-[13px] text-muted-foreground">
+                    Repository memory dashboard
+                  </p>
                 </div>
                 {viewMode === "dashboard" && (
                   <button

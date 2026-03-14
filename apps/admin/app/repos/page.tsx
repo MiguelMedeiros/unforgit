@@ -73,15 +73,12 @@ export default function ReposPage() {
           <div className="animate-fade-in space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FolderGit2 className="h-6 w-6 text-foreground/70" />
-                <div>
-                  <h1 className="text-[28px] font-bold tracking-tight">Repositories</h1>
-                  <p className="text-[13px] text-muted-foreground">
-                    {reposWithMemories.length} with memories
-                    {reposWithoutMemories.length > 0 && ` · ${reposWithoutMemories.length} without memories`}
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-[28px] font-bold tracking-tight">Repositories</h1>
+                <p className="text-[13px] text-muted-foreground">
+                  {reposWithMemories.length} with memories
+                  {reposWithoutMemories.length > 0 && ` · ${reposWithoutMemories.length} without memories`}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 {reposWithoutMemories.length > 0 && (

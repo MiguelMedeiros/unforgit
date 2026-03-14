@@ -305,4 +305,46 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app.post("/v1/auth/logout", async (_request, reply) => {
     return reply.send({ success: true });
   });
+
+  app.delete("/v1/auth/delete-account", async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Missing Authorization header",
+      });
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid Authorization header format",
+      });
+    }
+
+    const payload = await verifyUserToken(token);
+
+    if (!payload) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+    }
+
+    const user = await store.getUserById(payload.id);
+
+    if (!user) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "User not found",
+      });
+    }
+
+    await store.deleteUser(user.id);
+
+    return reply.send({ success: true, message: "Account deleted successfully" });
+  });
 };
