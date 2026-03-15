@@ -34,9 +34,9 @@ interface CallbackQuery {
 }
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
+  const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error("JWT_SECRET or ADMIN_PASSWORD environment variable is required");
+    throw new Error("JWT_SECRET environment variable is required");
   }
   return new TextEncoder().encode(secret);
 }
@@ -304,6 +304,256 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post("/v1/auth/logout", async (_request, reply) => {
     return reply.send({ success: true });
+  });
+
+  app.get("/v1/auth/me/keys", async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Missing Authorization header",
+      });
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid Authorization header format",
+      });
+    }
+
+    const payload = await verifyUserToken(token);
+
+    if (!payload) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+    }
+
+    const apiKeys = await store.getUserApiKeys(payload.id);
+
+    return reply.send({
+      keys: apiKeys.map((k) => ({
+        id: k.id,
+        key: `${k.key.slice(0, 7)}${"*".repeat(8)}${k.key.slice(-8)}`,
+        name: k.name,
+        label: k.label,
+        orgId: k.orgId,
+        repoId: k.repoId,
+        isActive: k.isActive,
+        createdAt: k.createdAt.toISOString(),
+        lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+      })),
+    });
+  });
+
+  app.post<{
+    Body: {
+      name: string;
+      orgId: string;
+      repoId?: string;
+      label?: string;
+    };
+  }>("/v1/auth/me/keys", async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Missing Authorization header",
+      });
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid Authorization header format",
+      });
+    }
+
+    const payload = await verifyUserToken(token);
+
+    if (!payload) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+    }
+
+    const { name, orgId, repoId, label } = request.body;
+
+    if (!name || !orgId) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "name and orgId are required",
+      });
+    }
+
+    const apiKey = await store.createApiKeyForUser(
+      name,
+      orgId,
+      repoId ?? null,
+      payload.id,
+      payload.id,
+      label
+    );
+
+    return reply.status(201).send({
+      id: apiKey.id,
+      key: apiKey.key,
+      name: apiKey.name,
+      label: apiKey.label,
+      orgId: apiKey.orgId,
+      repoId: apiKey.repoId,
+    });
+  });
+
+  app.get<{
+    Querystring: {
+      operation?: string;
+      since?: string;
+      until?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>("/v1/auth/me/logs", async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Missing Authorization header",
+      });
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid Authorization header format",
+      });
+    }
+
+    const payload = await verifyUserToken(token);
+
+    if (!payload) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+    }
+
+    const userApiKeys = await store.getUserApiKeys(payload.id);
+    const apiKeyIds = userApiKeys.map((k) => k.id);
+
+    if (apiKeyIds.length === 0) {
+      return reply.send({ logs: [], total: 0 });
+    }
+
+    const query = request.query;
+    const filters = {
+      apiKeyIds,
+      operation: query.operation,
+      since: query.since ? new Date(query.since) : undefined,
+      until: query.until ? new Date(query.until) : undefined,
+      limit: query.limit ? parseInt(query.limit, 10) : 100,
+      offset: query.offset ? parseInt(query.offset, 10) : 0,
+    };
+
+    try {
+      const [logs, total] = await Promise.all([
+        store.getApiKeyLogs(filters),
+        store.countApiKeyLogs(filters),
+      ]);
+
+      return reply.send({ logs, total });
+    } catch (error) {
+      return reply.status(500).send({
+        error: "Failed to fetch logs",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  app.get<{
+    Params: { orgId: string; repoId: string };
+    Querystring: {
+      operation?: string;
+      since?: string;
+      until?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>("/v1/auth/me/logs/repo/:orgId/:repoId", async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Missing Authorization header",
+      });
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+
+    if (scheme?.toLowerCase() !== "bearer" || !token) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid Authorization header format",
+      });
+    }
+
+    const payload = await verifyUserToken(token);
+
+    if (!payload) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or expired token",
+      });
+    }
+
+    const { orgId, repoId } = request.params;
+    const userApiKeys = await store.getUserApiKeys(payload.id);
+    const apiKeyIds = userApiKeys
+      .filter((k) => k.orgId === orgId && k.repoId === repoId)
+      .map((k) => k.id);
+
+    if (apiKeyIds.length === 0) {
+      return reply.send({ logs: [], total: 0 });
+    }
+
+    const query = request.query;
+    const filters = {
+      apiKeyIds,
+      orgId,
+      repoId,
+      operation: query.operation,
+      since: query.since ? new Date(query.since) : undefined,
+      until: query.until ? new Date(query.until) : undefined,
+      limit: query.limit ? parseInt(query.limit, 10) : 100,
+      offset: query.offset ? parseInt(query.offset, 10) : 0,
+    };
+
+    try {
+      const [logs, total] = await Promise.all([
+        store.getApiKeyLogs(filters),
+        store.countApiKeyLogs(filters),
+      ]);
+
+      return reply.send({ logs, total });
+    } catch (error) {
+      return reply.status(500).send({
+        error: "Failed to fetch logs",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 
   app.delete("/v1/auth/delete-account", async (request, reply) => {

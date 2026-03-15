@@ -213,6 +213,8 @@ export class WebLocalStore {
   store(input: CreateMemoryInput): Memory {
     const id = uuid();
     const now = new Date().toISOString();
+    const normalizedOrgId = input.orgId.toLowerCase();
+    const normalizedRepoId = input.repoId.toLowerCase();
     const visibility =
       input.visibility === "auto" || !input.visibility
         ? "private"
@@ -226,8 +228,8 @@ export class WebLocalStore {
       )
       .run(
         id,
-        input.orgId,
-        input.repoId,
+        normalizedOrgId,
+        normalizedRepoId,
         input.memoryType,
         visibility,
         input.text,
@@ -719,6 +721,8 @@ export class WebLocalStore {
   upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
     const existing = this.getById(memory.id);
     const now = new Date().toISOString();
+    const normalizedOrgId = memory.orgId.toLowerCase();
+    const normalizedRepoId = memory.repoId.toLowerCase();
 
     if (!existing) {
       this.db
@@ -729,8 +733,8 @@ export class WebLocalStore {
         )
         .run(
           memory.id,
-          memory.orgId,
-          memory.repoId,
+          normalizedOrgId,
+          normalizedRepoId,
           memory.scopeType ?? "repo",
           memory.memoryType,
           memory.visibility,
@@ -960,7 +964,9 @@ export class WebLocalStore {
     tags?: string[];
     preserveOriginals?: boolean;
   }): { consolidatedId: string; version: number; sourcesPreserved: number; sourceIds: string[] } {
-    const { orgId, repoId, sourceIds, consolidatedText, preserveOriginals = true } = input;
+    const { sourceIds, consolidatedText, preserveOriginals = true } = input;
+    const orgId = input.orgId.toLowerCase();
+    const repoId = input.repoId.toLowerCase();
 
     if (sourceIds.length < 2) {
       throw new Error("At least 2 source memories are required for consolidation");

@@ -26,12 +26,14 @@ services:
       DATABASE_URL: postgresql://unforgit:unforgit@postgres:5432/unforgit
       PORT: "3737"
       HOST: "0.0.0.0"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-change-me}"
+      ADMIN_GITHUB_IDS: "${ADMIN_GITHUB_IDS:-}"
       GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
       GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-}"
       GITHUB_CALLBACK_URL: "${GITHUB_CALLBACK_URL:-http://localhost:3737/v1/auth/github/callback}"
       ADMIN_DASHBOARD_URL: "${ADMIN_DASHBOARD_URL:-http://localhost:3939}"
-      JWT_SECRET: "${JWT_SECRET:-${ADMIN_PASSWORD:-change-me}}"
+      JWT_SECRET: "${JWT_SECRET:-change-me-to-secure-secret}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      CONSOLIDATION_MODEL: "${CONSOLIDATION_MODEL:-gpt-4o}"
     depends_on:
       postgres:
         condition: service_healthy

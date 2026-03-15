@@ -319,6 +319,8 @@ export class LocalStore {
     const resolvedInput = applyLifecycleDefaults(input);
     const id = uuid();
     const now = new Date().toISOString();
+    const normalizedOrgId = resolvedInput.orgId.toLowerCase();
+    const normalizedRepoId = resolvedInput.repoId.toLowerCase();
     const visibility =
       resolvedInput.visibility === "auto" || !resolvedInput.visibility
         ? "private"
@@ -332,8 +334,8 @@ export class LocalStore {
       )
       .run(
         id,
-        resolvedInput.orgId,
-        resolvedInput.repoId,
+        normalizedOrgId,
+        normalizedRepoId,
         resolvedInput.memoryType,
         visibility,
         resolvedInput.text,
@@ -843,7 +845,9 @@ export class LocalStore {
   }
 
   consolidateMemories(input: ConsolidateMemoriesInput): ConsolidateMemoriesResult {
-    const { orgId, repoId, sourceIds, consolidatedText, memoryType, tags, preserveOriginals = true } = input;
+    const { sourceIds, consolidatedText, memoryType, tags, preserveOriginals = true } = input;
+    const orgId = input.orgId.toLowerCase();
+    const repoId = input.repoId.toLowerCase();
 
     if (sourceIds.length < 2) {
       throw new Error("At least 2 source memories are required for consolidation");
@@ -921,7 +925,9 @@ export class LocalStore {
   }
 
   reconsolidate(input: ReconsolidateInput): ConsolidateMemoriesResult {
-    const { orgId, repoId, existingConsolidationId, additionalSourceIds = [], newText, tags } = input;
+    const { existingConsolidationId, additionalSourceIds = [], newText, tags } = input;
+    const orgId = input.orgId.toLowerCase();
+    const repoId = input.repoId.toLowerCase();
 
     const existing = this.getById(existingConsolidationId);
     if (!existing) {
@@ -1252,6 +1258,8 @@ export class LocalStore {
   upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
     const existing = this.getById(memory.id);
     const now = new Date().toISOString();
+    const normalizedOrgId = memory.orgId.toLowerCase();
+    const normalizedRepoId = memory.repoId.toLowerCase();
 
     if (!existing) {
       this.db
@@ -1262,8 +1270,8 @@ export class LocalStore {
         )
         .run(
           memory.id,
-          memory.orgId,
-          memory.repoId,
+          normalizedOrgId,
+          normalizedRepoId,
           memory.scopeType ?? "repo",
           memory.memoryType,
           memory.visibility,

@@ -38,6 +38,22 @@ export async function recallRoutes(
     ).catch(() => {});
     scheduleLifecycle?.(query.orgId, query.repoId);
 
+    if (request.apiKey) {
+      store.createApiKeyLog({
+        apiKeyId: request.apiKey.id,
+        operation: "recall",
+        orgId: query.orgId,
+        repoId: query.repoId,
+        query: query.query,
+        metadata: {
+          resultsCount: results.length,
+          searchType: queryEmbedding ? "hybrid" : "fts",
+        },
+      }).catch((err) => {
+        request.log.error("Failed to log API key usage:", err);
+      });
+    }
+
     return reply.send({
       results,
       searchType: queryEmbedding ? "hybrid" : "fts",

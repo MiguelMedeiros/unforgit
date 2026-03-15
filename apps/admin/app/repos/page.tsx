@@ -5,7 +5,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   FolderGit2,
-  Users,
   Brain,
   Loader2,
   RefreshCw,
@@ -22,7 +21,7 @@ import { CreateKeyDialog } from "@/components/create-key-dialog";
 interface Repo {
   orgId: string;
   repoId: string;
-  userCount: number;
+  keyCount: number;
   memoryCount: number;
 }
 
@@ -54,7 +53,7 @@ export default function ReposPage() {
   const displayedRepos = showAllRepos ? repos : reposWithMemories;
 
   const totalMemories = repos.reduce((sum, r) => sum + r.memoryCount, 0);
-  const totalUsers = new Set(repos.flatMap((r) => r.userCount)).size;
+  const totalKeys = repos.reduce((sum, r) => sum + r.keyCount, 0);
 
   const handleGenerateKey = (repo: Repo) => {
     setSelectedRepoForKey(`${repo.orgId}/${repo.repoId}`);
@@ -69,13 +68,13 @@ export default function ReposPage() {
   return (
     <AuthGuard>
       <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-8 py-10">
-          <div className="animate-fade-in space-y-6">
+        <div className="mx-auto max-w-5xl px-4 sm:px-8 py-6 sm:py-10">
+          <div className="animate-fade-in space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-[28px] font-bold tracking-tight">Repositories</h1>
-                <p className="text-[13px] text-muted-foreground">
+                <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight">Repositories</h1>
+                <p className="text-[12px] sm:text-[13px] text-muted-foreground">
                   {reposWithMemories.length} with memories
                   {reposWithoutMemories.length > 0 && ` · ${reposWithoutMemories.length} without memories`}
                 </p>
@@ -84,17 +83,17 @@ export default function ReposPage() {
                 {reposWithoutMemories.length > 0 && (
                   <button
                     onClick={() => setShowAllRepos(!showAllRepos)}
-                    className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                    className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3 sm:px-3.5 py-2 text-[12px] sm:text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                   >
                     {showAllRepos ? (
                       <>
                         <EyeOff className="h-3.5 w-3.5" />
-                        Show all
+                        <span className="hidden sm:inline">Show all</span>
                       </>
                     ) : (
                       <>
                         <Eye className="h-3.5 w-3.5" />
-                        Show all
+                        <span className="hidden sm:inline">Show all</span>
                       </>
                     )}
                   </button>
@@ -102,46 +101,46 @@ export default function ReposPage() {
                 <button
                   onClick={fetchRepos}
                   disabled={loading}
-                  className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3 sm:px-3.5 py-2 text-[12px] sm:text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground disabled:opacity-50"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                    <FolderGit2 className="h-5 w-5 text-foreground" />
+                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10">
+                    <FolderGit2 className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[24px] font-bold">{reposWithMemories.length}</p>
-                    <p className="text-[12px] text-muted-foreground">Repos with Memories</p>
+                    <p className="text-[20px] sm:text-[24px] font-bold">{reposWithMemories.length}</p>
+                    <p className="text-[11px] sm:text-[12px] text-muted-foreground">Repos with Memories</p>
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                    <Brain className="h-5 w-5 text-foreground" />
+                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10">
+                    <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[24px] font-bold">{totalMemories.toLocaleString()}</p>
-                    <p className="text-[12px] text-muted-foreground">Total Memories</p>
+                    <p className="text-[20px] sm:text-[24px] font-bold">{totalMemories.toLocaleString()}</p>
+                    <p className="text-[11px] sm:text-[12px] text-muted-foreground">Total Memories</p>
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
+              <div className="rounded-xl border border-border/30 bg-dracula-current p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                    <Users className="h-5 w-5 text-foreground" />
+                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10">
+                    <Key className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[24px] font-bold">{totalUsers}</p>
-                    <p className="text-[12px] text-muted-foreground">Active Users</p>
+                    <p className="text-[20px] sm:text-[24px] font-bold">{totalKeys}</p>
+                    <p className="text-[11px] sm:text-[12px] text-muted-foreground">Active Keys</p>
                   </div>
                 </div>
               </div>
@@ -169,62 +168,72 @@ export default function ReposPage() {
                 {displayedRepos
                   .sort((a, b) => b.memoryCount - a.memoryCount)
                   .map((repo) => (
-                    <div
+                    <Link
                       key={`${repo.orgId}/${repo.repoId}`}
-                      className={`group flex items-center justify-between p-4 transition-colors hover:bg-white/[0.02] ${
+                      href={`/repos/${repo.orgId}/${repo.repoId}`}
+                      className={`group block p-3 sm:p-4 transition-colors hover:bg-white/[0.02] ${
                         repo.memoryCount === 0 ? "opacity-50" : ""
                       }`}
                     >
-                      <Link
-                        href={`/repos/${repo.orgId}/${repo.repoId}`}
-                        className="flex items-center gap-4 flex-1"
-                      >
-                        <FolderGit2 className="h-5 w-5 text-foreground/50" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[14px] font-medium group-hover:text-foreground transition-colors">
-                              {repo.orgId}/{repo.repoId}
-                            </span>
-                            <a
-                              href={`https://github.com/${repo.orgId}/${repo.repoId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-foreground/30 hover:text-foreground/70 transition-colors"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
+                      <div className="flex items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                          <FolderGit2 className="h-5 w-5 text-foreground/50 shrink-0 mt-0.5 sm:mt-0" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[13px] sm:text-[14px] font-medium group-hover:text-foreground transition-colors truncate">
+                                {repo.orgId}/{repo.repoId}
+                              </span>
+                              <span
+                                role="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  window.open(`https://github.com/${repo.orgId}/${repo.repoId}`, "_blank");
+                                }}
+                                className="text-foreground/30 hover:text-foreground/70 transition-colors shrink-0"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </span>
+                            </div>
+                            {/* Mobile stats */}
+                            <div className="flex items-center gap-4 mt-1.5 sm:hidden">
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Brain className="h-3.5 w-3.5" />
+                                <span>{repo.memoryCount.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Key className="h-3.5 w-3.5" />
+                                <span>{repo.keyCount}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </Link>
 
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                          <Brain className="h-4 w-4" />
-                          <span>{repo.memoryCount.toLocaleString()} memories</span>
+                        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+                          {/* Desktop stats */}
+                          <div className="hidden sm:flex items-center gap-2 text-[13px] text-muted-foreground">
+                            <Brain className="h-4 w-4" />
+                            <span>{repo.memoryCount.toLocaleString()} memories</span>
+                          </div>
+                          <div className="hidden sm:flex items-center gap-2 text-[13px] text-muted-foreground">
+                            <Key className="h-4 w-4" />
+                            <span>{repo.keyCount} keys</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleGenerateKey(repo);
+                            }}
+                            className="hidden sm:flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-[12px] text-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                          >
+                            <Key className="h-3.5 w-3.5" />
+                            Generate Key
+                          </button>
+                          <ChevronRight className="h-5 w-5 text-foreground/30 group-hover:text-foreground/70 transition-colors" />
                         </div>
-                        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                          <Users className="h-4 w-4" />
-                          <span>{repo.userCount} users</span>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGenerateKey(repo);
-                          }}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-[12px] text-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
-                        >
-                          <Key className="h-3.5 w-3.5" />
-                          Generate Key
-                        </button>
-                        <Link
-                          href={`/repos/${repo.orgId}/${repo.repoId}`}
-                          className="text-foreground/30 hover:text-foreground/70 transition-colors"
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </Link>
                       </div>
-                    </div>
+                    </Link>
                   ))}
               </div>
             )}
@@ -236,7 +245,7 @@ export default function ReposPage() {
         open={keyDialogOpen}
         onClose={handleKeyDialogClose}
         onCreated={() => {}}
-        initialRepo={selectedRepoForKey}
+        repo={selectedRepoForKey}
       />
     </AuthGuard>
   );

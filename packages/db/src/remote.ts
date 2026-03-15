@@ -116,9 +116,12 @@ export class RemoteStore {
         ? "repo"
         : resolvedInput.visibility;
 
+    const normalizedOrgId = resolvedInput.orgId.toLowerCase();
+    const normalizedRepoId = resolvedInput.repoId.toLowerCase();
+
     const data: Record<string, unknown> = {
-      orgId: resolvedInput.orgId,
-      repoId: resolvedInput.repoId,
+      orgId: normalizedOrgId,
+      repoId: normalizedRepoId,
       memoryType: resolvedInput.memoryType,
       visibility,
       text: resolvedInput.text,
@@ -139,6 +142,8 @@ export class RemoteStore {
           ...data,
         } as Parameters<typeof this.prisma.memory.create>[0]["data"],
         update: {
+          orgId: normalizedOrgId,
+          repoId: normalizedRepoId,
           memoryType: resolvedInput.memoryType,
           visibility,
           text: resolvedInput.text,
@@ -817,12 +822,15 @@ export class RemoteStore {
   async upsertFromLocal(memory: Memory): Promise<{ action: "created" | "updated" | "skipped"; conflict: boolean }> {
     const existing = await this.prisma.memory.findUnique({ where: { id: memory.id } });
 
+    const normalizedOrgId = memory.orgId.toLowerCase();
+    const normalizedRepoId = memory.repoId.toLowerCase();
+
     if (!existing) {
       await this.prisma.memory.create({
         data: {
           id: memory.id,
-          orgId: memory.orgId,
-          repoId: memory.repoId,
+          orgId: normalizedOrgId,
+          repoId: normalizedRepoId,
           scopeType: memory.scopeType ?? "repo",
           memoryType: memory.memoryType,
           visibility: memory.visibility,
@@ -901,14 +909,16 @@ export class RemoteStore {
     };
   }
 
-  async createApiKey(name: string, orgId: string): Promise<{ id: string; key: string; name: string; orgId: string }> {
+  async createApiKey(name: string, orgId: string, label?: string): Promise<{ id: string; key: string; name: string; orgId: string; label: string | null }> {
     const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
+    const normalizedOrgId = orgId.toLowerCase();
 
     const apiKey = await this.prisma.apiKey.create({
       data: {
         key,
         name,
-        orgId,
+        orgId: normalizedOrgId,
+        label: label ?? null,
       },
     });
 
@@ -917,10 +927,11 @@ export class RemoteStore {
       key: apiKey.key,
       name: apiKey.name,
       orgId: apiKey.orgId,
+      label: apiKey.label,
     };
   }
 
-  async listApiKeys(orgId?: string): Promise<Array<{ id: string; key: string; name: string; orgId: string; isActive: boolean; createdAt: Date; lastUsedAt: Date | null }>> {
+  async listApiKeys(orgId?: string): Promise<Array<{ id: string; key: string; name: string; label: string | null; orgId: string; isActive: boolean; createdAt: Date; lastUsedAt: Date | null }>> {
     const where = orgId ? { orgId } : {};
 
     const keys = await this.prisma.apiKey.findMany({
@@ -930,6 +941,7 @@ export class RemoteStore {
         id: true,
         key: true,
         name: true,
+        label: true,
         orgId: true,
         isActive: true,
         createdAt: true,
@@ -963,6 +975,19 @@ export class RemoteStore {
       });
 
       return { isActive: updated.isActive };
+    } catch {
+      return null;
+    }
+  }
+
+  async updateApiKeyLabel(id: string, label: string): Promise<{ label: string | null } | null> {
+    try {
+      const updated = await this.prisma.apiKey.update({
+        where: { id },
+        data: { label: label.trim() || null },
+      });
+
+      return { label: updated.label };
     } catch {
       return null;
     }
@@ -1480,8 +1505,8 @@ export class RemoteStore {
     createdAt: Date;
     updatedAt: Date;
   }> {
-    const userCount = await this.prisma.user.count();
-    const isFirstUser = userCount === 0;
+    const adminGithubIds = this.getAdminGithubIds();
+    const isAdminFromEnv = adminGithubIds.includes(input.githubId);
 
     const user = await this.prisma.user.upsert({
       where: { githubId: input.githubId },
@@ -1491,17 +1516,26 @@ export class RemoteStore {
         name: input.name ?? null,
         email: input.email ?? null,
         avatarUrl: input.avatarUrl ?? null,
-        isAdmin: isFirstUser,
+        isAdmin: isAdminFromEnv,
       },
       update: {
         githubLogin: input.githubLogin,
         name: input.name ?? null,
         email: input.email ?? null,
         avatarUrl: input.avatarUrl ?? null,
+        isAdmin: isAdminFromEnv,
       },
     });
 
     return user;
+  }
+
+  private getAdminGithubIds(): number[] {
+    const adminIdsEnv = process.env.ADMIN_GITHUB_IDS || "";
+    return adminIdsEnv
+      .split(",")
+      .map((id) => parseInt(id.trim(), 10))
+      .filter((id) => !isNaN(id));
   }
 
   async getUserById(id: string): Promise<{
@@ -1584,18 +1618,21 @@ export class RemoteStore {
     grantedAt: Date;
     grantedBy: string | null;
   }> {
+    const normalizedOrgId = input.orgId.toLowerCase();
+    const normalizedRepoId = input.repoId.toLowerCase();
+
     return this.prisma.userRepoAccess.upsert({
       where: {
         userId_orgId_repoId: {
           userId: input.userId,
-          orgId: input.orgId,
-          repoId: input.repoId,
+          orgId: normalizedOrgId,
+          repoId: normalizedRepoId,
         },
       },
       create: {
         userId: input.userId,
-        orgId: input.orgId,
-        repoId: input.repoId,
+        orgId: normalizedOrgId,
+        repoId: normalizedRepoId,
         permission: input.permission,
         grantedBy: input.grantedBy ?? null,
       },
@@ -1668,18 +1705,19 @@ export class RemoteStore {
   async getAllRepos(): Promise<Array<{
     orgId: string;
     repoId: string;
-    userCount: number;
+    keyCount: number;
     memoryCount: number;
   }>> {
-    const repoAccess = await this.prisma.userRepoAccess.groupBy({
-      by: ["orgId", "repoId"],
-      _count: { userId: true },
-    });
-
     const memoryCounts = await this.prisma.memory.groupBy({
       by: ["orgId", "repoId"],
       _count: { id: true },
       where: { status: "active" },
+    });
+
+    const keyCounts = await this.prisma.apiKey.groupBy({
+      by: ["orgId"],
+      _count: { id: true },
+      where: { isActive: true },
     });
 
     const memoryMap = new Map<string, number>();
@@ -1687,12 +1725,28 @@ export class RemoteStore {
       memoryMap.set(`${m.orgId}/${m.repoId}`, m._count.id);
     }
 
-    return repoAccess.map((r) => ({
-      orgId: r.orgId,
-      repoId: r.repoId,
-      userCount: r._count.userId,
-      memoryCount: memoryMap.get(`${r.orgId}/${r.repoId}`) ?? 0,
-    }));
+    const keyMap = new Map<string, number>();
+    for (const k of keyCounts) {
+      keyMap.set(k.orgId, k._count.id);
+    }
+
+    const uniqueRepos = new Set<string>();
+    const repos: Array<{ orgId: string; repoId: string; keyCount: number; memoryCount: number }> = [];
+
+    for (const m of memoryCounts) {
+      const key = `${m.orgId}/${m.repoId}`;
+      if (!uniqueRepos.has(key)) {
+        uniqueRepos.add(key);
+        repos.push({
+          orgId: m.orgId,
+          repoId: m.repoId,
+          keyCount: keyMap.get(m.orgId) ?? 0,
+          memoryCount: m._count.id,
+        });
+      }
+    }
+
+    return repos;
   }
 
   async createApiKeyForUser(
@@ -1700,18 +1754,22 @@ export class RemoteStore {
     orgId: string,
     repoId: string | null,
     userId: string,
-    createdBy: string
-  ): Promise<{ id: string; key: string; name: string; orgId: string; repoId: string | null; userId: string }> {
+    createdBy: string,
+    label?: string
+  ): Promise<{ id: string; key: string; name: string; label: string | null; orgId: string; repoId: string | null; userId: string }> {
     const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
+    const normalizedOrgId = orgId.toLowerCase();
+    const normalizedRepoId = repoId?.toLowerCase() ?? null;
 
     const apiKey = await this.prisma.apiKey.create({
       data: {
         key,
         name,
-        orgId,
-        repoId,
+        orgId: normalizedOrgId,
+        repoId: normalizedRepoId,
         userId,
         createdBy,
+        label: label ?? null,
       },
     });
 
@@ -1719,6 +1777,7 @@ export class RemoteStore {
       id: apiKey.id,
       key: apiKey.key,
       name: apiKey.name,
+      label: apiKey.label,
       orgId: apiKey.orgId,
       repoId: apiKey.repoId,
       userId: apiKey.userId!,
@@ -1729,6 +1788,7 @@ export class RemoteStore {
     id: string;
     key: string;
     name: string;
+    label: string | null;
     orgId: string;
     repoId: string | null;
     isActive: boolean;
@@ -1745,6 +1805,7 @@ export class RemoteStore {
     id: string;
     key: string;
     name: string;
+    label: string | null;
     orgId: string;
     repoId: string | null;
     userId: string | null;
@@ -1871,5 +1932,176 @@ export class RemoteStore {
       tag: r.tag,
       count: Number(r.count),
     }));
+  }
+
+  async createApiKeyLog(input: {
+    apiKeyId: string;
+    operation: string;
+    orgId: string;
+    repoId: string;
+    memoryId?: string;
+    query?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{
+    id: string;
+    apiKeyId: string;
+    operation: string;
+    orgId: string;
+    repoId: string;
+    memoryId: string | null;
+    query: string | null;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+  }> {
+    const normalizedOrgId = input.orgId.toLowerCase();
+    const normalizedRepoId = input.repoId.toLowerCase();
+
+    const log = await this.prisma.apiKeyLog.create({
+      data: {
+        apiKeyId: input.apiKeyId,
+        operation: input.operation,
+        orgId: normalizedOrgId,
+        repoId: normalizedRepoId,
+        memoryId: input.memoryId ?? null,
+        query: input.query ?? null,
+        metadata: input.metadata as Record<string, string> | undefined,
+      },
+    });
+
+    return {
+      id: log.id,
+      apiKeyId: log.apiKeyId,
+      operation: log.operation,
+      orgId: log.orgId,
+      repoId: log.repoId,
+      memoryId: log.memoryId,
+      query: log.query,
+      metadata: log.metadata as Record<string, unknown> | null,
+      createdAt: log.createdAt,
+    };
+  }
+
+  async getApiKeyLogs(filters: {
+    apiKeyId?: string;
+    apiKeyIds?: string[];
+    orgId?: string;
+    repoId?: string;
+    operation?: string;
+    since?: Date;
+    until?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{
+    id: string;
+    apiKeyId: string;
+    operation: string;
+    orgId: string;
+    repoId: string;
+    memoryId: string | null;
+    query: string | null;
+    metadata: Record<string, unknown> | null;
+    createdAt: Date;
+    apiKey: {
+      id: string;
+      name: string;
+      label: string | null;
+      user: { id: string; githubLogin: string; name: string | null } | null;
+    };
+  }>> {
+    const where: Record<string, unknown> = {};
+
+    if (filters.apiKeyId) {
+      where.apiKeyId = filters.apiKeyId;
+    }
+    if (filters.apiKeyIds && filters.apiKeyIds.length > 0) {
+      where.apiKeyId = { in: filters.apiKeyIds };
+    }
+    if (filters.orgId) {
+      where.orgId = filters.orgId;
+    }
+    if (filters.repoId) {
+      where.repoId = filters.repoId;
+    }
+    if (filters.operation) {
+      where.operation = filters.operation;
+    }
+    if (filters.since || filters.until) {
+      const createdAt: Record<string, Date> = {};
+      if (filters.since) createdAt.gte = filters.since;
+      if (filters.until) createdAt.lte = filters.until;
+      where.createdAt = createdAt;
+    }
+
+    const logs = await this.prisma.apiKeyLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: filters.limit ?? 100,
+      skip: filters.offset ?? 0,
+      include: {
+        apiKey: {
+          select: {
+            id: true,
+            name: true,
+            label: true,
+            user: {
+              select: {
+                id: true,
+                githubLogin: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      apiKeyId: log.apiKeyId,
+      operation: log.operation,
+      orgId: log.orgId,
+      repoId: log.repoId,
+      memoryId: log.memoryId,
+      query: log.query,
+      metadata: log.metadata as Record<string, unknown> | null,
+      createdAt: log.createdAt,
+      apiKey: log.apiKey,
+    }));
+  }
+
+  async countApiKeyLogs(filters: {
+    apiKeyId?: string;
+    apiKeyIds?: string[];
+    orgId?: string;
+    repoId?: string;
+    operation?: string;
+    since?: Date;
+    until?: Date;
+  }): Promise<number> {
+    const where: Record<string, unknown> = {};
+
+    if (filters.apiKeyId) {
+      where.apiKeyId = filters.apiKeyId;
+    }
+    if (filters.apiKeyIds && filters.apiKeyIds.length > 0) {
+      where.apiKeyId = { in: filters.apiKeyIds };
+    }
+    if (filters.orgId) {
+      where.orgId = filters.orgId;
+    }
+    if (filters.repoId) {
+      where.repoId = filters.repoId;
+    }
+    if (filters.operation) {
+      where.operation = filters.operation;
+    }
+    if (filters.since || filters.until) {
+      const createdAt: Record<string, Date> = {};
+      if (filters.since) createdAt.gte = filters.since;
+      if (filters.until) createdAt.lte = filters.until;
+      where.createdAt = createdAt;
+    }
+
+    return this.prisma.apiKeyLog.count({ where });
   }
 }

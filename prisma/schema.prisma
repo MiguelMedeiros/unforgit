@@ -101,6 +101,7 @@ model ApiKey {
   id         String    @id @default(uuid()) @db.Uuid
   key        String    @unique
   name       String
+  label      String?
   orgId      String    @map("org_id")
   repoId     String?   @map("repo_id")
   userId     String?   @map("user_id") @db.Uuid
@@ -110,11 +111,32 @@ model ApiKey {
   lastUsedAt DateTime? @map("last_used_at")
 
   user       User?     @relation(fields: [userId], references: [id])
+  logs       ApiKeyLog[]
 
   @@index([key])
   @@index([orgId])
   @@index([userId])
   @@map("api_keys")
+}
+
+model ApiKeyLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  apiKeyId   String   @map("api_key_id") @db.Uuid
+  operation  String
+  memoryId   String?  @map("memory_id") @db.Uuid
+  orgId      String   @map("org_id")
+  repoId     String   @map("repo_id")
+  query      String?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([createdAt])
+  @@index([memoryId])
+  @@index([orgId, repoId])
+  @@map("api_key_logs")
 }
 
 model User {

@@ -3,7 +3,7 @@ import type {
   FastifyRequest,
   FastifyReply,
 } from "fastify";
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify } from "jose";
 import { RemoteStore } from "@unforgit/db";
 import {
   isOpenAIConfigured,
@@ -11,17 +11,13 @@ import {
   executeConsolidationRemote,
   type ConsolidationCandidate,
 } from "@unforgit/core";
-import { verifyUserToken } from "./auth.js";
-
-interface LoginBody {
-  password: string;
-}
 
 interface CreateApiKeyBody {
   name: string;
   orgId: string;
   repoId?: string;
   userId?: string;
+  label?: string;
 }
 
 interface ApiKeyParams {
@@ -48,23 +44,15 @@ interface CreateUserApiKeyBody {
   name: string;
   orgId: string;
   repoId?: string;
+  label?: string;
 }
 
 function getAdminSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
+  const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error("JWT_SECRET or ADMIN_PASSWORD environment variable is required");
+    throw new Error("JWT_SECRET environment variable is required");
   }
   return new TextEncoder().encode(secret);
-}
-
-async function createAdminToken(): Promise<string> {
-  const secret = getAdminSecret();
-  return new SignJWT({ role: "admin" })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("24h")
-    .sign(secret);
 }
 
 async function verifyAdminToken(token: string): Promise<boolean> {
@@ -72,15 +60,7 @@ async function verifyAdminToken(token: string): Promise<boolean> {
     const secret = getAdminSecret();
     const { payload } = await jwtVerify(token, secret);
 
-    if (payload.role === "admin") {
-      return true;
-    }
-
-    if (payload.isAdmin === true) {
-      return true;
-    }
-
-    return false;
+    return payload.isAdmin === true;
   } catch {
     return false;
   }
@@ -123,37 +103,6 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
 ) => {
-  app.post<{ Body: LoginBody }>(
-    "/v1/admin/login",
-    async (request, reply) => {
-      const { password } = request.body ?? {};
-
-      if (!password) {
-        return reply
-          .status(400)
-          .send({ error: "Bad Request", message: "password is required" });
-      }
-
-      const adminPassword = process.env.ADMIN_PASSWORD;
-
-      if (!adminPassword) {
-        return reply.status(503).send({
-          error: "Service Unavailable",
-          message: "Admin authentication is not configured",
-        });
-      }
-
-      if (password !== adminPassword) {
-        return reply
-          .status(401)
-          .send({ error: "Unauthorized", message: "Invalid password" });
-      }
-
-      const token = await createAdminToken();
-      return reply.send({ token });
-    },
-  );
-
   app.get(
     "/v1/admin/api-keys",
     { preHandler: adminAuthPreHandler },
@@ -165,6 +114,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           id: k.id,
           key: `${k.key.slice(0, 7)}${"*".repeat(8)}${k.key.slice(-8)}`,
           name: k.name,
+          label: k.label,
           orgId: k.orgId,
           isActive: k.isActive,
           createdAt: k.createdAt.toISOString(),
@@ -185,7 +135,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/admin/api-keys",
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
-      const { name, orgId } = request.body;
+      const { name, orgId, label } = request.body;
 
       if (!name || !orgId) {
         return reply
@@ -193,22 +143,35 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           .send({ error: "Bad Request", message: "name and orgId are required" });
       }
 
-      const apiKey = await store.createApiKey(name, orgId);
+      const apiKey = await store.createApiKey(name, orgId, label);
 
       return reply.status(201).send({
         id: apiKey.id,
         key: apiKey.key,
         name: apiKey.name,
+        label: apiKey.label,
         orgId: apiKey.orgId,
       });
     },
   );
 
-  app.patch<{ Params: ApiKeyParams }>(
+  app.patch<{ Params: ApiKeyParams; Body: { label?: string; toggle?: boolean } }>(
     "/v1/admin/api-keys/:id",
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const { id } = request.params;
+      const body = request.body || {};
+
+      if (typeof body.label === "string") {
+        const result = await store.updateApiKeyLabel(id, body.label);
+        if (!result) {
+          return reply
+            .status(404)
+            .send({ error: "Not Found", message: "API key not found" });
+        }
+        return reply.send({ success: true, label: result.label });
+      }
+
       const result = await store.toggleApiKey(id);
 
       if (!result) {
@@ -392,7 +355,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const { id } = request.params;
-      const { name, orgId, repoId } = request.body;
+      const { name, orgId, repoId, label } = request.body;
 
       if (!name || !orgId) {
         return reply
@@ -413,13 +376,15 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         orgId,
         repoId ?? null,
         id,
-        id
+        id,
+        label
       );
 
       return reply.status(201).send({
         id: apiKey.id,
         key: apiKey.key,
         name: apiKey.name,
+        label: apiKey.label,
         orgId: apiKey.orgId,
         repoId: apiKey.repoId,
         userId: apiKey.userId,
@@ -742,6 +707,133 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       } catch (error) {
         return reply.status(500).send({
           error: "Failed to fetch consolidation history",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  app.get<{
+    Querystring: {
+      apiKeyId?: string;
+      orgId?: string;
+      repoId?: string;
+      operation?: string;
+      since?: string;
+      until?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>(
+    "/v1/admin/logs",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const query = request.query;
+
+      try {
+        const filters = {
+          apiKeyId: query.apiKeyId,
+          orgId: query.orgId,
+          repoId: query.repoId,
+          operation: query.operation,
+          since: query.since ? new Date(query.since) : undefined,
+          until: query.until ? new Date(query.until) : undefined,
+          limit: query.limit ? parseInt(query.limit, 10) : 100,
+          offset: query.offset ? parseInt(query.offset, 10) : 0,
+        };
+
+        const [logs, total] = await Promise.all([
+          store.getApiKeyLogs(filters),
+          store.countApiKeyLogs(filters),
+        ]);
+
+        return reply.send({ logs, total });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Failed to fetch logs",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  app.get<{
+    Params: { keyId: string };
+    Querystring: {
+      operation?: string;
+      since?: string;
+      until?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>(
+    "/v1/admin/logs/key/:keyId",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { keyId } = request.params;
+      const query = request.query;
+
+      try {
+        const filters = {
+          apiKeyId: keyId,
+          operation: query.operation,
+          since: query.since ? new Date(query.since) : undefined,
+          until: query.until ? new Date(query.until) : undefined,
+          limit: query.limit ? parseInt(query.limit, 10) : 100,
+          offset: query.offset ? parseInt(query.offset, 10) : 0,
+        };
+
+        const [logs, total] = await Promise.all([
+          store.getApiKeyLogs(filters),
+          store.countApiKeyLogs(filters),
+        ]);
+
+        return reply.send({ logs, total });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Failed to fetch logs",
+          details: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+
+  app.get<{
+    Params: { orgId: string; repoId: string };
+    Querystring: {
+      operation?: string;
+      since?: string;
+      until?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>(
+    "/v1/admin/logs/repo/:orgId/:repoId",
+    { preHandler: adminAuthPreHandler },
+    async (request, reply) => {
+      const { orgId, repoId } = request.params;
+      const query = request.query;
+
+      try {
+        const filters = {
+          orgId,
+          repoId,
+          operation: query.operation,
+          since: query.since ? new Date(query.since) : undefined,
+          until: query.until ? new Date(query.until) : undefined,
+          limit: query.limit ? parseInt(query.limit, 10) : 100,
+          offset: query.offset ? parseInt(query.offset, 10) : 0,
+        };
+
+        const [logs, total] = await Promise.all([
+          store.getApiKeyLogs(filters),
+          store.countApiKeyLogs(filters),
+        ]);
+
+        return reply.send({ logs, total });
+      } catch (error) {
+        return reply.status(500).send({
+          error: "Failed to fetch logs",
           details: error instanceof Error ? error.message : String(error),
         });
       }

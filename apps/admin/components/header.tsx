@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -8,9 +8,16 @@ import { LogOut, Menu, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getToken, clearToken, getUser, type User } from "@/lib/api";
 
-const navItems = [
+const adminNavItems = [
   { href: "/repos", label: "repos" },
   { href: "/users", label: "users" },
+  { href: "/logs", label: "logs" },
+];
+
+const userNavItems = [
+  { href: "/repos", label: "my repos" },
+  { href: "/keys", label: "my keys" },
+  { href: "/logs", label: "my logs" },
 ];
 
 export function Header() {
@@ -19,6 +26,10 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  const navItems = useMemo(() => {
+    return user?.isAdmin ? adminNavItems : userNavItems;
+  }, [user?.isAdmin]);
 
   useEffect(() => {
     setMobileOpen(false);

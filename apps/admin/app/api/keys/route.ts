@@ -11,9 +11,34 @@ function forwardHeaders(request: NextRequest): Record<string, string> {
   return headers;
 }
 
+function decodeJwtPayload(token: string): { isAdmin?: boolean; role?: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const res = await fetch(`${API_URL}/v1/admin/api-keys`, {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing Authorization header" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const payload = decodeJwtPayload(token);
+    const isAdmin = payload?.isAdmin === true || payload?.role === "admin";
+
+    const endpoint = isAdmin ? "/v1/admin/api-keys" : "/v1/auth/me/keys";
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
       headers: forwardHeaders(request),
     });
 
@@ -29,9 +54,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing Authorization header" },
+        { status: 401 }
+      );
+    }
 
-    const res = await fetch(`${API_URL}/v1/admin/api-keys`, {
+    const token = authHeader.replace("Bearer ", "");
+    const payload = decodeJwtPayload(token);
+    const isAdmin = payload?.isAdmin === true || payload?.role === "admin";
+
+    const body = await request.json();
+    const endpoint = isAdmin ? "/v1/admin/api-keys" : "/v1/auth/me/keys";
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: forwardHeaders(request),
       body: JSON.stringify(body),

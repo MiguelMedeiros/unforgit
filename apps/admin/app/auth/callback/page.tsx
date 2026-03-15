@@ -40,11 +40,6 @@ function AuthCallbackContent() {
 
         const user = await response.json();
 
-        if (!user.isAdmin) {
-          setError("You need admin privileges to access this dashboard. Contact the server administrator.");
-          return;
-        }
-
         setUser({
           id: user.id,
           githubId: user.githubId,
@@ -55,7 +50,7 @@ function AuthCallbackContent() {
           isAdmin: user.isAdmin,
         });
 
-        router.replace("/keys");
+        router.replace("/repos");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Authentication failed");
       }

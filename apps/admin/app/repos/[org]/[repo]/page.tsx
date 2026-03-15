@@ -9,10 +9,6 @@ import {
   Search,
   Loader2,
   RefreshCw,
-  LayoutDashboard,
-  GitBranch,
-  Layers,
-  Key,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/auth-guard";
@@ -23,6 +19,7 @@ import { MemoryCard } from "@/components/memory-card";
 import { MemoryDetailSheet } from "@/components/memory-detail-sheet";
 import { FilterBar } from "@/components/filter-bar";
 import { MemoryGraph } from "@/components/memory-graph";
+import { RepoTabs } from "@/components/repo-tabs";
 
 interface MemoryItem {
   id: string;
@@ -191,178 +188,188 @@ export default function RepoDetailPage({
     setSelectedMemory(fullMemory);
   }, [org, repo]);
 
+  const renderHeader = () => (
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <Link
+        href="/repos"
+        className="flex items-center gap-2 text-[12px] sm:text-[13px] text-muted-foreground hover:text-foreground transition-colors w-fit"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Repositories
+      </Link>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[20px] sm:text-[28px] font-bold tracking-tight font-mono break-all">
+              {org}/{repo}
+            </h1>
+            <a
+              href={`https://github.com/${org}/${repo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground/30 hover:text-foreground/70 transition-colors shrink-0"
+            >
+              <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
+            </a>
+          </div>
+          <p className="text-[12px] sm:text-[13px] text-muted-foreground">
+            Repository memory dashboard
+          </p>
+        </div>
+        {viewMode === "dashboard" && (
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3 sm:px-3.5 py-2 text-[12px] sm:text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground disabled:opacity-50 self-start sm:self-auto"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  if (viewMode === "graph") {
+    return (
+      <AuthGuard>
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="shrink-0 px-6 py-4 border-b border-border/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/repos"
+                  className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-[18px] font-bold tracking-tight font-mono">
+                    {org}/{repo}
+                  </h1>
+                  <a
+                    href={`https://github.com/${org}/${repo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-foreground/30 hover:text-foreground/70 transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+              <RepoTabs
+                org={org}
+                repo={repo}
+                activeTab="graph"
+                onTabChange={setViewMode}
+              />
+            </div>
+          </div>
+          <div className="relative flex-1 min-h-0">
+            <MemoryGraph
+              org={org}
+              repo={repo}
+              onMemoryClick={handleGraphMemoryClick}
+            />
+          </div>
+        </div>
+
+        <MemoryDetailSheet
+          memory={selectedMemory}
+          onClose={() => setSelectedMemory(null)}
+        />
+      </AuthGuard>
+    );
+  }
+
   return (
     <AuthGuard>
       <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-8 py-10">
-          <div className="animate-fade-in space-y-8">
-            {/* Header */}
-            <div className="flex flex-col gap-6">
-              <Link
-                href="/repos"
-                className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors w-fit"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Repositories
-              </Link>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-[28px] font-bold tracking-tight font-mono">
-                      {org}/{repo}
-                    </h1>
-                    <a
-                      href={`https://github.com/${org}/${repo}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-foreground/30 hover:text-foreground/70 transition-colors"
-                    >
-                      <ExternalLink className="h-5 w-5" />
-                    </a>
-                  </div>
-                  <p className="text-[13px] text-muted-foreground">
-                    Repository memory dashboard
-                  </p>
+        <div className="mx-auto max-w-5xl px-4 sm:px-8 py-6 sm:py-10">
+          <div className="animate-fade-in space-y-4 sm:space-y-8">
+            {renderHeader()}
+            <RepoTabs
+              org={org}
+              repo={repo}
+              activeTab="dashboard"
+              onTabChange={setViewMode}
+            />
+
+            <div ref={scrollContainerRef} className="space-y-4 sm:space-y-8">
+              {stats && <StatsCards stats={stats} />}
+
+              {activity && activity.dailyCounts.length > 0 && (
+                <ActivityHeatmap dailyCounts={activity.dailyCounts} />
+              )}
+
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[14px] sm:text-[15px] font-semibold">
+                    Memories
+                    {total > 0 && (
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        ({total})
+                      </span>
+                    )}
+                  </h3>
                 </div>
-                {viewMode === "dashboard" && (
-                  <button
-                    onClick={handleRefresh}
-                    disabled={loading}
-                    className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/[0.04] px-3.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-                    Refresh
-                  </button>
-                )}
-              </div>
-            </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-dracula-current p-1.5">
-              <button
-                onClick={() => setViewMode("dashboard")}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-                  viewMode === "dashboard"
-                    ? "bg-white/10 text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </button>
-              <button
-                onClick={() => setViewMode("graph")}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
-                  viewMode === "graph"
-                    ? "bg-white/10 text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-              >
-                <GitBranch className="h-4 w-4" />
-                Graph
-              </button>
-              <Link
-                href={`/repos/${org}/${repo}/consolidation`}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-              >
-                <Layers className="h-4 w-4" />
-                Consolidation
-              </Link>
-              <Link
-                href={`/repos/${org}/${repo}/keys`}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-              >
-                <Key className="h-4 w-4" />
-                API Keys
-              </Link>
-            </div>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+                  <form onSubmit={handleSearch} className="w-full sm:flex-1 sm:min-w-[200px] sm:max-w-md">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search memories..."
+                        className="w-full rounded-xl border border-border/50 bg-white/[0.04] pl-10 pr-4 py-2 sm:py-2.5 text-[12px] sm:text-[13px] placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                      />
+                    </div>
+                  </form>
+                  <FilterBar
+                    type={type}
+                    status={status}
+                    onTypeChange={setType}
+                    onStatusChange={setStatus}
+                  />
+                </div>
 
-            {viewMode === "dashboard" ? (
-              <div ref={scrollContainerRef} className="space-y-8">
-                {stats && <StatsCards stats={stats} />}
-
-                {activity && activity.dailyCounts.length > 0 && (
-                  <ActivityHeatmap dailyCounts={activity.dailyCounts} />
-                )}
-
-                {/* Memories Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[15px] font-semibold">
-                      Memories
-                      {total > 0 && (
-                        <span className="ml-2 text-muted-foreground font-normal">
-                          ({total})
-                        </span>
-                      )}
-                    </h3>
+                {loading && memories.length === 0 ? (
+                  <div className="flex h-32 items-center justify-center rounded-xl border border-border/30 bg-dracula-current">
+                    <Loader2 className="h-6 w-6 animate-spin text-foreground/50" />
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <form onSubmit={handleSearch} className="flex-1 min-w-[200px] max-w-md">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Search memories..."
-                          className="w-full rounded-xl border border-border/50 bg-white/[0.04] pl-10 pr-4 py-2.5 text-[13px] placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20"
-                        />
+                ) : memories.length === 0 ? (
+                  <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-border/30 bg-dracula-current">
+                    <FolderGit2 className="h-8 w-8 text-foreground/20" />
+                    <p className="text-[13px] text-muted-foreground">No memories found</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {memories.map((memory) => (
+                      <MemoryCard
+                        key={memory.id}
+                        id={memory.id}
+                        memoryType={memory.memoryType}
+                        text={memory.text}
+                        tags={memory.tags}
+                        status={memory.status}
+                        createdAt={memory.createdAt}
+                        onClick={() => setSelectedMemory(memory)}
+                      />
+                    ))}
+                    
+                    <div ref={sentinelRef} className="h-4" />
+                    
+                    {loadingMore && (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-foreground/50" />
                       </div>
-                    </form>
-                    <FilterBar
-                      type={type}
-                      status={status}
-                      onTypeChange={setType}
-                      onStatusChange={setStatus}
-                    />
+                    )}
                   </div>
-
-                  {loading && memories.length === 0 ? (
-                    <div className="flex h-32 items-center justify-center rounded-xl border border-border/30 bg-dracula-current">
-                      <Loader2 className="h-6 w-6 animate-spin text-foreground/50" />
-                    </div>
-                  ) : memories.length === 0 ? (
-                    <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-border/30 bg-dracula-current">
-                      <FolderGit2 className="h-8 w-8 text-foreground/20" />
-                      <p className="text-[13px] text-muted-foreground">No memories found</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3">
-                      {memories.map((memory) => (
-                        <MemoryCard
-                          key={memory.id}
-                          id={memory.id}
-                          memoryType={memory.memoryType}
-                          text={memory.text}
-                          tags={memory.tags}
-                          status={memory.status}
-                          createdAt={memory.createdAt}
-                          onClick={() => setSelectedMemory(memory)}
-                        />
-                      ))}
-                      
-                      <div ref={sentinelRef} className="h-4" />
-                      
-                      {loadingMore && (
-                        <div className="flex justify-center py-4">
-                          <Loader2 className="h-5 w-5 animate-spin text-foreground/50" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="rounded-xl border border-border/30 bg-dracula-current overflow-hidden" style={{ height: "600px" }}>
-                <MemoryGraph
-                  org={org}
-                  repo={repo}
-                  onMemoryClick={handleGraphMemoryClick}
-                />
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

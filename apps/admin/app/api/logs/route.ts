@@ -27,40 +27,23 @@ export async function GET(request: NextRequest) {
   const payload = decodeJwtPayload(token);
   const isAdmin = payload?.isAdmin === true || payload?.role === "admin";
 
-  if (isAdmin) {
-    const response = await fetch(`${API_URL}/v1/admin/repos`, {
-      headers: {
-        Authorization: authHeader,
-      },
-    });
+  const searchParams = request.nextUrl.searchParams;
+  const queryString = searchParams.toString();
+  
+  const endpoint = isAdmin ? "/v1/admin/logs" : "/v1/auth/me/logs";
+  const url = queryString ? `${API_URL}${endpoint}?${queryString}` : `${API_URL}${endpoint}`;
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    return NextResponse.json(data);
-  }
-
-  const meResponse = await fetch(`${API_URL}/v1/auth/me`, {
+  const response = await fetch(url, {
     headers: {
       Authorization: authHeader,
     },
   });
 
-  if (!meResponse.ok) {
-    const data = await meResponse.json();
-    return NextResponse.json(data, { status: meResponse.status });
+  const data = await response.json();
+
+  if (!response.ok) {
+    return NextResponse.json(data, { status: response.status });
   }
 
-  const meData = await meResponse.json();
-  const repos = (meData.repos || []).map((r: { orgId: string; repoId: string }) => ({
-    orgId: r.orgId,
-    repoId: r.repoId,
-    userCount: 1,
-    memoryCount: 0,
-  }));
-
-  return NextResponse.json({ repos });
+  return NextResponse.json(data);
 }

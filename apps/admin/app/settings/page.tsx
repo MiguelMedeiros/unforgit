@@ -139,115 +139,116 @@ export default function SettingsPage() {
 
   return (
     <AuthGuard>
-      <div className="mx-auto max-w-2xl px-6 py-10">
-        <h1 className="text-xl font-semibold mb-8">Settings</h1>
+      <div className="h-full overflow-y-auto">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
+          <h1 className="text-lg sm:text-xl font-semibold mb-6 sm:mb-8">Settings</h1>
 
-        {/* Profile Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Your account information from GitHub</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Avatar and Name */}
-            <div className="flex items-center gap-4">
-              {profile.avatarUrl ? (
-                <Image
-                  src={profile.avatarUrl}
-                  alt={profile.githubLogin}
-                  width={64}
-                  height={64}
-                  className="rounded-full"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground/10">
-                  <User className="h-8 w-8 text-foreground/50" />
-                </div>
-              )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold">{profile.githubLogin}</span>
-                  {profile.isAdmin && (
-                    <span className="flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
-                      <Shield className="h-3 w-3" />
-                      ADMIN
-                    </span>
+          {/* Profile Card */}
+          <Card className="mb-6">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg">Profile</CardTitle>
+              <CardDescription className="text-[12px] sm:text-sm">Your account information from GitHub</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
+              {/* Avatar and Name */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                {profile.avatarUrl ? (
+                  <Image
+                    src={profile.avatarUrl}
+                    alt={profile.githubLogin}
+                    width={64}
+                    height={64}
+                    className="rounded-full h-12 w-12 sm:h-16 sm:w-16"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-foreground/10">
+                    <User className="h-6 w-6 sm:h-8 sm:w-8 text-foreground/50" />
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base sm:text-lg font-semibold">{profile.githubLogin}</span>
+                    {profile.isAdmin && (
+                      <span className="flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                        <Shield className="h-3 w-3" />
+                        ADMIN
+                      </span>
+                    )}
+                  </div>
+                  {profile.name && (
+                    <p className="text-[12px] sm:text-sm text-muted-foreground">{profile.name}</p>
                   )}
                 </div>
-                {profile.name && (
-                  <p className="text-sm text-muted-foreground">{profile.name}</p>
-                )}
               </div>
-            </div>
 
-            {/* Info Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Info Grid */}
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               {profile.email && (
-                <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3">
-                  <Mail className="h-4 w-4 text-foreground/50" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Email</p>
-                    <p className="text-sm">{profile.email}</p>
+                <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-3 sm:px-4 py-2.5 sm:py-3">
+                  <Mail className="h-4 w-4 text-foreground/50 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Email</p>
+                    <p className="text-[12px] sm:text-sm truncate">{profile.email}</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3">
-                <Calendar className="h-4 w-4 text-foreground/50" />
+              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-3 sm:px-4 py-2.5 sm:py-3">
+                <Calendar className="h-4 w-4 text-foreground/50 shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Member since</p>
-                  <p className="text-sm">{formatDate(profile.createdAt)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Member since</p>
+                  <p className="text-[12px] sm:text-sm">{formatDate(profile.createdAt)}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3">
-                <FolderGit2 className="h-4 w-4 text-foreground/50" />
+              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-3 sm:px-4 py-2.5 sm:py-3">
+                <FolderGit2 className="h-4 w-4 text-foreground/50 shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Repositories</p>
-                  <p className="text-sm">{profile.repos.length} repositories</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Repositories</p>
+                  <p className="text-[12px] sm:text-sm">{profile.repos.length} repositories</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-4 py-3">
-                <Key className="h-4 w-4 text-foreground/50" />
+              <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-white/[0.02] px-3 sm:px-4 py-2.5 sm:py-3">
+                <Key className="h-4 w-4 text-foreground/50 shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">GitHub ID</p>
-                  <p className="text-sm font-mono">{profile.githubId}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">GitHub ID</p>
+                  <p className="text-[12px] sm:text-sm font-mono">{profile.githubId}</p>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="border-red-500/30">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-400" />
-              <CardTitle className="text-red-400">Danger Zone</CardTitle>
-            </div>
-            <CardDescription>
-              Irreversible actions that affect your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-              <div>
-                <p className="font-medium">Delete Account</p>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data
-                </p>
+          {/* Danger Zone */}
+          <Card className="border-red-500/30">
+            <CardHeader className="px-4 sm:px-6">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <CardTitle className="text-red-400 text-base sm:text-lg">Danger Zone</CardTitle>
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
+              <CardDescription className="text-[12px] sm:text-sm">
+                Irreversible actions that affect your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 rounded-lg border border-red-500/20 bg-red-500/5 p-3 sm:p-4">
+                <div>
+                  <p className="font-medium text-[14px] sm:text-base">Delete Account</p>
+                  <p className="text-[12px] sm:text-sm text-muted-foreground">
+                    Permanently delete your account and all data
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300 text-[13px] sm:text-sm w-full sm:w-auto"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -286,6 +287,7 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </AuthGuard>
   );

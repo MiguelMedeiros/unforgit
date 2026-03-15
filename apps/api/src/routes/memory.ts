@@ -52,6 +52,19 @@ export async function memoryRoutes(
 
     const memory = await store.store(applyLifecycleDefaults(parsed.data));
     scheduleLifecycle?.(parsed.data.orgId, parsed.data.repoId);
+
+    if (request.apiKey) {
+      store.createApiKeyLog({
+        apiKeyId: request.apiKey.id,
+        operation: "create_memory",
+        orgId: parsed.data.orgId,
+        repoId: parsed.data.repoId,
+        memoryId: memory.id,
+      }).catch((err) => {
+        app.log.error("Failed to log API key usage:", err);
+      });
+    }
+
     return reply.status(201).send({ id: memory.id });
   });
 }
