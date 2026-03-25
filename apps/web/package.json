@@ -12,6 +12,7 @@
     "@unforgit/core": "workspace:*",
     "@unforgit/shared": "workspace:*",
     "@unforgit/db": "workspace:*",
+    "@unforgit/ui": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "better-sqlite3": "^12.6.2",
     "openai": "^6.25.0",

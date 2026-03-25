@@ -14,12 +14,14 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@unforgit/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "next": "^15.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-force-graph-2d": "^1.28.1",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.10",

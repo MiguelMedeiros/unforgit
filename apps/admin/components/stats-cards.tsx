@@ -52,7 +52,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-4">
         {statItems.map((item, i) => {
           const value = item.getValue(stats);
           return (

@@ -42,8 +42,8 @@ services:
   admin:
     image: unforgit-admin:0.1.0
     build:
-      context: ./apps/admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/admin/Dockerfile
     ports:
       - "3939:3939"
     environment:
