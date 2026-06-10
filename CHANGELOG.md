@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.2.1...v0.3.0) (2026-06-10)
+
+
+### Features
+
+* **cli:** manage local reset backups ([689317d](https://github.com/MiguelMedeiros/unforgit/commit/689317d678aea927766118bfd419b5d4d6f80c0a))
+
 ## [0.2.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.2.0...v0.2.1) (2026-06-10)
 
 
