@@ -15,7 +15,7 @@
     "@unforgit/core": "workspace:*",
     "@unforgit/db": "workspace:*",
     "@unforgit/config": "workspace:*",
-    "commander": "^14.0.3",
+    "commander": "^15.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
