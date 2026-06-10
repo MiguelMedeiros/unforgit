@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { Command } from "commander";
 import { loadConfig, getDbPath } from "unforgit-config";
 import { LocalStore } from "unforgit-db";
@@ -7,49 +5,9 @@ import { RemoteClient } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
 import { confirm } from "../utils.js";
+import { createLocalResetBackup } from "./backups.js";
 
-type LocalResetBackup = {
-  dir: string;
-  files: string[];
-};
-
-function formatBackupTimestamp(date: Date): string {
-  return date
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace("T", "-")
-    .replace(/\.\d{3}Z$/, "");
-}
-
-export function createLocalResetBackup(
-  dbPath: string,
-  now: Date = new Date(),
-): LocalResetBackup | null {
-  if (!fs.existsSync(dbPath)) {
-    return null;
-  }
-
-  const dataDir = path.dirname(dbPath);
-  const backupRoot = path.join(dataDir, "backups");
-  const baseName = `reset-${formatBackupTimestamp(now)}`;
-  let backupDir = path.join(backupRoot, baseName);
-  let suffix = 1;
-  while (fs.existsSync(backupDir)) {
-    backupDir = path.join(backupRoot, `${baseName}-${suffix++}`);
-  }
-
-  fs.mkdirSync(backupDir, { recursive: true, mode: 0o700 });
-
-  const files: string[] = [];
-  for (const source of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
-    if (!fs.existsSync(source)) continue;
-    const fileName = path.basename(source);
-    fs.copyFileSync(source, path.join(backupDir, fileName));
-    files.push(fileName);
-  }
-
-  return { dir: backupDir, files };
-}
+export { createLocalResetBackup } from "./backups.js";
 
 export const resetCommand = new Command("reset")
   .description("Permanently delete all memories and related data")

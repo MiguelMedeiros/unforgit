@@ -163,6 +163,19 @@ unforgit reset --no-backup    # skip automatic local backup before reset
 
 Local resets create a timestamped SQLite backup by default under `.unforgit/backups/reset-YYYYMMDD-HHMMSS/`. Keep this backup if you may need to recover memories after a destructive reset.
 
+## Backups
+
+```bash
+# List local reset backups
+unforgit backups list
+
+# Restore a specific local backup; creates another safety backup first
+unforgit backups restore reset-20260610-123456
+unforgit backups restore reset-20260610-123456 --force
+```
+
+Backup restore accepts only backup directory names, not paths, so accidental path traversal outside `.unforgit/backups/` is rejected. Restoring replaces the active local SQLite database, so use `unforgit backups list` first and keep the safety backup path printed by the restore command.
+
 ## Sync (Push & Pull)
 
 ```bash

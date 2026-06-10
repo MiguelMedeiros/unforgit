@@ -18,6 +18,7 @@
     "db:push": "prisma db push",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "smoke:cli": "UNFORGIT_DATA_DIR=$(mktemp -d) node apps/cli/dist/index.js --version && UNFORGIT_DATA_DIR=$(mktemp -d) node apps/cli/dist/index.js backups list",
     "clean": "pnpm -r exec rm -rf dist .next node_modules"
   },
   "keywords": [

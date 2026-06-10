@@ -52,4 +52,7 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          DATABASE_URL: postgresql://unforgit:unforgit@localhost:5432/unforgit
+          DATABASE_URL: postgresql://unforgit:***@localhost:5432/unforgit
+
+      - name: CLI smoke test
+        run: pnpm smoke:cli
