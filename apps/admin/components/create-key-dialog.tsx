@@ -91,7 +91,6 @@ export function CreateKeyDialog({ open, onClose, onCreated, repo, userId, userRe
     onClose();
   };
 
-  const displayRepo = repo || selectedRepo;
   const canCreate = userId ? !!selectedRepo : !!parsed;
 
   if (!open) return null;

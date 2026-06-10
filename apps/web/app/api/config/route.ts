@@ -7,6 +7,24 @@ import {
   isInitialized,
 } from "@/lib/config";
 
+async function getOpenAIStatus(
+  apiKey: string | undefined,
+): Promise<"not_configured" | "valid" | "invalid"> {
+  if (!apiKey) return "not_configured";
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    return res.ok ? "valid" : "invalid";
+  } catch {
+    return "invalid";
+  }
+}
+
 export async function GET() {
   const initialized = isInitialized();
   const config = getConfig();
@@ -24,24 +42,7 @@ export async function GET() {
     }
   }
 
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  let openaiStatus: "not_configured" | "configured" | "valid" | "invalid" =
-    "not_configured";
-
-  if (openaiApiKey) {
-    openaiStatus = "configured";
-    try {
-      const res = await fetch("https://api.openai.com/v1/models", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${openaiApiKey}`,
-        },
-      });
-      openaiStatus = res.ok ? "valid" : "invalid";
-    } catch {
-      openaiStatus = "invalid";
-    }
-  }
+  const openaiStatus = await getOpenAIStatus(process.env.OPENAI_API_KEY);
 
   return NextResponse.json({
     initialized,

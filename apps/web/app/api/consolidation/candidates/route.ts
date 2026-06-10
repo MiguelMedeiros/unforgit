@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import type { Memory } from "@/lib/types";
+import type { Memory, MemoryType } from "@/lib/types";
 
 interface ConsolidationCandidate {
   memories: Memory[];
   reason: string;
   suggestedTags: string[];
   averageScore: number;
+}
+
+const memoryTypes: ReadonlySet<string> = new Set(["episodic", "semantic", "procedural"]);
+
+function parseMemoryTypes(value: string | null): MemoryType[] | undefined {
+  if (!value) return undefined;
+
+  const types = value
+    .split(",")
+    .filter((type): type is MemoryType => memoryTypes.has(type));
+
+  return types.length > 0 ? types : undefined;
 }
 
 function findConsolidationCandidates(
@@ -18,7 +30,7 @@ function findConsolidationCandidates(
     minGroupSize?: number;
     maxGroups?: number;
     offset?: number;
-    types?: string[];
+    types?: MemoryType[];
   } = {},
 ): {
   candidates: ConsolidationCandidate[];
@@ -41,11 +53,11 @@ function findConsolidationCandidates(
     orgId,
     repoId,
     status: ["active"],
-    types: types as any,
+    types,
     limit: 1000,
   });
 
-  const filteredMemories = memories.filter((m: any) => !m.isConsolidation);
+  const filteredMemories = memories.filter((memory) => !memory.isConsolidation);
 
   if (filteredMemories.length < 2) {
     return {
@@ -71,7 +83,7 @@ function findConsolidationCandidates(
       for (const sim of similar) {
         const targetMemory = memoryMap.get(sim.id);
         if (!targetMemory) continue;
-        if ((targetMemory as any).isConsolidation) continue;
+        if (targetMemory.isConsolidation) continue;
 
         if (!similarityScores.has(memory.id)) {
           similarityScores.set(memory.id, new Map());
@@ -214,7 +226,7 @@ export async function GET(request: NextRequest) {
   const minGroupSize = parseInt(params.get("minGroupSize") ?? "2", 10);
   const maxGroups = parseInt(params.get("maxGroups") ?? "10", 10);
   const offset = parseInt(params.get("offset") ?? "0", 10);
-  const types = params.get("types")?.split(",").filter(Boolean);
+  const types = parseMemoryTypes(params.get("types"));
 
   const result = findConsolidationCandidates(store, config.remote.orgId, config.remote.repoId, {
     threshold,

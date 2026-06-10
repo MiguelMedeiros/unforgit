@@ -9,6 +9,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -20,7 +21,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run release-please
+        id: release
         uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Checkout
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+
+      - name: Setup Node.js
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://unforgit:***@localhost:5432/unforgit
+
+      - name: Build
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://unforgit:***@localhost:5432/unforgit
+
+      - name: CLI smoke test
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: pnpm smoke:cli
+
+      - name: Publish CLI to npm
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        working-directory: apps/cli
+        run: pnpm publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

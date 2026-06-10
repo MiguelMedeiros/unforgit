@@ -14,7 +14,6 @@ import {
   RefreshCw,
   History,
   Clock,
-  FolderGit2,
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";

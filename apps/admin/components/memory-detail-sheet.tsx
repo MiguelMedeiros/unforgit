@@ -19,7 +19,6 @@ import {
   Bug,
   User,
   Link2,
-  ArrowUpRight,
 } from "lucide-react";
 
 interface MemoryDetail {

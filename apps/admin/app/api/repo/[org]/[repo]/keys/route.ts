@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ org: string; repo: string }> }
 ) {
-  const { org, repo } = await params;
+  const { org } = await params;
   const authHeader = request.headers.get("Authorization");
 
   if (!authHeader) {
