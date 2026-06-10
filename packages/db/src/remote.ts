@@ -99,14 +99,6 @@ export function safeLogIdentifier(value: string): string {
   return bounded.replace(/[\r\n\t]/g, "?");
 }
 
-export function safeLogError(error: unknown): string {
-  if (error instanceof Error) {
-    return safeLogIdentifier(error.name || "Error");
-  }
-
-  return safeLogIdentifier(typeof error);
-}
-
 export interface RemoteStoreOptions {
   autoEmbeddingEnabled?: boolean;
 }
@@ -1042,9 +1034,8 @@ export class RemoteStore {
     try {
       const result = await generateEmbedding(text, config);
       await this.storeEmbedding(memoryId, result.embedding, result.model);
-    } catch (error) {
-      const safeMemoryId = safeLogIdentifier(memoryId);
-      console.error("Failed to generate embedding for memory:", safeMemoryId, safeLogError(error));
+    } catch {
+      console.error("Failed to generate embedding for memory");
     }
   }
 
