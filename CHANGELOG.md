@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.0...v0.3.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* clear quality findings after release ([9d02b76](https://github.com/MiguelMedeiros/unforgit/commit/9d02b7648edc97f48358d603b5a0544cf421f326))
+
 ## [0.3.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.2.1...v0.3.0) (2026-06-10)
 
 
