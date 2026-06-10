@@ -242,7 +242,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     }
   );
 
-  app.get("/v1/auth/me", async (request, reply) => {
+  app.get(
+    "/v1/auth/me",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -302,7 +305,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     return reply.send({ success: true });
   });
 
-  app.get("/v1/auth/me/keys", async (request, reply) => {
+  app.get(
+    "/v1/auth/me/keys",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -354,7 +360,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       repoId?: string;
       label?: string;
     };
-  }>("/v1/auth/me/keys", async (request, reply) => {
+  }>(
+    "/v1/auth/me/keys",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -418,7 +427,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       limit?: string;
       offset?: string;
     };
-  }>("/v1/auth/me/logs", async (request, reply) => {
+  }>(
+    "/v1/auth/me/logs",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -487,7 +499,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       limit?: string;
       offset?: string;
     };
-  }>("/v1/auth/me/logs/repo/:orgId/:repoId", async (request, reply) => {
+  }>(
+    "/v1/auth/me/logs/repo/:orgId/:repoId",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -552,7 +567,10 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     }
   });
 
-  app.delete("/v1/auth/delete-account", async (request, reply) => {
+  app.delete(
+    "/v1/auth/delete-account",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
