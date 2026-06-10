@@ -2,7 +2,7 @@
   "name": "unforgit-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Repository memory system \u2014 shared + local knowledge for agents and developers",
+  "description": "Repository memory system — shared + local knowledge for agents and developers",
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
@@ -40,16 +40,24 @@
   "bugs": {
     "url": "https://github.com/MiguelMedeiros/unforgit/issues"
   },
-  "dependencies": {
-    "prisma": "^7.4.2"
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/engines",
       "better-sqlite3",
       "esbuild",
       "prisma"
-    ]
+    ],
+    "overrides": {
+      "express-rate-limit": "8.5.2",
+      "path-to-regexp": "8.4.2",
+      "flatted": "3.4.2",
+      "micromatch>picomatch": "2.3.2",
+      "tinyglobby>picomatch": "4.0.4",
+      "fast-uri": "3.1.2",
+      "lodash-es": "4.18.1",
+      "vite@>=7.0.0 <=7.3.1": "7.3.5",
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -60,9 +68,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
-    "puppeteer": "^24.38.0",
+    "prisma": "^7.8.0",
+    "puppeteer": "^25.1.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^4.0.18"
+    "vite": "7.3.5",
+    "vitest": "^4.1.8"
   }
 }

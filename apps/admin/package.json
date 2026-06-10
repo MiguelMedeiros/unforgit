@@ -16,7 +16,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@unforgit/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",
-    "next": "^15.3.4",
+    "next": "^15.5.19",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-force-graph-2d": "^1.28.1",
