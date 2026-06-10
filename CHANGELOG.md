@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.2.0...v0.2.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **cli:** back up local reset database ([98d5b73](https://github.com/MiguelMedeiros/unforgit/commit/98d5b73123d1f6b6814b40ff22f2df92ec616d9e))
+
 ## [0.2.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.1.0...v0.2.0) (2026-06-10)
 
 
