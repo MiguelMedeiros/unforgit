@@ -12,7 +12,9 @@ updates:
         update-types:
           - minor
           - patch
-    open-pull-requests-limit: 5
+    # Version updates are batched manually by maintainers to keep release
+    # risk reviewable. GitHub security alerts remain handled separately.
+    open-pull-requests-limit: 0
 
   - package-ecosystem: github-actions
     directory: /
@@ -21,4 +23,6 @@ updates:
       day: monday
       time: "08:30"
       timezone: America/Sao_Paulo
-    open-pull-requests-limit: 5
+    # Version updates are batched manually by maintainers to keep release
+    # risk reviewable. GitHub security alerts remain handled separately.
+    open-pull-requests-limit: 0
