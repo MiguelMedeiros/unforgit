@@ -1,8 +1,8 @@
 {
-  "name": "unforgit",
+  "name": "unforgit-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Repository memory system — shared + local knowledge for agents and developers",
+  "description": "Repository memory system \u2014 shared + local knowledge for agents and developers",
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
