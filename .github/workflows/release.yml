@@ -69,5 +69,3 @@ jobs:
         if: ${{ steps.release.outputs.release_created == 'true' }}
         working-directory: apps/cli
         run: pnpm publish --access public --provenance --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
