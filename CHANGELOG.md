@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.1...v0.3.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* **cli:** add repository metadata for provenance publish ([0af1144](https://github.com/MiguelMedeiros/unforgit/commit/0af114406510e429e9a292afe5fe31c61e8e3ef8))
+
 ## [0.3.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.0...v0.3.1) (2026-06-10)
 
 
