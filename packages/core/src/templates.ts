@@ -1,4 +1,4 @@
-import type { MemoryType } from "@unforgit/shared";
+import type { MemoryType } from "unforgit-shared";
 
 export interface MemoryTemplate {
   name: string;

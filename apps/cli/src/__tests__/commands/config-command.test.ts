@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createTempDataDir } from "../helpers.js";
-import { LocalStore } from "@unforgit/db";
-import { loadConfig, saveConfig } from "@unforgit/config";
+import { LocalStore } from "unforgit-db";
+import { loadConfig, saveConfig } from "unforgit-config";
 import fs from "node:fs";
 import YAML from "yaml";
 

@@ -3,7 +3,7 @@ import type {
   MemoryLink,
   RecallQuery,
   RecallResult,
-} from "@unforgit/shared";
+} from "unforgit-shared";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;

@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { getDbPath, isInitialized, loadConfig } from "@unforgit/config";
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
-import { runLocalLifecycleMaintenance } from "@unforgit/core";
+import { getDbPath, isInitialized, loadConfig } from "unforgit-config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
+import { runLocalLifecycleMaintenance } from "unforgit-core";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";

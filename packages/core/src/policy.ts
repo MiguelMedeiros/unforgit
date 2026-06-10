@@ -1,4 +1,4 @@
-import type { CreateMemoryInput, PolicyResult } from "@unforgit/shared";
+import type { CreateMemoryInput, PolicyResult } from "unforgit-shared";
 
 const SENSITIVE_PATTERNS = [
   /password/i,

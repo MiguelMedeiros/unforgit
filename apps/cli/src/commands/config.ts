@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { isInitialized, loadConfig, saveConfig } from "@unforgit/config";
+import { isInitialized, loadConfig, saveConfig } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";
-import type { AppConfig } from "@unforgit/shared";
+import type { AppConfig } from "unforgit-shared";
 
 export const configCommand = new Command("config")
   .description("Manage unforgit configuration");

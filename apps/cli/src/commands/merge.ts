@@ -1,14 +1,14 @@
 import { Command } from "commander";
-import { LocalStore } from "@unforgit/db";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
-import type { MemoryType } from "@unforgit/shared";
+import { LocalStore } from "unforgit-db";
+import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
+import type { MemoryType } from "unforgit-shared";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import {
   parseThreshold,
   parsePositiveInt,
   validateMemoryType,
-} from "@unforgit/config";
+} from "unforgit-config";
 import { isJsonMode, outputJson } from "../utils.js";
 
 const cwd = process.cwd();

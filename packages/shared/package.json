@@ -1,5 +1,5 @@
 {
-  "name": "@unforgit/shared",
+  "name": "unforgit-shared",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",

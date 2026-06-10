@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { Memory, MemoryType } from "@unforgit/shared";
+import type { Memory, MemoryType } from "unforgit-shared";
 
 export interface ConsolidationInput {
   memories: Array<{

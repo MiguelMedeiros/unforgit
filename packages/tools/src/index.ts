@@ -1,5 +1,5 @@
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
 import {
   resolveVisibility,
   mergeAndRank,
@@ -7,7 +7,7 @@ import {
   resolveLifecycleConfig,
   runLocalLifecycleMaintenance,
   LifecycleScheduler,
-} from "@unforgit/core";
+} from "unforgit-core";
 import type {
   LifecycleConfig,
   MemoryType,
@@ -15,7 +15,7 @@ import type {
   LinkType,
   Visibility,
   RecallResult,
-} from "@unforgit/shared";
+} from "unforgit-shared";
 
 export interface ToolConfig {
   localDbPath: string;

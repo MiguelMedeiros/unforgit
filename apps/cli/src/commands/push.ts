@@ -1,7 +1,7 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
+import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
 import { truncate } from "../utils.js";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";

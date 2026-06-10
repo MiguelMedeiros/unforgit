@@ -5,7 +5,7 @@ import {
   parseConfidence,
   parseTtl,
   parsePositiveInt,
-} from "@unforgit/config";
+} from "unforgit-config";
 
 describe("appConfigSchema", () => {
   const validConfig = {

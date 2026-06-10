@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { isInitialized, loadConfig, saveConfig } from "@unforgit/config";
+import { isInitialized, loadConfig, saveConfig } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import type { AppConfig, RemoteConfig } from "@unforgit/shared";
+import type { AppConfig, RemoteConfig } from "unforgit-shared";
 
 export const remoteCommand = new Command("remote")
   .description("Manage set of tracked remote repositories")

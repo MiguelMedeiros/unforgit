@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { getDbPath, isInitialized } from "@unforgit/config";
-import { LocalStore } from "@unforgit/db";
+import { getDbPath, isInitialized } from "unforgit-config";
+import { LocalStore } from "unforgit-db";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { confirm } from "../utils.js";

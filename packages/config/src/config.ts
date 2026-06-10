@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import YAML from "yaml";
-import type { AppConfig } from "@unforgit/shared";
-import { resolveLifecycleConfig } from "@unforgit/core";
+import type { AppConfig } from "unforgit-shared";
+import { resolveLifecycleConfig } from "unforgit-core";
 import { appConfigSchema } from "./config-schemas.js";
 
 const DATA_DIR = ".unforgit";

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { consolidateSchema } from "@unforgit/shared";
-import type { RemoteStore } from "@unforgit/db";
+import { consolidateSchema } from "unforgit-shared";
+import type { RemoteStore } from "unforgit-db";
 
 export async function consolidateRoutes(
   app: FastifyInstance,

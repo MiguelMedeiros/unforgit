@@ -29,13 +29,13 @@ RUN pnpm install --frozen-lockfile
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 
-ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ARG DATABASE_URL="postgresql://dummy:***@localhost:5432/dummy"
 ENV DATABASE_URL=${DATABASE_URL}
 
 RUN pnpm run db:generate
-RUN pnpm --filter @unforgit/shared exec tsup --no-dts
-RUN pnpm --filter @unforgit/core exec tsup --no-dts
-RUN pnpm --filter @unforgit/db exec tsup --no-dts
+RUN pnpm --filter unforgit-shared exec tsup --no-dts
+RUN pnpm --filter unforgit-core exec tsup --no-dts
+RUN pnpm --filter unforgit-db exec tsup --no-dts
 RUN pnpm --filter @unforgit/api exec tsup --no-dts
 
 FROM node:20-alpine AS runner

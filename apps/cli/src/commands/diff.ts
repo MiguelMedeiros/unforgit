@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
+import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
 import { truncate, isJsonMode, outputJson } from "../utils.js";
 
 export const diffCommand = new Command("diff")

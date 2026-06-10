@@ -6,7 +6,7 @@ import type {
   LifecycleTtlConfig,
   Memory,
   MemoryType,
-} from "@unforgit/shared";
+} from "unforgit-shared";
 
 export interface ResolvedLifecycleConfig {
   ttlSecondsByType: LifecycleTtlConfig;

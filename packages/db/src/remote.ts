@@ -16,13 +16,13 @@ import type {
   FindSimilarQuery,
   ConsolidateMemoriesInput,
   ConsolidateMemoriesResult,
-} from "@unforgit/shared";
-import { computeCompositeScore, computeHybridScore } from "@unforgit/core";
+} from "unforgit-shared";
+import { computeCompositeScore, computeHybridScore } from "unforgit-core";
 import {
   applyLifecycleDefaults,
   computeUsageBoost,
   isMemoryExpired,
-} from "@unforgit/core";
+} from "unforgit-core";
 import {
   generateEmbedding,
   embeddingToPgVector,
@@ -30,7 +30,7 @@ import {
   deserializeEmbedding,
   isOpenAIConfigured,
   type EmbeddingConfig,
-} from "@unforgit/core";
+} from "unforgit-core";
 
 function prismaRowToMemory(row: Record<string, unknown>): Memory {
   return {

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { SignJWT, jwtVerify } from "jose";
-import { RemoteStore } from "@unforgit/db";
+import { RemoteStore } from "unforgit-db";
 
 interface GitHubUser {
   id: number;

@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from "fastify";
-import type { RemoteStore } from "@unforgit/db";
+import type { RemoteStore } from "unforgit-db";
 
 declare module "fastify" {
   interface FastifyRequest {

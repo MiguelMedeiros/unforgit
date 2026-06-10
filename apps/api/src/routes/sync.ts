@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
-import { RemoteStore } from "@unforgit/db";
-import type { Memory, Tombstone } from "@unforgit/shared";
+import { RemoteStore } from "unforgit-db";
+import type { Memory, Tombstone } from "unforgit-shared";
 
 interface SyncQueryParams {
   orgId: string;

@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runRemoteLifecycleMaintenance } from "@unforgit/core";
-import { deprecateSchema, supersedeSchema } from "@unforgit/shared";
-import type { RemoteStore } from "@unforgit/db";
+import { runRemoteLifecycleMaintenance } from "unforgit-core";
+import { deprecateSchema, supersedeSchema } from "unforgit-shared";
+import type { RemoteStore } from "unforgit-db";
 
 const lifecycleRunSchema = z.object({
   orgId: z.string().min(1),

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveVisibility } from "../policy.js";
-import type { CreateMemoryInput } from "@unforgit/shared";
+import type { CreateMemoryInput } from "unforgit-shared";
 
 function makeInput(overrides: Partial<CreateMemoryInput> = {}): CreateMemoryInput {
   return {

@@ -4,7 +4,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
 import YAML from "yaml";
-import type { AppConfig } from "@unforgit/shared";
+import type { AppConfig } from "unforgit-shared";
 
 export function createTempDataDir(configOverrides?: Partial<AppConfig>): {
   dir: string;

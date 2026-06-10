@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createTempDataDir, mockFetch, restoreFetch } from "../helpers.js";
-import { LocalStore } from "@unforgit/db";
+import { LocalStore } from "unforgit-db";
 
 describe("push/pull logic", () => {
   let tmp: ReturnType<typeof createTempDataDir>;
@@ -271,7 +271,7 @@ describe("push/pull logic", () => {
 
   describe("RemoteClient integration", () => {
     it("store calls remote API and returns id", async () => {
-      const { RemoteClient } = await import("@unforgit/config");
+      const { RemoteClient } = await import("unforgit-config");
       mockFetch([{ status: 200, body: { id: "remote-123" } }]);
 
       const client = new RemoteClient("http://localhost:3737");
@@ -286,7 +286,7 @@ describe("push/pull logic", () => {
     });
 
     it("recall fetches remote memories", async () => {
-      const { RemoteClient } = await import("@unforgit/config");
+      const { RemoteClient } = await import("unforgit-config");
       mockFetch([{
         status: 200,
         body: {
@@ -316,7 +316,7 @@ describe("push/pull logic", () => {
     });
 
     it("handles remote API failure during push", async () => {
-      const { RemoteClient } = await import("@unforgit/config");
+      const { RemoteClient } = await import("unforgit-config");
       mockFetch([{ status: 400, body: "Bad request" }]);
 
       const client = new RemoteClient("http://localhost:3737");
@@ -331,7 +331,7 @@ describe("push/pull logic", () => {
     });
 
     it("handles auth failure during push", async () => {
-      const { RemoteClient } = await import("@unforgit/config");
+      const { RemoteClient } = await import("unforgit-config");
       mockFetch([{ status: 401, body: "Unauthorized" }]);
 
       const client = new RemoteClient("http://localhost:3737");

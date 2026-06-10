@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import { generateEmbedding } from "@unforgit/core";
+import { generateEmbedding } from "unforgit-core";
 
 export async function POST() {
   const config = getConfig();

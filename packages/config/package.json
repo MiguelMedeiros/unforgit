@@ -1,5 +1,5 @@
 {
-  "name": "@unforgit/config",
+  "name": "unforgit-config",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -16,8 +16,8 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@unforgit/shared": "workspace:*",
-    "@unforgit/core": "workspace:*",
+    "unforgit-shared": "workspace:*",
+    "unforgit-core": "workspace:*",
     "yaml": "^2.8.2",
     "zod": "^4.3.6"
   },

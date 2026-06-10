@@ -9,9 +9,9 @@
     "start": "dotenv -e ../../.env -- next start -p 3838"
   },
   "dependencies": {
-    "@unforgit/core": "workspace:*",
-    "@unforgit/shared": "workspace:*",
-    "@unforgit/db": "workspace:*",
+    "unforgit-core": "workspace:*",
+    "unforgit-shared": "workspace:*",
+    "unforgit-db": "workspace:*",
     "@unforgit/ui": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "better-sqlite3": "^12.6.2",

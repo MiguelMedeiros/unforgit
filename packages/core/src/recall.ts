@@ -1,4 +1,4 @@
-import type { RecallResult } from "@unforgit/shared";
+import type { RecallResult } from "unforgit-shared";
 
 function recencyScore(createdAt: Date): number {
   const ageMs = Date.now() - createdAt.getTime();

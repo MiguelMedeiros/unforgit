@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { RemoteStore } from "@unforgit/db";
+import { RemoteStore } from "unforgit-db";
 
 interface StatsQuery {
   orgId: string;

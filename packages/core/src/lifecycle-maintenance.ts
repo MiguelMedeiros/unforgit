@@ -7,9 +7,9 @@ import {
 } from "./auto-consolidate-remote.js";
 import { resolveLifecycleConfig, isMemoryExpired } from "./lifecycle.js";
 import { isOpenAIConfigured } from "./embeddings.js";
-import type { LifecycleConfig, Memory } from "@unforgit/shared";
-import type { ILocalStore } from "@unforgit/shared";
-import type { IRemoteStore } from "@unforgit/shared";
+import type { LifecycleConfig, Memory } from "unforgit-shared";
+import type { ILocalStore } from "unforgit-shared";
+import type { IRemoteStore } from "unforgit-shared";
 
 export interface StrengthenedMemoryCandidate {
   id: string;

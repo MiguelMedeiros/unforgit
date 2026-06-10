@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import type { RemoteStore } from "@unforgit/db";
-import { createLinkSchema, linkTypeSchema } from "@unforgit/shared";
-import type { LinkType } from "@unforgit/shared";
+import type { RemoteStore } from "unforgit-db";
+import { createLinkSchema, linkTypeSchema } from "unforgit-shared";
+import type { LinkType } from "unforgit-shared";
 
 export async function linkRoutes(
   app: FastifyInstance,

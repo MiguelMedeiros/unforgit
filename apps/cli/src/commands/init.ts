@@ -9,8 +9,8 @@ import {
   saveConfig,
   isInitialized,
   detectGitInfo,
-} from "@unforgit/config";
-import { LocalStore } from "@unforgit/db";
+} from "unforgit-config";
+import { LocalStore } from "unforgit-db";
 import {
   detectIdes,
   setupIdes,

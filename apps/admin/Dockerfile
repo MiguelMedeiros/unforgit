@@ -21,7 +21,7 @@ COPY packages/shared/ ./packages/shared/
 COPY packages/ui/ ./packages/ui/
 COPY apps/admin/ ./apps/admin/
 
-RUN pnpm --filter @unforgit/shared exec tsup
+RUN pnpm --filter unforgit-shared exec tsup
 RUN pnpm --filter @unforgit/ui exec tsup
 RUN pnpm --filter unforgit-admin run build
 

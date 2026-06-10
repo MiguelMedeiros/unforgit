@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import { isInitialized } from "@unforgit/config";
+import { isInitialized } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 

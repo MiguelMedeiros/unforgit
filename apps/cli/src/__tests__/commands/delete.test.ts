@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createTempDataDir } from "../helpers.js";
-import { LocalStore } from "@unforgit/db";
+import { LocalStore } from "unforgit-db";
 
 describe("delete and restore", () => {
   let tmpDir: ReturnType<typeof createTempDataDir>;

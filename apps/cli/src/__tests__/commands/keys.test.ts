@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { mockFetch, restoreFetch } from "../helpers.js";
-import { RemoteClient } from "@unforgit/config";
+import { RemoteClient } from "unforgit-config";
 
 describe("keys via RemoteClient", () => {
   afterEach(() => {

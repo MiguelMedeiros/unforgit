@@ -20,19 +20,19 @@ import type {
   DeleteMemoryInput,
   SyncState,
   SyncStatus,
-} from "@unforgit/shared";
-import { computeCompositeScore, computeHybridScore } from "@unforgit/core";
+} from "unforgit-shared";
+import { computeCompositeScore, computeHybridScore } from "unforgit-core";
 import {
   applyLifecycleDefaults,
   computeUsageBoost,
-} from "@unforgit/core";
+} from "unforgit-core";
 import {
   generateEmbedding,
   serializeEmbedding,
   deserializeEmbedding,
   cosineSimilarity,
   type EmbeddingConfig,
-} from "@unforgit/core";
+} from "unforgit-core";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS memories (

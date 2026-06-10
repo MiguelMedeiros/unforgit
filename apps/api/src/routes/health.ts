@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { RemoteStore } from "@unforgit/db";
-import { isOpenAIConfigured } from "@unforgit/core";
+import type { RemoteStore } from "unforgit-db";
+import { isOpenAIConfigured } from "unforgit-core";
 
 const healthQuerySchema = z.object({
   orgId: z.string(),

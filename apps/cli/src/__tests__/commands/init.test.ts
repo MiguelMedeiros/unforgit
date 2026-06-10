@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import YAML from "yaml";
-import { LocalStore } from "@unforgit/db";
+import { LocalStore } from "unforgit-db";
 
 describe("unforgit init logic", () => {
   const dirs: string[] = [];

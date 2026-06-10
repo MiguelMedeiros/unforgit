@@ -1,5 +1,5 @@
-import type { Memory, MemoryType } from "@unforgit/shared";
-import type { IRemoteStore } from "@unforgit/shared";
+import type { Memory, MemoryType } from "unforgit-shared";
+import type { IRemoteStore } from "unforgit-shared";
 import {
   generateConsolidatedText,
   memoriesToConsolidationInput,

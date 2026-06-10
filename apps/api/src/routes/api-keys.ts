@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { RemoteStore } from "@unforgit/db";
+import { RemoteStore } from "unforgit-db";
 
 interface CreateApiKeyBody {
   name: string;

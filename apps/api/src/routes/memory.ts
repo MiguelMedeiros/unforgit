@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { applyLifecycleDefaults } from "@unforgit/core";
-import type { RemoteStore } from "@unforgit/db";
-import { createMemorySchema } from "@unforgit/shared";
-import type { ListQuery } from "@unforgit/shared";
+import { applyLifecycleDefaults } from "unforgit-core";
+import type { RemoteStore } from "unforgit-db";
+import { createMemorySchema } from "unforgit-shared";
+import type { ListQuery } from "unforgit-shared";
 
 export async function memoryRoutes(
   app: FastifyInstance,

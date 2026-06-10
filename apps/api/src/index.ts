@@ -2,7 +2,7 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
-import { RemoteStore } from "@unforgit/db";
+import { RemoteStore } from "unforgit-db";
 import { memoryRoutes } from "./routes/memory.js";
 import { recallRoutes } from "./routes/recall.js";
 import { curateRoutes } from "./routes/curate.js";
@@ -23,7 +23,7 @@ import {
   resolveLifecycleConfig,
   runRemoteLifecycleMaintenance,
   LifecycleScheduler,
-} from "@unforgit/core";
+} from "unforgit-core";
 
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });

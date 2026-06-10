@@ -1,13 +1,13 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath } from "@unforgit/config";
+import { loadConfig, getDbPath } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
-import { LocalStore } from "@unforgit/db";
-import { resolveVisibility } from "@unforgit/core";
-import { applyLifecycleDefaults } from "@unforgit/core";
-import type { MemoryType } from "@unforgit/shared";
-import { getTemplate, applyTemplate, formatTemplateList } from "@unforgit/core";
-import { validateMemoryType, parseConfidence, parseTtl } from "@unforgit/config";
+import { LocalStore } from "unforgit-db";
+import { resolveVisibility } from "unforgit-core";
+import { applyLifecycleDefaults } from "unforgit-core";
+import type { MemoryType } from "unforgit-shared";
+import { getTemplate, applyTemplate, formatTemplateList } from "unforgit-core";
+import { validateMemoryType, parseConfidence, parseTtl } from "unforgit-config";
 
 export const addCommand = new Command("add")
   .description("Add a memory (local by default)")

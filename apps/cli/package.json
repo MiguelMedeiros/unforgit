@@ -10,10 +10,10 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@unforgit/shared": "workspace:*",
-    "@unforgit/core": "workspace:*",
-    "@unforgit/db": "workspace:*",
-    "@unforgit/config": "workspace:*",
+    "unforgit-shared": "workspace:*",
+    "unforgit-core": "workspace:*",
+    "unforgit-db": "workspace:*",
+    "unforgit-config": "workspace:*",
     "commander": "^14.0.3",
     "zod": "^4.3.6"
   },

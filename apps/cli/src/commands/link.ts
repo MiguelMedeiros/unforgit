@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath } from "@unforgit/config";
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
-import type { LinkType } from "@unforgit/shared";
+import { loadConfig, getDbPath } from "unforgit-config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
+import type { LinkType } from "unforgit-shared";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";

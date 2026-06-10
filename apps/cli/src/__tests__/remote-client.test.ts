@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { RemoteClient } from "@unforgit/config";
+import { RemoteClient } from "unforgit-config";
 
 const originalFetch = globalThis.fetch;
 

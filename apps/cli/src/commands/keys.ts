@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { loadConfig, isInitialized } from "@unforgit/config";
-import { RemoteClient } from "@unforgit/config";
+import { loadConfig, isInitialized } from "unforgit-config";
+import { RemoteClient } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";

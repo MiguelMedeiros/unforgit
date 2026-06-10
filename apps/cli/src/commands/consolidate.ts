@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { loadConfig } from "@unforgit/config";
-import { RemoteClient } from "@unforgit/config";
+import { loadConfig } from "unforgit-config";
+import { RemoteClient } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
-import { parsePositiveInt } from "@unforgit/config";
+import { parsePositiveInt } from "unforgit-config";
 
 export const consolidateCommand = new Command("consolidate")
   .description("Consolidate episodic memories into semantic/procedural")

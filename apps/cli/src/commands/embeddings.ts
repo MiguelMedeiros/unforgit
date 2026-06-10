@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { LocalStore } from "@unforgit/db";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
-import { generateEmbedding } from "@unforgit/core";
+import { LocalStore } from "unforgit-db";
+import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
+import { generateEmbedding } from "unforgit-core";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
-import { parsePositiveInt } from "@unforgit/config";
+import { parsePositiveInt } from "unforgit-config";
 import { isJsonMode, outputJson } from "../utils.js";
 
 const cwd = process.cwd();

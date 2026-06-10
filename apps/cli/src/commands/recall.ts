@@ -1,12 +1,12 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath } from "@unforgit/config";
+import { loadConfig, getDbPath } from "unforgit-config";
 import { logger } from "../logger.js";
-import { LocalStore } from "@unforgit/db";
-import { RemoteClient } from "@unforgit/config";
-import { mergeAndRank } from "@unforgit/core";
-import { resolveLifecycleConfig } from "@unforgit/core";
-import type { MemoryType, RecallResult } from "@unforgit/shared";
-import { parsePositiveInt } from "@unforgit/config";
+import { LocalStore } from "unforgit-db";
+import { RemoteClient } from "unforgit-config";
+import { mergeAndRank } from "unforgit-core";
+import { resolveLifecycleConfig } from "unforgit-core";
+import type { MemoryType, RecallResult } from "unforgit-shared";
+import { parsePositiveInt } from "unforgit-config";
 import { EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson, paginate } from "../utils.js";
 

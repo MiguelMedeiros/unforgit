@@ -1,4 +1,4 @@
-import type { Memory } from "@unforgit/shared";
+import type { Memory } from "unforgit-shared";
 
 export interface QualityFactors {
   textQuality: number;

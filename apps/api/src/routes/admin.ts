@@ -4,13 +4,13 @@ import type {
   FastifyReply,
 } from "fastify";
 import { jwtVerify } from "jose";
-import { RemoteStore } from "@unforgit/db";
+import { RemoteStore } from "unforgit-db";
 import {
   isOpenAIConfigured,
   findConsolidationCandidatesRemote,
   executeConsolidationRemote,
   type ConsolidationCandidate,
-} from "@unforgit/core";
+} from "unforgit-core";
 
 interface CreateApiKeyBody {
   name: string;

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { resolveLifecycleConfig, generateEmbedding, isOpenAIConfigured } from "@unforgit/core";
-import { recallQuerySchema } from "@unforgit/shared";
-import type { RemoteStore } from "@unforgit/db";
+import { resolveLifecycleConfig, generateEmbedding, isOpenAIConfigured } from "unforgit-core";
+import { recallQuerySchema } from "unforgit-shared";
+import type { RemoteStore } from "unforgit-db";
 
 export async function recallRoutes(
   app: FastifyInstance,

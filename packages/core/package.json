@@ -1,5 +1,5 @@
 {
-  "name": "@unforgit/core",
+  "name": "unforgit-core",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@unforgit/shared": "workspace:*",
+    "unforgit-shared": "workspace:*",
     "openai": "^6.25.0",
     "zod": "^4.3.6"
   },

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { RemoteStore } from "@unforgit/db";
+import type { RemoteStore } from "unforgit-db";
 import {
   isOpenAIConfigured,
   findConsolidationCandidatesRemote,
@@ -8,7 +8,7 @@ import {
   autoConsolidateRemote,
   formatCandidatePreview,
   type ConsolidationCandidate,
-} from "@unforgit/core";
+} from "unforgit-core";
 
 const previewSchema = z.object({
   orgId: z.string(),

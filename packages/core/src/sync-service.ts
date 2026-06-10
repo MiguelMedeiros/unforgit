@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import type { ILocalStore } from "@unforgit/shared";
+import type { ILocalStore } from "unforgit-shared";
 
 export interface SyncConfig {
   enabled: boolean;

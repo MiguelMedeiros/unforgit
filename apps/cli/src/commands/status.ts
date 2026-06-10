@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { loadConfig, getDbPath, isInitialized } from "@unforgit/config";
+import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
-import { LocalStore } from "@unforgit/db";
+import { LocalStore } from "unforgit-db";
 import { truncate, isJsonMode, outputJson } from "../utils.js";
 
 export const statusCommand = new Command("status")

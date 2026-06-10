@@ -8,7 +8,7 @@ import {
   getDbPath,
   getConfigPath,
   defaultConfig,
-} from "@unforgit/config";
+} from "unforgit-config";
 
 describe("config", () => {
   let tmp: ReturnType<typeof createTempDataDir>;

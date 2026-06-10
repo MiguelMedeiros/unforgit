@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { loadConfig, isInitialized } from "@unforgit/config";
+import { loadConfig, isInitialized } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { maskKey } from "../utils.js";
