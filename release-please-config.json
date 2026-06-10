@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": false,
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "unforgit",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "apps/cli/package.json",
+        "apps/mcp/package.json",
+        "apps/api/package.json",
+        "apps/website/package.json"
+      ]
+    }
+  }
+}
