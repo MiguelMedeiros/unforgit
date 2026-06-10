@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/unforgit"><img src="https://img.shields.io/npm/v/unforgit.svg" alt="npm version"></a>
-  <img src="https://img.shields.io/badge/version-0.1.0-green.svg" alt="version 0.1.0">
+  <a href="https://github.com/MiguelMedeiros/unforgit/releases/latest"><img src="https://img.shields.io/github/v/release/MiguelMedeiros/unforgit?label=release" alt="latest GitHub release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://github.com/MiguelMedeiros/unforgit"><img src="https://img.shields.io/github/stars/MiguelMedeiros/unforgit.svg?style=social" alt="GitHub stars"></a>
 </p>
