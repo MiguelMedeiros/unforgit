@@ -158,7 +158,10 @@ unforgit reset                # reset local + remote
 unforgit reset --local        # reset local store only
 unforgit reset --remote       # reset remote store only
 unforgit reset --force        # skip confirmation prompt
+unforgit reset --no-backup    # skip automatic local backup before reset
 ```
+
+Local resets create a timestamped SQLite backup by default under `.unforgit/backups/reset-YYYYMMDD-HHMMSS/`. Keep this backup if you may need to recover memories after a destructive reset.
 
 ## Sync (Push & Pull)
 
