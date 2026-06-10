@@ -85,6 +85,15 @@ describe("config", () => {
       const reloaded = loadConfig(tmp.dir);
       expect(reloaded.remote.orgId).toBe("new-org");
     });
+
+    it("writes config files with owner-only permissions", () => {
+      const fs = require("node:fs");
+      const config = loadConfig(tmp.dir);
+
+      saveConfig(config, tmp.dir);
+
+      expect(fs.statSync(tmp.configPath).mode & 0o777).toBe(0o600);
+    });
   });
 
   describe("defaultConfig", () => {

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import YAML from "yaml";
 import type { AppConfig } from "unforgit-shared";
 import { resolveLifecycleConfig } from "unforgit-core";
@@ -9,6 +10,38 @@ import { appConfigSchema } from "./config-schemas.js";
 const DATA_DIR = ".unforgit";
 const CONFIG_FILE = "unforgit.yaml";
 const DB_FILE = "local.db";
+
+function writeConfigYaml(configPath: string, value: Record<string, unknown>): void {
+  const dir = path.dirname(configPath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const tmpPath = path.join(
+    dir,
+    `.${path.basename(configPath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  const fd = fs.openSync(
+    tmpPath,
+    fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY,
+    0o600,
+  );
+
+  try {
+    fs.writeFileSync(fd, YAML.stringify(value), "utf-8");
+    fs.fsyncSync(fd);
+  } catch (err) {
+    try {
+      fs.closeSync(fd);
+    } catch {
+      // Ignore close errors while preserving the original write error.
+    }
+    fs.rmSync(tmpPath, { force: true });
+    throw err;
+  }
+
+  fs.closeSync(fd);
+  fs.renameSync(tmpPath, configPath);
+  fs.chmodSync(configPath, 0o600);
+}
 
 export function detectGitInfo(cwd: string = process.cwd()): {
   orgId: string;
@@ -71,12 +104,12 @@ function migrateConfig(parsed: Record<string, unknown>, configPath: string): Rec
 
   if (version === 0) {
     parsed.configVersion = CURRENT_CONFIG_VERSION;
-    fs.writeFileSync(configPath, YAML.stringify(parsed), "utf-8");
+    writeConfigYaml(configPath, parsed);
   }
 
   if (version === 1) {
     parsed.configVersion = CURRENT_CONFIG_VERSION;
-    fs.writeFileSync(configPath, YAML.stringify(parsed), "utf-8");
+    writeConfigYaml(configPath, parsed);
   }
 
   return parsed;
@@ -159,7 +192,7 @@ export function saveConfig(
   cwd: string = process.cwd(),
 ): void {
   const configPath = getConfigPath(cwd);
-  fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
+  writeConfigYaml(configPath, config as unknown as Record<string, unknown>);
 }
 
 export function defaultConfig(): AppConfig & { configVersion: number } {
