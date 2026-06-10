@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, ArrowRight, Sparkles, GitMerge } from "lucide-react";
+import { Brain, ArrowRight, Sparkles, GitMerge, Network } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
 import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, MemoryLifecycleChart } from "@/components/dashboard-charts";
@@ -24,6 +24,17 @@ interface ActivityData {
 interface TagData {
   tag: string;
   count: number;
+}
+
+interface GraphHealth {
+  activeMemories: number;
+  activeConsolidations: number;
+  supersededMemories: number;
+  validLinks: number;
+  orphanActiveMemories: number;
+  orphanRatio: number;
+  derivedFromLinks: number;
+  relatedLinks: number;
 }
 
 export default function DashboardPage() {
@@ -50,16 +61,18 @@ export default function DashboardPage() {
     candidateGroups: number;
     totalMemoriesInGroups: number;
   } | null>(null);
+  const [graphHealth, setGraphHealth] = useState<GraphHealth | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
       const timeframeParam = timeframe !== "all" ? `timeframe=${timeframe}` : "";
-      const [statsRes, activityRes, tagsRes, consolidationRes] = await Promise.all([
+      const [statsRes, activityRes, tagsRes, consolidationRes, healthRes] = await Promise.all([
         fetch(`/api/stats${timeframeParam ? `?${timeframeParam}` : ""}`),
         fetch(`/api/stats/activity${timeframeParam ? `?${timeframeParam}` : ""}`),
         fetch(`/api/stats/tags?limit=6${timeframeParam ? `&${timeframeParam}` : ""}`),
         fetch("/api/consolidation/candidates?maxGroups=100&threshold=0.4"),
+        fetch("/api/health"),
       ]);
 
       if (statsRes.ok) {
@@ -85,6 +98,11 @@ export default function DashboardPage() {
           candidateGroups: data.totalCandidateGroups ?? 0,
           totalMemoriesInGroups,
         });
+      }
+
+      if (healthRes.ok) {
+        const data = await healthRes.json();
+        setGraphHealth(data.graphHealth ?? null);
       }
     } finally {
       setLoading(false);
@@ -173,6 +191,39 @@ export default function DashboardPage() {
                 >
                   <Sparkles className="h-4 w-4" />
                   {consolidationInfo.candidateGroups > 0 ? "Review & Merge" : "View"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Graph Health Card */}
+          {graphHealth && (
+            <div className="rounded-xl border border-border/30 bg-dracula-current p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                    <Network className="h-6 w-6 text-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold">Graph Health</h3>
+                    <p className="text-[13px] text-muted-foreground">
+                      <span className="font-medium text-foreground">{graphHealth.validLinks}</span>
+                      {" "}valid links ·{" "}
+                      <span className="font-medium text-foreground">{graphHealth.activeConsolidations}</span>
+                      {" "}consolidations ·{" "}
+                      <span className={graphHealth.orphanActiveMemories > 0 ? "font-medium text-yellow-300" : "font-medium text-foreground"}>
+                        {graphHealth.orphanActiveMemories}
+                      </span>
+                      {" "}active orphans
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/graph")}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-[13px] font-medium text-foreground hover:bg-white/15 transition-colors"
+                >
+                  View Graph
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>

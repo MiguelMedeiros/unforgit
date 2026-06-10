@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { computeGraphHealth } from "@/lib/graph-health";
 
 interface MemoryStats {
   recallCount: number;
@@ -156,12 +157,15 @@ export async function GET() {
   }
 
   try {
-    const memories = local.list({
+    const allMemories = local.list({
       orgId: config.remote.orgId,
       repoId: config.remote.repoId,
-      status: ["active"],
-      limit: 500,
+      status: ["active", "deprecated", "superseded"],
+      limit: 1000,
     });
+    const graphHealth = computeGraphHealth(allMemories, local.getAllLinks());
+
+    const memories = allMemories.filter((memory) => memory.status === "active");
 
     const usageStats = local.getUsageStats(config.remote.orgId, config.remote.repoId);
     const usageMap = new Map(usageStats.map((s) => [s.memoryId, s]));
@@ -193,6 +197,7 @@ export async function GET() {
         overallScore: 1.0,
         status: "healthy",
         memoryCounts: { total: 0, healthy: 0, needsAttention: 0, critical: 0 },
+        graphHealth,
         topIssues: [],
       });
     }
@@ -233,6 +238,7 @@ export async function GET() {
         total: memoryData.length,
         ...counts,
       },
+      graphHealth,
       topIssues,
     });
   } catch (error) {
