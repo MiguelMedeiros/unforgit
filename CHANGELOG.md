@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.2...v0.4.0) (2026-06-10)
+
+
+### Features
+
+* **cli:** add safe local dashboard command ([c160181](https://github.com/MiguelMedeiros/unforgit/commit/c1601812e7f1c1e536fef631a2f1e4cf4a6c6011))
+* **web:** surface memory graph health ([cc8cf30](https://github.com/MiguelMedeiros/unforgit/commit/cc8cf3071de90d8576d112651f24a6c36f73e6b7))
+
 ## [0.3.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.1...v0.3.2) (2026-06-10)
 
 
