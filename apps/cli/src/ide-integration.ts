@@ -62,11 +62,6 @@ interface IdeSetupResult {
   mcp?: SetupAction;
 }
 
-function fileContainsUnforgit(filePath: string): boolean {
-  if (!fs.existsSync(filePath)) return false;
-  return fs.readFileSync(filePath, "utf-8").includes(UNFORGIT_MARKER);
-}
-
 function upsertJsonMcp(
   filePath: string,
   serverKey: string,
@@ -75,26 +70,29 @@ function upsertJsonMcp(
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
 
-  if (!fs.existsSync(filePath)) {
-    const config = { [serverKey]: { unforgit: mcpEntry } };
-    fs.writeFileSync(filePath, JSON.stringify(config, null, 2) + "\n", "utf-8");
-    return { path: filePath, action: "created" };
-  }
+  const fd = fs.openSync(filePath, "a+");
+  try {
+    const raw = fs.readFileSync(fd, "utf-8");
+    if (raw.trim().length === 0) {
+      const config = { [serverKey]: { unforgit: mcpEntry } };
+      fs.writeSync(fd, JSON.stringify(config, null, 2) + "\n", 0, "utf-8");
+      return { path: filePath, action: "created" };
+    }
 
-  const existing = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  const servers = existing[serverKey];
-  if (servers?.unforgit) {
-    return { path: filePath, action: "exists" };
-  }
+    const existing = JSON.parse(raw);
+    const servers = existing[serverKey];
+    if (servers?.unforgit) {
+      return { path: filePath, action: "exists" };
+    }
 
-  existing[serverKey] = existing[serverKey] || {};
-  existing[serverKey].unforgit = mcpEntry;
-  fs.writeFileSync(
-    filePath,
-    JSON.stringify(existing, null, 2) + "\n",
-    "utf-8",
-  );
-  return { path: filePath, action: "updated" };
+    existing[serverKey] = existing[serverKey] || {};
+    existing[serverKey].unforgit = mcpEntry;
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, JSON.stringify(existing, null, 2) + "\n", 0, "utf-8");
+    return { path: filePath, action: "updated" };
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 function appendOrCreateMarkdown(
@@ -104,19 +102,46 @@ function appendOrCreateMarkdown(
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
 
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, content + "\n", "utf-8");
-    return { path: filePath, action: "created" };
-  }
+  const fd = fs.openSync(filePath, "a+");
+  try {
+    const existing = fs.readFileSync(fd, "utf-8");
+    if (existing.length === 0) {
+      fs.writeSync(fd, content + "\n", 0, "utf-8");
+      return { path: filePath, action: "created" };
+    }
 
-  if (fileContainsUnforgit(filePath)) {
-    return { path: filePath, action: "exists" };
-  }
+    if (existing.includes(UNFORGIT_MARKER)) {
+      return { path: filePath, action: "exists" };
+    }
 
-  const existing = fs.readFileSync(filePath, "utf-8");
-  const separator = existing.endsWith("\n") ? "\n" : "\n\n";
-  fs.writeFileSync(filePath, existing + separator + content + "\n", "utf-8");
-  return { path: filePath, action: "updated" };
+    const separator = existing.endsWith("\n") ? "\n" : "\n\n";
+    fs.writeSync(fd, separator + content + "\n", undefined, "utf-8");
+    return { path: filePath, action: "updated" };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function replaceMarkdownIfMissingMarker(
+  filePath: string,
+  content: string,
+): SetupAction {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const fd = fs.openSync(filePath, "a+");
+  try {
+    const existing = fs.readFileSync(fd, "utf-8");
+    if (existing.includes(UNFORGIT_MARKER)) {
+      return { path: filePath, action: "exists" };
+    }
+
+    fs.ftruncateSync(fd, 0);
+    fs.writeSync(fd, content, 0, "utf-8");
+    return { path: filePath, action: existing.length === 0 ? "created" : "updated" };
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 // --- Cursor ---
@@ -132,15 +157,7 @@ ${MEMORY_INSTRUCTIONS}
 function setupCursor(cwd: string): IdeSetupResult {
   const rulesDir = path.join(cwd, ".cursor", "rules");
   const rulePath = path.join(rulesDir, "unforgit-memory.mdc");
-
-  let rules: SetupAction;
-  if (fileContainsUnforgit(rulePath)) {
-    rules = { path: rulePath, action: "exists" };
-  } else {
-    fs.mkdirSync(rulesDir, { recursive: true });
-    fs.writeFileSync(rulePath, CURSOR_RULE_CONTENT, "utf-8");
-    rules = { path: rulePath, action: "created" };
-  }
+  const rules = replaceMarkdownIfMissingMarker(rulePath, CURSOR_RULE_CONTENT);
 
   const mcpPath = path.join(cwd, ".cursor", "mcp.json");
   const mcp = upsertJsonMcp(mcpPath, "mcpServers", {
