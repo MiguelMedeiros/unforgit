@@ -18,15 +18,15 @@
   "dependencies": {
     "@unforgit/shared": "workspace:*",
     "@unforgit/core": "workspace:*",
-    "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
-    "better-sqlite3": "^12.6.2",
-    "pg": "^8.19.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "better-sqlite3": "^12.10.0",
+    "pg": "^8.21.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/pg": "^8.18.0",
+    "@types/pg": "^8.20.0",
     "@types/uuid": "^11.0.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"

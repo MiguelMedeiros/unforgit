@@ -41,7 +41,7 @@
     "url": "https://github.com/MiguelMedeiros/unforgit/issues"
   },
   "dependencies": {
-    "prisma": "^7.4.2"
+    "prisma": "^7.8.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -53,16 +53,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@next/eslint-plugin-next": "^16.1.6",
+    "@next/eslint-plugin-next": "^16.2.9",
     "@types/node": "^25.3.3",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
+    "globals": "^17.6.0",
     "puppeteer": "^24.38.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vitest": "^4.0.18"
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.8"
   }
 }
