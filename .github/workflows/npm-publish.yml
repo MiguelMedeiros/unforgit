@@ -1,0 +1,52 @@
+name: Publish npm
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-cli:
+    name: Publish CLI to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://unforgit:***@localhost:5432/unforgit
+
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://unforgit:***@localhost:5432/unforgit
+
+      - name: CLI smoke test
+        run: pnpm smoke:cli
+
+      - name: Publish CLI to npm
+        working-directory: apps/cli
+        run: pnpm publish --access public --provenance --no-git-checks
