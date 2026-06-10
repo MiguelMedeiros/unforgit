@@ -20,6 +20,10 @@ import type {
   DeleteMemoryInput,
   SyncState,
   SyncStatus,
+  CurationSuggestion,
+  CreateCurationSuggestionInput,
+  ListCurationSuggestionsQuery,
+  ReviewCurationSuggestionInput,
 } from "unforgit-shared";
 import { computeCompositeScore, computeHybridScore } from "unforgit-core";
 import {
@@ -138,6 +142,27 @@ CREATE TABLE IF NOT EXISTS memory_usage (
 
 CREATE INDEX IF NOT EXISTS idx_memory_usage_memory ON memory_usage(memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_usage_recalled ON memory_usage(recalled_at);
+
+CREATE TABLE IF NOT EXISTS curation_suggestions (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL,
+  repo_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('consolidate','deprecate','delete','add_tags','add_links','review','promote','generate_embedding')),
+  priority TEXT NOT NULL CHECK(priority IN ('high','medium','low')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','applied')),
+  memory_ids TEXT NOT NULL DEFAULT '[]',
+  reason TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  payload TEXT,
+  created_by TEXT,
+  reviewed_by TEXT,
+  review_note TEXT,
+  reviewed_at TEXT,
+  applied_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_curation_suggestions_repo_status ON curation_suggestions(org_id, repo_id, status, created_at);
 `;
 
 function rowToLink(row: Record<string, unknown>): MemoryLink {
@@ -178,6 +203,28 @@ function rowToMemory(row: Record<string, unknown>): Memory {
     version: (row.version as number) ?? 1,
     deletedAt: row.deleted_at ? new Date(row.deleted_at as string) : undefined,
     deletedBy: (row.deleted_by as string) ?? undefined,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+  };
+}
+
+function rowToCurationSuggestion(row: Record<string, unknown>): CurationSuggestion {
+  return {
+    id: row.id as string,
+    orgId: row.org_id as string,
+    repoId: row.repo_id as string,
+    type: row.type as CurationSuggestion["type"],
+    priority: row.priority as CurationSuggestion["priority"],
+    status: row.status as CurationSuggestion["status"],
+    memoryIds: JSON.parse((row.memory_ids as string) ?? "[]"),
+    reason: row.reason as string,
+    confidence: row.confidence as number,
+    payload: row.payload ? JSON.parse(row.payload as string) : undefined,
+    createdBy: (row.created_by as string) ?? undefined,
+    reviewedBy: (row.reviewed_by as string) ?? undefined,
+    reviewNote: (row.review_note as string) ?? undefined,
+    reviewedAt: row.reviewed_at ? new Date(row.reviewed_at as string) : undefined,
+    appliedAt: row.applied_at ? new Date(row.applied_at as string) : undefined,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
@@ -311,6 +358,34 @@ export class LocalStore {
         );
         CREATE INDEX IF NOT EXISTS idx_memory_usage_memory ON memory_usage(memory_id);
         CREATE INDEX IF NOT EXISTS idx_memory_usage_recalled ON memory_usage(recalled_at);
+      `);
+    }
+
+    const curationSuggestionTables = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='curation_suggestions'")
+      .all() as Array<{ name: string }>;
+    if (curationSuggestionTables.length === 0) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS curation_suggestions (
+          id TEXT PRIMARY KEY,
+          org_id TEXT NOT NULL,
+          repo_id TEXT NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('consolidate','deprecate','delete','add_tags','add_links','review','promote','generate_embedding')),
+          priority TEXT NOT NULL CHECK(priority IN ('high','medium','low')),
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','applied')),
+          memory_ids TEXT NOT NULL DEFAULT '[]',
+          reason TEXT NOT NULL,
+          confidence REAL NOT NULL,
+          payload TEXT,
+          created_by TEXT,
+          reviewed_by TEXT,
+          review_note TEXT,
+          reviewed_at TEXT,
+          applied_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_curation_suggestions_repo_status ON curation_suggestions(org_id, repo_id, status, created_at);
       `);
     }
   }
@@ -1973,6 +2048,102 @@ export class LocalStore {
       withEmbedding: row.with_embedding,
       withoutEmbedding: row.total - row.with_embedding,
     };
+  }
+
+  createCurationSuggestion(input: CreateCurationSuggestionInput): CurationSuggestion {
+    const id = uuid();
+    const now = new Date().toISOString();
+    const normalizedOrgId = input.orgId.toLowerCase();
+    const normalizedRepoId = input.repoId.toLowerCase();
+
+    this.db
+      .prepare(
+        `INSERT INTO curation_suggestions
+        (id, org_id, repo_id, type, priority, status, memory_ids, reason, confidence, payload, created_by, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        normalizedOrgId,
+        normalizedRepoId,
+        input.type,
+        input.priority,
+        JSON.stringify(input.memoryIds),
+        input.reason,
+        input.confidence,
+        input.payload ? JSON.stringify(input.payload) : null,
+        input.createdBy ?? null,
+        now,
+        now,
+      );
+
+    return this.getCurationSuggestionById(id)!;
+  }
+
+  listCurationSuggestions(query: ListCurationSuggestionsQuery): CurationSuggestion[] {
+    const clauses = ["org_id = ?", "repo_id = ?"];
+    const params: unknown[] = [query.orgId.toLowerCase(), query.repoId.toLowerCase()];
+
+    if (query.status && query.status.length > 0) {
+      clauses.push(`status IN (${query.status.map(() => "?").join(",")})`);
+      params.push(...query.status);
+    }
+
+    if (query.types && query.types.length > 0) {
+      clauses.push(`type IN (${query.types.map(() => "?").join(",")})`);
+      params.push(...query.types);
+    }
+
+    const limit = Math.min(query.limit ?? 100, 500);
+    const offset = query.offset ?? 0;
+    params.push(limit, offset);
+
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM curation_suggestions
+         WHERE ${clauses.join(" AND ")}
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+      )
+      .all(...params) as Array<Record<string, unknown>>;
+
+    return rows.map(rowToCurationSuggestion);
+  }
+
+  reviewCurationSuggestion(input: ReviewCurationSuggestionInput): CurationSuggestion {
+    const existing = this.getCurationSuggestionById(input.id);
+    if (!existing) {
+      throw new Error(`Curation suggestion not found: ${input.id}`);
+    }
+
+    const now = new Date().toISOString();
+    this.db
+      .prepare(
+        `UPDATE curation_suggestions
+         SET status = ?, reviewed_by = ?, review_note = ?, reviewed_at = ?,
+             applied_at = CASE WHEN ? = 'applied' THEN ? ELSE applied_at END,
+             updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(
+        input.status,
+        input.reviewedBy ?? null,
+        input.reviewNote ?? null,
+        now,
+        input.status,
+        now,
+        now,
+        input.id,
+      );
+
+    return this.getCurationSuggestionById(input.id)!;
+  }
+
+  private getCurationSuggestionById(id: string): CurationSuggestion | undefined {
+    const row = this.db
+      .prepare("SELECT * FROM curation_suggestions WHERE id = ?")
+      .get(id) as Record<string, unknown> | undefined;
+    return row ? rowToCurationSuggestion(row) : undefined;
   }
 
   resetAll(): { memoriesDeleted: number; linksDeleted: number; embeddingsDeleted: number } {

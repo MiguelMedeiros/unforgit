@@ -256,6 +256,66 @@ function findSimilarMemoryPairs(
   return pairs.sort((a, b) => b.similarity - a.similarity);
 }
 
+export interface PersistReviewableSuggestionsResult {
+  created: number;
+  skippedExisting: number;
+}
+
+export function persistReviewableSuggestions(
+  store: ILocalStore,
+  orgId: string,
+  repoId: string,
+  suggestions: Suggestion[],
+  options: { createdBy?: string } = {},
+): PersistReviewableSuggestionsResult {
+  const existingPending = store.listCurationSuggestions({
+    orgId,
+    repoId,
+    status: ["pending"],
+    limit: 500,
+  });
+
+  const existingKeys = new Set(
+    existingPending.map((suggestion) =>
+      reviewableSuggestionKey(suggestion.type, suggestion.memoryIds),
+    ),
+  );
+
+  let created = 0;
+  let skippedExisting = 0;
+
+  for (const suggestion of suggestions) {
+    const key = reviewableSuggestionKey(suggestion.type, suggestion.memoryIds);
+    if (existingKeys.has(key)) {
+      skippedExisting++;
+      continue;
+    }
+
+    store.createCurationSuggestion({
+      orgId,
+      repoId,
+      type: suggestion.type,
+      priority: suggestion.priority,
+      memoryIds: suggestion.memoryIds,
+      reason: suggestion.reason,
+      confidence: suggestion.confidence,
+      createdBy: options.createdBy,
+      payload: {
+        sourceSuggestionId: suggestion.id,
+        ...(suggestion.action ? { action: suggestion.action } : {}),
+      },
+    });
+    existingKeys.add(key);
+    created++;
+  }
+
+  return { created, skippedExisting };
+}
+
+function reviewableSuggestionKey(type: string, memoryIds: string[]): string {
+  return `${type}:${[...memoryIds].sort().join(",")}`;
+}
+
 export function formatSuggestion(suggestion: Suggestion): string {
   const priorityEmoji = {
     high: "🔴",

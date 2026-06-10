@@ -66,10 +66,12 @@ export {
 
 export {
   generateSuggestions,
+  persistReviewableSuggestions,
   formatSuggestion,
   type SuggestionType,
   type Suggestion,
   type SuggestionResult,
+  type PersistReviewableSuggestionsResult,
 } from "./suggestions.js";
 
 export {

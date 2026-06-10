@@ -36,6 +36,13 @@ export type {
   SyncState,
   RemoteConfig,
   StatusSummary,
+  CurationSuggestion,
+  CurationSuggestionType,
+  CurationSuggestionPriority,
+  CurationSuggestionStatus,
+  CreateCurationSuggestionInput,
+  ListCurationSuggestionsQuery,
+  ReviewCurationSuggestionInput,
 } from "./types.js";
 
 export type {

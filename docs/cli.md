@@ -98,6 +98,30 @@ unforgit curate --execute
 unforgit curate --remote --execute
 ```
 
+## Suggestions (Reviewable Curation)
+
+Use `suggestions` as a review inbox for memory curation operations. Generated suggestions are stored as pending items first, so agents can propose cleanup without immediately changing durable memory.
+
+```bash
+# Generate pending review items from current local memory quality signals
+unforgit suggestions generate
+
+# List pending suggestions
+unforgit suggestions list
+
+# Show other review states
+unforgit suggestions list --status approved,rejected,applied
+
+# Approve or reject a suggestion after review
+unforgit suggestions review <suggestion-id> --approve --reviewer miguel --note "Safe to apply"
+unforgit suggestions review <suggestion-id> --reject --reviewer miguel --note "Not actually related"
+
+# Mark a suggestion as applied after executing the underlying operation
+unforgit suggestions review <suggestion-id> --applied --reviewer hermes
+```
+
+Duplicate pending suggestions for the same type and memory IDs are skipped, keeping the inbox from filling with repeated agent proposals.
+
 ## Embeddings
 
 ```bash

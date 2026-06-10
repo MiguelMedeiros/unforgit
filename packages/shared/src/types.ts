@@ -117,6 +117,67 @@ export type LinkType =
   | "contradicts"
   | "depends_on";
 
+export type CurationSuggestionType =
+  | "consolidate"
+  | "deprecate"
+  | "delete"
+  | "add_tags"
+  | "add_links"
+  | "review"
+  | "promote"
+  | "generate_embedding";
+
+export type CurationSuggestionPriority = "high" | "medium" | "low";
+export type CurationSuggestionStatus = "pending" | "approved" | "rejected" | "applied";
+
+export interface CurationSuggestion {
+  id: string;
+  orgId: string;
+  repoId: string;
+  type: CurationSuggestionType;
+  priority: CurationSuggestionPriority;
+  status: CurationSuggestionStatus;
+  memoryIds: string[];
+  reason: string;
+  confidence: number;
+  payload?: Record<string, unknown>;
+  createdBy?: string;
+  reviewedBy?: string;
+  reviewNote?: string;
+  reviewedAt?: Date;
+  appliedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateCurationSuggestionInput {
+  orgId: string;
+  repoId: string;
+  type: CurationSuggestionType;
+  priority: CurationSuggestionPriority;
+  memoryIds: string[];
+  reason: string;
+  confidence: number;
+  payload?: Record<string, unknown>;
+  createdBy?: string;
+}
+
+export interface ListCurationSuggestionsQuery {
+  orgId: string;
+  repoId: string;
+  status?: CurationSuggestionStatus[];
+  types?: CurationSuggestionType[];
+  limit?: number;
+  offset?: number;
+}
+
+export interface ReviewCurationSuggestionInput {
+  id: string;
+  status: Exclude<CurationSuggestionStatus, "pending">;
+  reviewedBy?: string;
+  reviewNote?: string;
+}
+
 export interface MemoryLink {
   id: string;
   sourceId: string;

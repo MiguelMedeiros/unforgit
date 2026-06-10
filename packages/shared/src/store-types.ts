@@ -13,6 +13,10 @@ import type {
   MemoryLink,
   Tombstone,
   SyncStatus,
+  CurationSuggestion,
+  CreateCurationSuggestionInput,
+  ListCurationSuggestionsQuery,
+  ReviewCurationSuggestionInput,
 } from "./types.js";
 
 export interface UsageStat {
@@ -65,6 +69,9 @@ export interface ILocalStore {
   getConflicts(): ConflictEntry[];
   setSyncState(state: { memoryId: string; localVersion: number; remoteVersion?: number; syncStatus: SyncStatus }): void;
   getTombstones(orgId: string, repoId: string): Tombstone[];
+  createCurationSuggestion(input: CreateCurationSuggestionInput): CurationSuggestion;
+  listCurationSuggestions(query: ListCurationSuggestionsQuery): CurationSuggestion[];
+  reviewCurationSuggestion(input: ReviewCurationSuggestionInput): CurationSuggestion;
   softDelete(input: { id: string; deletedBy?: string }): boolean;
   hardDelete(id: string): boolean;
   restore(id: string): boolean;

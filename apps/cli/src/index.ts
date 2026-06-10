@@ -33,6 +33,7 @@ import { dashboardCommand } from "./commands/dashboard.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { completionCommand } from "./commands/completion.js";
 import { curateCommand } from "./commands/curate.js";
+import { suggestionsCommand } from "./commands/suggestions.js";
 import { createRequire } from "node:module";
 import { setVerbosity } from "./logger.js";
 import { EXIT_ERROR, EXIT_SIGINT, EXIT_SIGTERM } from "./exit-codes.js";
@@ -119,6 +120,7 @@ program.addCommand(backupsCommand);
 program.addCommand(dashboardCommand);
 program.addCommand(doctorCommand);
 program.addCommand(curateCommand);
+program.addCommand(suggestionsCommand);
 program.addCommand(completionCommand);
 
 program.parseAsync().catch((err) => {
