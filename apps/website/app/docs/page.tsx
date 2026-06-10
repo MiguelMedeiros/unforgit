@@ -446,9 +446,17 @@ $ unforgit remote add staging https://unforgit.example.com --org my-org --repo m
               title="Inspection and diagnostics"
               code={`$ unforgit log --all --page 2
 $ unforgit doctor
+$ unforgit doctor --json
 $ unforgit completion zsh >> ~/.zshrc
 $ unforgit auth status`}
             />
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">doctor</code> checks initialization,
+              config shape and permissions, deprecated secret-bearing config keys,
+              SQLite access, memory counts, embedding coverage, tombstones, sync state,
+              remote health, and required environment variables. JSON output includes a
+              summary plus per-check suggested fixes and never prints raw secret values.
+            </p>
           </div>
         </Subsection>
       </Section>
