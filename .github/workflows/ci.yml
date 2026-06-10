@@ -5,32 +5,51 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  check:
+  quality:
+    name: Quality gates
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 20
+          version: 10.28.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm exec prisma generate
+        run: pnpm db:generate
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DATABASE_URL: postgresql://unforgit:unforgit@localhost:5432/unforgit
 
-      - name: Type check
-        run: pnpm exec tsc --noEmit
+      - name: Lint
+        run: pnpm lint
 
-      - name: Run tests with coverage
-        run: pnpm test -- --coverage
+      - name: Test
+        run: pnpm test
 
-      - name: Build all packages
+      - name: Build
         run: pnpm build
+        env:
+          DATABASE_URL: postgresql://unforgit:unforgit@localhost:5432/unforgit
