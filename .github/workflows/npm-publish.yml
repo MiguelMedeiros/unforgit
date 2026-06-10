@@ -47,6 +47,20 @@ jobs:
       - name: CLI smoke test
         run: pnpm smoke:cli
 
+      - name: Check npm version
+        id: npm-version
+        working-directory: apps/cli
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "unforgit@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "unforgit@$VERSION is already published; skipping publish."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish CLI to npm
+        if: ${{ steps.npm-version.outputs.published != 'true' }}
         working-directory: apps/cli
         run: pnpm publish --access public --provenance --no-git-checks
