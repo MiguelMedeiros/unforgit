@@ -33,6 +33,9 @@ unforgit add "We use UTC timestamps everywhere" --type semantic --tags "conventi
 
 # Recall by meaning
 unforgit recall "how to deploy" --types procedural,semantic --k 5
+
+# Open the local memory dashboard
+unforgit dashboard
 ```
 
 ## Documentation

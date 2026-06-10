@@ -7,7 +7,7 @@ _unforgit_completions() {
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
-  commands="init add recall promote consolidate deprecate supersede delete restore web link unlink links merge remerge similar history auto-consolidate unconsolidate status push pull remote log diff keys auth config embeddings reset doctor curate completion"
+  commands="init add recall promote consolidate deprecate supersede delete restore web dashboard link unlink links merge remerge similar history auto-consolidate unconsolidate status push pull remote log diff keys auth config embeddings reset doctor curate completion"
 
   case "\${prev}" in
     unforgit)
@@ -64,6 +64,7 @@ _unforgit() {
     'delete:Soft delete a memory'
     'restore:Restore a soft-deleted memory'
     'web:Start the web dashboard'
+    'dashboard:Start the local memory dashboard'
     'link:Create a link between memories'
     'unlink:Remove a link between memories'
     'links:List links for a memory'
@@ -120,6 +121,7 @@ complete -c unforgit -n '__fish_use_subcommand' -a 'supersede' -d 'Supersede a m
 complete -c unforgit -n '__fish_use_subcommand' -a 'delete' -d 'Delete a memory'
 complete -c unforgit -n '__fish_use_subcommand' -a 'restore' -d 'Restore a memory'
 complete -c unforgit -n '__fish_use_subcommand' -a 'web' -d 'Start web dashboard'
+complete -c unforgit -n '__fish_use_subcommand' -a 'dashboard' -d 'Start local memory dashboard'
 complete -c unforgit -n '__fish_use_subcommand' -a 'link' -d 'Link two memories'
 complete -c unforgit -n '__fish_use_subcommand' -a 'unlink' -d 'Unlink memories'
 complete -c unforgit -n '__fish_use_subcommand' -a 'links' -d 'List links'

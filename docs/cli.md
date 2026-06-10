@@ -192,6 +192,21 @@ unforgit push --dry-run
 unforgit diff
 ```
 
+## Dashboard
+
+```bash
+# Start local dashboard for the current workspace on localhost
+unforgit dashboard
+
+# Use a custom port
+unforgit dashboard --port 4848
+
+# Dogfood a specific memory repo over Tailscale/LAN
+unforgit dashboard --workspace ~/.hermes/unforgit-memory --host 100.81.12.32
+```
+
+The dashboard binds to `127.0.0.1:3838` by default. Binding to a specific Tailscale/LAN IP is allowed explicitly with `--host`; wildcard binds such as `0.0.0.0` require `--allow-network` so the local memory console is not accidentally exposed.
+
 ## API Keys
 
 ```bash
