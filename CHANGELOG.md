@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.4.0...v0.5.0) (2026-06-10)
+
+
+### Features
+
+* add reviewable curation suggestions ([0427bf0](https://github.com/MiguelMedeiros/unforgit/commit/0427bf0b8c1191df3aa92d738e6196c270bcc3ef))
+
 ## [0.4.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.3.2...v0.4.0) (2026-06-10)
 
 
