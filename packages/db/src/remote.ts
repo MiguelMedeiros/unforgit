@@ -94,6 +94,11 @@ function isMissingTableError(error: unknown, tableName: string): boolean {
   );
 }
 
+export function safeLogIdentifier(value: string): string {
+  const bounded = value.length > 64 ? `${value.slice(0, 64)}...` : value;
+  return bounded.replace(/[\r\n\t]/g, "?");
+}
+
 export interface RemoteStoreOptions {
   autoEmbeddingEnabled?: boolean;
 }
@@ -1030,7 +1035,8 @@ export class RemoteStore {
       const result = await generateEmbedding(text, config);
       await this.storeEmbedding(memoryId, result.embedding, result.model);
     } catch (error) {
-      console.error(`Failed to generate embedding for ${memoryId}:`, error);
+      const safeMemoryId = safeLogIdentifier(memoryId);
+      console.error("Failed to generate embedding for memory:", safeMemoryId, error);
     }
   }
 
