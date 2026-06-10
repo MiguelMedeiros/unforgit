@@ -43,14 +43,14 @@ export function HermesIntegration() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6 items-stretch">
+        <div className="grid min-w-0 md:grid-cols-2 gap-6 items-stretch">
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
             className={cn(
-              "p-6 md:p-8 rounded-2xl border border-dracula-comment/30",
+              "min-w-0 p-6 md:p-8 rounded-2xl border border-dracula-comment/30",
               "bg-dracula-background/70 backdrop-blur-sm"
             )}
           >
@@ -84,7 +84,7 @@ export function HermesIntegration() {
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className={cn(
-              "p-6 md:p-8 rounded-2xl border border-dracula-purple/30",
+              "min-w-0 p-6 md:p-8 rounded-2xl border border-dracula-purple/30",
               "bg-linear-to-br from-dracula-purple/10 via-dracula-background/80 to-dracula-cyan/10"
             )}
           >
@@ -104,9 +104,8 @@ export function HermesIntegration() {
 
             <CodeBlock
               code={`hermes memory setup
-# choose: unforgit
+# choose unforgit
 
-# or configure directly
 hermes config set memory.provider unforgit
 hermes config set memory.memory_enabled true`}
             />

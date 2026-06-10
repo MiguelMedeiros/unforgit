@@ -14,12 +14,15 @@ export function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <motion.div whileHover={{ scale: 1.02 }} className="relative inline-block">
-      <div className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-dracula-current/40 border border-dracula-comment/30">
-        <Terminal className="w-4 h-4 text-dracula-comment shrink-0" />
-        <code className="flex-1 text-dracula-foreground font-mono text-sm tracking-wide whitespace-nowrap">
-          <span className="text-dracula-comment">$</span> {code}
-        </code>
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      className="relative w-full max-w-full min-w-0"
+    >
+      <div className="flex w-full max-w-full min-w-0 items-start gap-3 overflow-hidden rounded-lg border border-dracula-comment/30 bg-dracula-current/40 px-4 py-3 sm:px-5">
+        <Terminal className="mt-0.5 w-4 h-4 text-dracula-comment shrink-0" />
+        <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap break-words text-dracula-foreground font-mono text-xs leading-relaxed tracking-wide sm:text-sm">
+          <code>{code}</code>
+        </pre>
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
