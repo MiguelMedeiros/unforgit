@@ -393,6 +393,20 @@ $ unforgit curate --execute
 $ unforgit curate --remote --execute`}
             />
             <Terminal
+              title="Reviewable curation suggestions"
+              code={`$ unforgit suggestions generate
+$ unforgit suggestions list
+$ unforgit suggestions review <suggestion-id> --approve --reviewer miguel
+$ unforgit suggestions review <suggestion-id> --reject --note "Not actually related"
+$ unforgit suggestions review <suggestion-id> --applied --reviewer hermes`}
+            />
+            <p className="text-sm text-dracula-foreground/70">
+              Suggestions are stored as a review inbox before any durable memory
+              operation is applied. Duplicate pending suggestions for the same
+              operation are skipped, so agents can propose curation without
+              spamming repeated review items.
+            </p>
+            <Terminal
               title="Server and local consolidation flows"
               code={`$ unforgit consolidate --from-pr "https://github.com/org/repo/pull/100"
 $ unforgit auto-consolidate --threshold 0.5 --dry-run
