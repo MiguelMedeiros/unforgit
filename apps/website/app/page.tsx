@@ -4,6 +4,7 @@ import { SemanticSearch } from "@/components/semantic-search";
 import { TeamMemory } from "@/components/team-memory";
 import { ELI5 } from "@/components/eli5";
 import { McpIntegrations } from "@/components/mcp-integrations";
+import { HermesIntegration } from "@/components/hermes-integration";
 import { HowItWorks } from "@/components/how-it-works";
 import { DashboardShowcase } from "@/components/dashboard-showcase";
 import { FAQ } from "@/components/faq";
@@ -34,6 +35,8 @@ export default function Home() {
       <DashboardShowcase />
       <Divider />
       <McpIntegrations />
+      <Divider />
+      <HermesIntegration />
       <Divider />
       <FAQ />
       <CTASection />
