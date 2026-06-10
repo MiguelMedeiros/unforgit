@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import { RemoteStore } from "@unforgit/db";
 import { memoryRoutes } from "./routes/memory.js";
 import { recallRoutes } from "./routes/recall.js";
@@ -27,6 +28,12 @@ import {
 export async function buildApp(connectionString: string) {
   const app = Fastify({ logger: true });
   await app.register(cors);
+  await app.register(rateLimit, {
+    max: 120,
+    timeWindow: "1 minute",
+    keyGenerator: (request) => request.ip,
+    allowList: (request) => request.url === "/health",
+  });
 
   const store = new RemoteStore(connectionString);
   const maintenanceConfig = resolveLifecycleConfig().maintenance;

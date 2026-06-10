@@ -1,8 +1,4 @@
-import type {
-  FastifyPluginAsync,
-  FastifyRequest,
-  FastifyReply,
-} from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import { SignJWT, jwtVerify } from "jose";
 import { RemoteStore } from "@unforgit/db";
 
