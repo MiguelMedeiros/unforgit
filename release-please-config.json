@@ -10,7 +10,11 @@
         "apps/cli/package.json",
         "apps/mcp/package.json",
         "apps/api/package.json",
-        "apps/website/package.json"
+        "apps/website/package.json",
+        "packages/shared/package.json",
+        "packages/core/package.json",
+        "packages/config/package.json",
+        "packages/db/package.json"
       ]
     }
   }

@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-cli:
-    name: Publish CLI to npm
+  publish-packages:
+    name: Publish packages to npm
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,20 +47,35 @@ jobs:
       - name: CLI smoke test
         run: pnpm smoke:cli
 
-      - name: Check npm version
-        id: npm-version
-        working-directory: apps/cli
+      - name: Publish workspace packages to npm
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if npm view "unforgit@$VERSION" version >/dev/null 2>&1; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "unforgit@$VERSION is already published; skipping publish."
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
+          for package_dir in \
+            packages/shared \
+            packages/core \
+            packages/config \
+            packages/db \
+            apps/cli; do
+            name=$(node -p "require('./${package_dir}/package.json').name")
+            version=$(node -p "require('./${package_dir}/package.json').version")
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already published; skipping."
+            else
+              echo "Publishing ${name}@${version} from ${package_dir}"
+              (cd "${package_dir}" && pnpm publish --access public --provenance --no-git-checks)
+            fi
+          done
 
-      - name: Publish CLI to npm
-        if: ${{ steps.npm-version.outputs.published != 'true' }}
-        working-directory: apps/cli
-        run: pnpm publish --access public --provenance --no-git-checks
+      - name: Verify npm install includes CLI and MCP binaries
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./apps/cli/package.json').version")
+          tmp=$(mktemp -d)
+          cd "$tmp"
+          npm init -y >/dev/null
+          npm install "unforgit@${version}"
+          test -x node_modules/.bin/unforgit
+          test -x node_modules/.bin/unforgit-mcp
+          node_modules/.bin/unforgit --version | grep -Fx "$version"
+          timeout 2s node_modules/.bin/unforgit-mcp >/tmp/unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr || true
+          test ! -s /tmp/unforgit-mcp.stdout
