@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 function buildCliWithWorkspaceDependencies() {
   for (const packageName of [
@@ -20,6 +20,10 @@ function buildCliWithWorkspaceDependencies() {
 }
 
 describe("published package binaries", () => {
+  beforeAll(() => {
+    buildCliWithWorkspaceDependencies();
+  }, 60_000);
+
   it("includes both CLI and MCP binaries in the unforgit package", () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.resolve("apps/cli/package.json"), "utf-8"),
@@ -29,11 +33,6 @@ describe("published package binaries", () => {
       unforgit: "dist/index.js",
       "unforgit-mcp": "dist/mcp.js",
     });
-
-    const distMcp = path.resolve("apps/cli/dist/mcp.js");
-    if (!fs.existsSync(distMcp)) {
-      buildCliWithWorkspaceDependencies();
-    }
 
     const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "unforgit-pack-"));
     try {
@@ -54,8 +53,6 @@ describe("published package binaries", () => {
   });
 
   it("keeps MCP startup logs off stdout so stdio protocol stays clean", () => {
-    buildCliWithWorkspaceDependencies();
-
     const result = spawnSync(process.execPath, [path.resolve("apps/cli/dist/mcp.js")], {
       cwd: path.resolve("."),
       encoding: "utf-8",
