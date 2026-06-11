@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.6](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.5...v0.5.6) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ci:** retry npm install verification after publish ([d9eb9f9](https://github.com/MiguelMedeiros/unforgit/commit/d9eb9f943ee7ae8908afc78f5fde9a3262f0c1ea))
+* **test:** reduce package binary smoke test flakiness ([b5e09ea](https://github.com/MiguelMedeiros/unforgit/commit/b5e09ea3eb8cbd8e7aa426741d7ccee58d488466))
+
 ## [0.5.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.4...v0.5.5) (2026-06-11)
 
 
