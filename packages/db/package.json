@@ -16,13 +16,13 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "unforgit-shared": "workspace:*",
-    "unforgit-core": "workspace:*",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "better-sqlite3": "^12.6.2",
     "pg": "^8.19.0",
-    "uuid": "^13.0.0"
+    "unforgit-core": "workspace:*",
+    "unforgit-shared": "workspace:*",
+    "uuid": "^13.0.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

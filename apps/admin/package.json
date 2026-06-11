@@ -30,7 +30,7 @@
     "@types/react-dom": "^19.1.6",
     "clsx": "^2.1.1",
     "lucide-react": "^0.513.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.15",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
     "typescript": "^5.9.3"

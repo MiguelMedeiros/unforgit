@@ -16,9 +16,9 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "unforgit-shared": "workspace:*",
     "unforgit-core": "workspace:*",
-    "yaml": "^2.8.2",
+    "unforgit-shared": "workspace:*",
+    "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
