@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.0...v0.5.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **website:** derive footer version from package metadata ([298ae75](https://github.com/MiguelMedeiros/unforgit/commit/298ae75777ba8183c10b1c5f884dbe3040857825))
+* **website:** size command blocks to content ([3b6a739](https://github.com/MiguelMedeiros/unforgit/commit/3b6a739da17cf1710cd9ca6a83263779d2d8e01b))
+
 ## [0.5.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.4.0...v0.5.0) (2026-06-10)
 
 
