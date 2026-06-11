@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.3...v0.5.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* **cli:** bundle internal packages for npm install ([246b27d](https://github.com/MiguelMedeiros/unforgit/commit/246b27dace64baf75c8ca0a2676f3e89f7916abf))
+* **cli:** keep workspace packages as build dependencies ([eb85159](https://github.com/MiguelMedeiros/unforgit/commit/eb851599c008e1e954d3aa07b05d01f6d5b6a9da))
+* **test:** build package smoke dependencies serially ([b7f1863](https://github.com/MiguelMedeiros/unforgit/commit/b7f1863927c06a78977c72183075c47ed6167928))
+
 ## [0.5.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.2...v0.5.3) (2026-06-11)
 
 
