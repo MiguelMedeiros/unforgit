@@ -13,6 +13,7 @@ interface DiagnosticResult {
   status: "ok" | "warn" | "error";
   message: string;
   fix?: string;
+  details?: Record<string, unknown>;
 }
 
 interface DoctorSummary {
@@ -111,6 +112,7 @@ export const doctorCommand = new Command("doctor")
 
         const pendingPush = store.getPendingPush();
         const conflicts = store.getConflicts();
+        const syncSummary = store.getSyncSummary(orgId, repoId);
         const unsyncedTombstones = store.getUnsyncedTombstones(orgId, repoId);
         if (unsyncedTombstones.length > 0) {
           results.push({
@@ -129,15 +131,21 @@ export const doctorCommand = new Command("doctor")
             status: "warn",
             message: `${conflicts.length} sync conflict(s) need resolution`,
             fix: "Resolve conflicts with 'unforgit pull --force' or 'unforgit push --force' after reviewing the desired source of truth.",
+            details: syncSummary,
           });
-        } else if (pendingPush.length > 0) {
+        } else if (pendingPush.length > 0 || syncSummary.pendingPull > 0) {
+          const parts: string[] = [];
+          if (pendingPush.length > 0) parts.push(`${pendingPush.length} memory(s) pending push`);
+          if (syncSummary.pendingPull > 0) parts.push(`${syncSummary.pendingPull} memory(s) pending pull`);
           results.push({
             check: "sync",
-            status: "ok",
-            message: `${pendingPush.length} memory(s) pending push`,
+            status: "warn",
+            message: parts.join(", "),
+            fix: "Run 'unforgit push' to publish local memory changes, or configure/disable sync if this repository is intentionally local-only.",
+            details: syncSummary,
           });
         } else {
-          results.push({ check: "sync", status: "ok", message: "Sync state clean" });
+          results.push({ check: "sync", status: "ok", message: "Sync state clean", details: syncSummary });
         }
       } finally {
         store.close();
