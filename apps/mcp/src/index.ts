@@ -33,7 +33,7 @@ const cwd = findRepoRoot(process.cwd()) ?? process.cwd();
 
 debug(`Starting with cwd: ${cwd}`);
 
-dotenv.config({ path: path.join(cwd, ".env") });
+dotenv.config({ path: path.join(cwd, ".env"), quiet: true });
 
 function getStore(): {
   store: LocalStore;

@@ -3,7 +3,8 @@
   "version": "0.5.1",
   "type": "module",
   "bin": {
-    "unforgit": "dist/index.js"
+    "unforgit": "dist/index.js",
+    "unforgit-mcp": "dist/mcp.js"
   },
   "scripts": {
     "build": "tsup",
@@ -11,6 +12,8 @@
   },
   "dependencies": {
     "commander": "^14.0.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.3.1",
     "unforgit-config": "workspace:*",
     "unforgit-core": "workspace:*",
     "unforgit-db": "workspace:*",
