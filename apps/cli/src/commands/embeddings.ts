@@ -43,6 +43,21 @@ embeddingsCommand
       const memories = store.getMemoriesWithoutEmbeddings(orgId, repoId);
       const stats = store.getEmbeddingStats(orgId, repoId);
 
+      if (isJsonMode() && opts.dryRun) {
+        outputJson({
+          dryRun: true,
+          ...stats,
+          coverage: stats.total > 0 ? Number(((stats.withEmbedding / stats.total) * 100).toFixed(1)) : 0,
+          planned: memories.length,
+          memories: memories.slice(0, 10).map((memory) => ({
+            id: memory.id,
+            textPreview: memory.text.slice(0, 80),
+          })),
+          truncated: memories.length > 10,
+        });
+        return;
+      }
+
       logger.info(`Embedding stats:`);
       logger.info(`  Total memories: ${stats.total}`);
       logger.info(`  With embedding: ${stats.withEmbedding}`);
@@ -50,6 +65,10 @@ embeddingsCommand
       logger.info("");
 
       if (memories.length === 0) {
+        if (isJsonMode()) {
+          outputJson({ dryRun: Boolean(opts.dryRun), ...stats, planned: 0, processed: 0, errors: 0 });
+          return;
+        }
         logger.info("All memories already have embeddings.");
         return;
       }
@@ -103,6 +122,9 @@ embeddingsCommand
       logger.info(`\nBackfill complete:`);
       logger.info(`  Processed: ${processed}`);
       logger.info(`  Errors: ${errors}`);
+      if (isJsonMode()) {
+        outputJson({ dryRun: false, ...stats, planned: memories.length, processed, errors });
+      }
     } finally {
       store.close();
     }

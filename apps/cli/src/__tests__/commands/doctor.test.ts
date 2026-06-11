@@ -61,7 +61,11 @@ describe("doctor command", () => {
         expect.objectContaining({ check: "memory-stats", status: "ok" }),
         expect.objectContaining({ check: "embeddings", status: "warn", fix: "Run 'unforgit embeddings backfill'." }),
         expect.objectContaining({ check: "tombstones", status: "ok" }),
-        expect.objectContaining({ check: "sync", status: "ok" }),
+        expect.objectContaining({
+          check: "sync",
+          status: "warn",
+          fix: "Run 'unforgit push' to publish local memory changes, or configure/disable sync if this repository is intentionally local-only.",
+        }),
         expect.objectContaining({ check: "remote", status: "warn", fix: "Run 'unforgit remote add origin <url>' if this repo should sync remotely." }),
       ]),
     );
