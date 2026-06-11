@@ -229,6 +229,18 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      unforgit-config:
+        specifier: workspace:*
+        version: link:../../packages/config
+      unforgit-core:
+        specifier: workspace:*
+        version: link:../../packages/core
+      unforgit-db:
+        specifier: workspace:*
+        version: link:../../packages/db
+      unforgit-shared:
+        specifier: workspace:*
+        version: link:../../packages/shared
       vite:
         specifier: 7.3.5
         version: 7.3.5(@types/node@25.3.3)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)

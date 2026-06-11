@@ -28,6 +28,10 @@
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "unforgit-config": "workspace:*",
+    "unforgit-core": "workspace:*",
+    "unforgit-db": "workspace:*",
+    "unforgit-shared": "workspace:*",
     "vite": "7.3.5",
     "vitest": "^4.1.8",
     "yaml": "^2.8.2"
