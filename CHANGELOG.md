@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.1...v0.5.2) (2026-06-11)
+
+
+### Bug Fixes
+
+* **cli:** publish mcp binary with npm package ([578e77f](https://github.com/MiguelMedeiros/unforgit/commit/578e77fe807143fdf48fe35e52ce883915bf9a61))
+
 ## [0.5.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.0...v0.5.1) (2026-06-11)
 
 
