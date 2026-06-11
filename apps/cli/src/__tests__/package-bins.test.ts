@@ -4,6 +4,21 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+function buildCliWithWorkspaceDependencies() {
+  for (const packageName of [
+    "unforgit-shared",
+    "unforgit-core",
+    "unforgit-config",
+    "unforgit-db",
+    "unforgit",
+  ]) {
+    execFileSync("pnpm", ["--filter", packageName, "build"], {
+      cwd: path.resolve("."),
+      stdio: "inherit",
+    });
+  }
+}
+
 describe("published package binaries", () => {
   it("includes both CLI and MCP binaries in the unforgit package", () => {
     const packageJson = JSON.parse(
@@ -17,10 +32,7 @@ describe("published package binaries", () => {
 
     const distMcp = path.resolve("apps/cli/dist/mcp.js");
     if (!fs.existsSync(distMcp)) {
-      execFileSync("pnpm", ["--filter", "unforgit", "build"], {
-        cwd: path.resolve("."),
-        stdio: "inherit",
-      });
+      buildCliWithWorkspaceDependencies();
     }
 
     const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "unforgit-pack-"));
@@ -42,10 +54,7 @@ describe("published package binaries", () => {
   });
 
   it("keeps MCP startup logs off stdout so stdio protocol stays clean", () => {
-    execFileSync("pnpm", ["--filter", "unforgit", "build"], {
-      cwd: path.resolve("."),
-      stdio: "inherit",
-    });
+    buildCliWithWorkspaceDependencies();
 
     const result = spawnSync(process.execPath, [path.resolve("apps/cli/dist/mcp.js")], {
       cwd: path.resolve("."),
