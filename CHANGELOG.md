@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.2...v0.5.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ci:** publish workspace packages before cli ([3e5b98a](https://github.com/MiguelMedeiros/unforgit/commit/3e5b98ab68bf4e1dae06a478864ecacee6eec9ab))
+
 ## [0.5.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.1...v0.5.2) (2026-06-11)
 
 
