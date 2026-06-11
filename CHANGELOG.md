@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.4...v0.5.5) (2026-06-11)
+
+
+### Bug Fixes
+
+* **security:** patch vulnerable dependencies ([#31](https://github.com/MiguelMedeiros/unforgit/issues/31)) ([c67f752](https://github.com/MiguelMedeiros/unforgit/commit/c67f75232d100233fe0941fe6d778dd214a560b0))
+
 ## [0.5.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.3...v0.5.4) (2026-06-11)
 
 
