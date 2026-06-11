@@ -1,6 +1,6 @@
 {
   "name": "unforgit-monorepo",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "private": true,
   "description": "Repository memory system — shared + local knowledge for agents and developers",
   "type": "module",
