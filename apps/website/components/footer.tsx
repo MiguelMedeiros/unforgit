@@ -4,6 +4,9 @@ import { Github, BookOpen, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { UnforgitBrand } from "./unforgit-brand";
+import packageJson from "../package.json";
+
+const releaseVersion = `v${packageJson.version}`;
 
 const links = [
   {
@@ -109,7 +112,7 @@ export function Footer() {
           className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4"
         >
           <p className="text-sm text-muted-foreground">
-            v0.1.0 · MIT License · Built by{" "}
+            {releaseVersion} · MIT License · Built by{" "}
             <motion.a
               href="https://miguelmedeiros.dev"
               target="_blank"
