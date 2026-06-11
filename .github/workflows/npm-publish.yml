@@ -47,24 +47,16 @@ jobs:
       - name: CLI smoke test
         run: pnpm smoke:cli
 
-      - name: Publish workspace packages to npm
+      - name: Publish CLI to npm
         run: |
           set -euo pipefail
-          for package_dir in \
-            packages/shared \
-            packages/core \
-            packages/config \
-            packages/db \
-            apps/cli; do
-            name=$(node -p "require('./${package_dir}/package.json').name")
-            version=$(node -p "require('./${package_dir}/package.json').version")
-            if npm view "${name}@${version}" version >/dev/null 2>&1; then
-              echo "${name}@${version} is already published; skipping."
-            else
-              echo "Publishing ${name}@${version} from ${package_dir}"
-              (cd "${package_dir}" && pnpm publish --access public --provenance --no-git-checks)
-            fi
-          done
+          name=$(node -p "require('./apps/cli/package.json').name")
+          version=$(node -p "require('./apps/cli/package.json').version")
+          if npm view "${name}@${version}" version >/dev/null 2>&1; then
+            echo "${name}@${version} is already published; skipping."
+          else
+            (cd apps/cli && pnpm publish --access public --provenance --no-git-checks)
+          fi
 
       - name: Verify npm install includes CLI and MCP binaries
         run: |
