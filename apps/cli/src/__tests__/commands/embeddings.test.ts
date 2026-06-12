@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { createTempDataDir, runCommand } from "../helpers.js";
+import { buildBackfillJsonPayload } from "../../commands/embeddings.js";
 import { LocalStore } from "unforgit-db";
 
 describe("embeddings", () => {
@@ -91,10 +92,22 @@ describe("embeddings", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload).toMatchObject({
       dryRun: true,
-      total: 1,
-      withEmbedding: 0,
-      withoutEmbedding: 1,
+      model: "text-embedding-3-small",
       planned: 1,
+      processed: 0,
+      errors: 0,
+      statsBefore: {
+        total: 1,
+        withEmbedding: 0,
+        withoutEmbedding: 1,
+        coverage: 0,
+      },
+      statsAfter: {
+        total: 1,
+        withEmbedding: 0,
+        withoutEmbedding: 1,
+        coverage: 0,
+      },
     });
     expect(payload.memories[0]).toMatchObject({ textPreview: "needs embedding" });
   });
@@ -156,5 +169,28 @@ describe("embeddings", () => {
 
     store = new LocalStore(tmpDir.dbPath);
     expect(store.getEmbedding(memory.id)).toBeUndefined();
+  });
+
+  it("builds post-run backfill JSON with before/after coverage and failure details", () => {
+    const payload = buildBackfillJsonPayload({
+      dryRun: false,
+      model: "text-embedding-3-small",
+      statsBefore: { total: 4, withEmbedding: 1, withoutEmbedding: 3 },
+      statsAfter: { total: 4, withEmbedding: 3, withoutEmbedding: 1 },
+      planned: 3,
+      processed: 2,
+      failures: [{ id: "mem-3", textPreview: "failed memory", error: "rate limited" }],
+    });
+
+    expect(payload).toMatchObject({
+      dryRun: false,
+      model: "text-embedding-3-small",
+      planned: 3,
+      processed: 2,
+      errors: 1,
+      failures: [{ id: "mem-3", textPreview: "failed memory", error: "rate limited" }],
+      statsBefore: { total: 4, withEmbedding: 1, withoutEmbedding: 3, coverage: 25 },
+      statsAfter: { total: 4, withEmbedding: 3, withoutEmbedding: 1, coverage: 75 },
+    });
   });
 });
