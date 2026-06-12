@@ -10,6 +10,54 @@ import { createLocalDatabaseBackup } from "./backups.js";
 
 const cwd = process.cwd();
 
+type EmbeddingStats = {
+  total: number;
+  withEmbedding: number;
+  withoutEmbedding: number;
+};
+
+export type EmbeddingBackfillFailure = {
+  id: string;
+  textPreview: string;
+  error: string;
+};
+
+function embeddingCoverage(stats: EmbeddingStats): number {
+  return stats.total > 0 ? Number(((stats.withEmbedding / stats.total) * 100).toFixed(1)) : 0;
+}
+
+export function buildBackfillJsonPayload(options: {
+  dryRun: boolean;
+  model: string;
+  statsBefore: EmbeddingStats;
+  statsAfter?: EmbeddingStats;
+  planned: number;
+  processed: number;
+  failures?: EmbeddingBackfillFailure[];
+  previews?: Array<{ id: string; textPreview: string }>;
+  truncated?: boolean;
+}) {
+  const statsAfter = options.statsAfter ?? options.statsBefore;
+  const failures = options.failures ?? [];
+  return {
+    dryRun: options.dryRun,
+    model: options.model,
+    planned: options.planned,
+    processed: options.processed,
+    errors: failures.length,
+    failures,
+    statsBefore: {
+      ...options.statsBefore,
+      coverage: embeddingCoverage(options.statsBefore),
+    },
+    statsAfter: {
+      ...statsAfter,
+      coverage: embeddingCoverage(statsAfter),
+    },
+    ...(options.previews ? { memories: options.previews, truncated: Boolean(options.truncated) } : {}),
+  };
+}
+
 export const embeddingsCommand = new Command("embeddings")
   .description("Manage memory embeddings for semantic search");
 
@@ -45,17 +93,18 @@ embeddingsCommand
       const stats = store.getEmbeddingStats(orgId, repoId);
 
       if (isJsonMode() && opts.dryRun) {
-        outputJson({
+        outputJson(buildBackfillJsonPayload({
           dryRun: true,
-          ...stats,
-          coverage: stats.total > 0 ? Number(((stats.withEmbedding / stats.total) * 100).toFixed(1)) : 0,
+          model: opts.model,
+          statsBefore: stats,
           planned: memories.length,
-          memories: memories.slice(0, 10).map((memory) => ({
+          processed: 0,
+          previews: memories.slice(0, 10).map((memory) => ({
             id: memory.id,
             textPreview: memory.text.slice(0, 80),
           })),
           truncated: memories.length > 10,
-        });
+        }));
         return;
       }
 
@@ -67,7 +116,13 @@ embeddingsCommand
 
       if (memories.length === 0) {
         if (isJsonMode()) {
-          outputJson({ dryRun: Boolean(opts.dryRun), ...stats, planned: 0, processed: 0, errors: 0 });
+          outputJson(buildBackfillJsonPayload({
+            dryRun: Boolean(opts.dryRun),
+            model: opts.model,
+            statsBefore: stats,
+            planned: 0,
+            processed: 0,
+          }));
           return;
         }
         logger.info("All memories already have embeddings.");
@@ -91,7 +146,7 @@ embeddingsCommand
       const batchSize = parsePositiveInt(opts.batchSize, "batch-size");
       const delay = parsePositiveInt(opts.delay, "delay");
       let processed = 0;
-      let errors = 0;
+      const failures: EmbeddingBackfillFailure[] = [];
 
       logger.info(`\nGenerating embeddings (batch size: ${batchSize}, delay: ${delay}ms)...`);
 
@@ -109,8 +164,13 @@ embeddingsCommand
               processed++;
               logger.progress(processed, memories.length, "embeddings");
             } catch (err) {
-              errors++;
-              logger.error(`${memory.id.slice(0, 8)}: ${err instanceof Error ? err.message : err}`);
+              const message = err instanceof Error ? err.message : String(err);
+              failures.push({
+                id: memory.id,
+                textPreview: memory.text.slice(0, 80),
+                error: message,
+              });
+              logger.error(`${memory.id.slice(0, 8)}: ${message}`);
             }
           })
         );
@@ -122,9 +182,21 @@ embeddingsCommand
 
       logger.info(`\nBackfill complete:`);
       logger.info(`  Processed: ${processed}`);
-      logger.info(`  Errors: ${errors}`);
+      logger.info(`  Errors: ${failures.length}`);
+      const statsAfter = store.getEmbeddingStats(orgId, repoId);
       if (isJsonMode()) {
-        outputJson({ dryRun: false, ...stats, planned: memories.length, processed, errors });
+        outputJson(buildBackfillJsonPayload({
+          dryRun: false,
+          model: opts.model,
+          statsBefore: stats,
+          statsAfter,
+          planned: memories.length,
+          processed,
+          failures,
+        }));
+      }
+      if (failures.length > 0) {
+        process.exitCode = EXIT_ERROR;
       }
     } finally {
       store.close();
