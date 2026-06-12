@@ -450,6 +450,7 @@ $ unforgit history <memory-id>`}
             <Terminal
               title="Sync and remotes"
               code={`$ unforgit status -s
+$ unforgit status --json
 $ unforgit push origin --dry-run
 $ unforgit pull origin
 $ unforgit diff --stat
@@ -465,7 +466,10 @@ $ unforgit completion zsh >> ~/.zshrc
 $ unforgit auth status`}
             />
             <p className="text-sm text-dracula-foreground/70">
-              <code className="text-dracula-foreground/80">doctor</code> checks initialization,
+              <code className="text-dracula-foreground/80">status --json</code> exposes
+              stable automation fields for remote configuration, pending push/pull,
+              conflicts, clean state, recommendations, and per-memory previews.
+              <code className="text-dracula-foreground/80"> doctor</code> checks initialization,
               config shape and permissions, deprecated secret-bearing config keys,
               SQLite access, memory counts, embedding coverage, tombstones, sync state,
               remote health, and required environment variables. JSON output includes a
