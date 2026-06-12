@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.6...v0.6.0) (2026-06-12)
+
+
+### Features
+
+* **cli:** back up before clearing embeddings ([#37](https://github.com/MiguelMedeiros/unforgit/issues/37)) ([6d3ed11](https://github.com/MiguelMedeiros/unforgit/commit/6d3ed11cbaef3e1caabc343a056c2116c607dc23))
+* **cli:** back up before hard delete ([#40](https://github.com/MiguelMedeiros/unforgit/issues/40)) ([43a3a95](https://github.com/MiguelMedeiros/unforgit/commit/43a3a958fa6d1eb7e2463d639581752bfb948c0b))
+* **cli:** clarify status sync JSON ([#39](https://github.com/MiguelMedeiros/unforgit/issues/39)) ([f21558b](https://github.com/MiguelMedeiros/unforgit/commit/f21558b72147cfcd71a8f808a60004b82953c9d6))
+* **cli:** report embedding backfill results ([#38](https://github.com/MiguelMedeiros/unforgit/issues/38)) ([9e64c58](https://github.com/MiguelMedeiros/unforgit/commit/9e64c58d6af9d8af57f9d8c719708407238accf5))
+* improve memory maturity diagnostics ([#34](https://github.com/MiguelMedeiros/unforgit/issues/34)) ([f36a803](https://github.com/MiguelMedeiros/unforgit/commit/f36a8032f27211382084fea7c9def85886f3fd1f))
+
 ## [0.5.6](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.5...v0.5.6) (2026-06-11)
 
 
