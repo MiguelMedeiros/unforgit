@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTempDataDir } from "../helpers.js";
+import fs from "node:fs";
+import path from "node:path";
+import { createTempDataDir, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
 
 describe("delete and restore", () => {
@@ -85,5 +87,56 @@ describe("delete and restore", () => {
 
     const ok = store.restore(m.id);
     expect(ok).toBe(false);
+  });
+
+  it("creates a recoverable backup before hard deleting a local memory", async () => {
+    const m = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "hard delete should still be recoverable from backup",
+      tags: [],
+      visibility: "auto",
+    });
+    store.close();
+
+    const result = await runCommand(["delete", m.id, "--hard", "--force"], { cwd: tmpDir.dir });
+
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(result.stdout).toContain("Created local hard-delete backup:");
+
+    const backupRoot = path.join(tmpDir.dataDir, "backups");
+    const backups = fs.readdirSync(backupRoot).filter((entry) => entry.startsWith("hard-delete-"));
+    expect(backups).toHaveLength(1);
+
+    const backupStore = new LocalStore(path.join(backupRoot, backups[0], "local.db"));
+    try {
+      expect(backupStore.getById(m.id)?.text).toBe("hard delete should still be recoverable from backup");
+    } finally {
+      backupStore.close();
+    }
+
+    store = new LocalStore(tmpDir.dbPath);
+    expect(store.getById(m.id)).toBeFalsy();
+  });
+
+  it("allows explicitly skipping the hard-delete backup", async () => {
+    const m = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "hard delete without backup",
+      tags: [],
+      visibility: "auto",
+    });
+    store.close();
+
+    const result = await runCommand(["delete", m.id, "--hard", "--force", "--no-backup"], { cwd: tmpDir.dir });
+
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(fs.existsSync(path.join(tmpDir.dataDir, "backups"))).toBe(false);
+
+    store = new LocalStore(tmpDir.dbPath);
+    expect(store.getById(m.id)).toBeFalsy();
   });
 });

@@ -88,6 +88,7 @@ export function restoreFetch(): void {
 
 export async function runCommand(
   args: string[],
+  options: { cwd?: string } = {},
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
   const { execFile } = await import("node:child_process");
   const { promisify } = await import("node:util");
@@ -107,6 +108,7 @@ export async function runCommand(
     const { stdout, stderr } = await execFileAsync(tsxPath, [entryPoint, ...args], {
       timeout: 15_000,
       env: { ...process.env, NODE_ENV: "test", NODE_OPTIONS: nodeOptions },
+      cwd: options.cwd ?? process.cwd(),
     });
     return { stdout, stderr, exitCode: 0 };
   } catch (err: unknown) {
