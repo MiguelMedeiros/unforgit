@@ -6,6 +6,7 @@ import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { parsePositiveInt } from "unforgit-config";
 import { isJsonMode, outputJson } from "../utils.js";
+import { createLocalDatabaseBackup } from "./backups.js";
 
 const cwd = process.cwd();
 
@@ -175,6 +176,7 @@ embeddingsCommand
   .command("clear")
   .description("Remove all embeddings (requires regeneration)")
   .option("--yes", "Skip confirmation")
+  .option("--no-backup", "Skip automatic local database backup before clearing embeddings")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
       logger.error("Unforgit not initialized. Run 'unforgit init' first.");
@@ -188,6 +190,20 @@ embeddingsCommand
     }
 
     const dbPath = getDbPath(cwd);
+    if (opts.backup !== false) {
+      try {
+        const backup = createLocalDatabaseBackup(dbPath, "embeddings-clear");
+        if (backup) {
+          logger.info(`Created local embeddings backup: ${backup.dir}`);
+        }
+      } catch (err) {
+        logger.error(
+          `Failed to create local embeddings backup: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        process.exit(EXIT_ERROR);
+      }
+    }
+
     const store = new LocalStore(dbPath);
 
     try {

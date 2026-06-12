@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { createTempDataDir, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
 
@@ -95,5 +97,64 @@ describe("embeddings", () => {
       planned: 1,
     });
     expect(payload.memories[0]).toMatchObject({ textPreview: "needs embedding" });
+  });
+
+  it("embeddings clear creates a recoverable backup by default", async () => {
+    process.chdir(tmpDir.dir);
+    const memory = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "embedded memory",
+      tags: [],
+      visibility: "auto",
+    });
+    await store.storeEmbedding(memory.id, [0.1, 0.2, 0.3], "test-model");
+    store.close();
+
+    const result = await runCommand(["embeddings", "clear", "--yes"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Created local embeddings backup:");
+    const backupRoot = path.join(tmpDir.dataDir, "backups");
+    const backupNames = fs
+      .readdirSync(backupRoot)
+      .filter((name) => name.startsWith("embeddings-clear-"));
+    expect(backupNames).toHaveLength(1);
+
+    const backupStore = new LocalStore(path.join(backupRoot, backupNames[0], "local.db"));
+    try {
+      const embedding = backupStore.getEmbedding(memory.id);
+      expect(embedding).toBeDefined();
+      expect(embedding?.[0]).toBeCloseTo(0.1);
+    } finally {
+      backupStore.close();
+    }
+
+    store = new LocalStore(tmpDir.dbPath);
+    expect(store.getEmbedding(memory.id)).toBeUndefined();
+  });
+
+  it("embeddings clear --no-backup skips backup creation", async () => {
+    process.chdir(tmpDir.dir);
+    const memory = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "embedded memory without backup",
+      tags: [],
+      visibility: "auto",
+    });
+    await store.storeEmbedding(memory.id, [0.4, 0.5, 0.6], "test-model");
+    store.close();
+
+    const result = await runCommand(["embeddings", "clear", "--yes", "--no-backup"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain("Created local embeddings backup:");
+    expect(fs.existsSync(path.join(tmpDir.dataDir, "backups"))).toBe(false);
+
+    store = new LocalStore(tmpDir.dbPath);
+    expect(store.getEmbedding(memory.id)).toBeUndefined();
   });
 });

@@ -59,8 +59,9 @@ function resolveBackupDir(backupRoot: string, backupName: string): string {
   return resolvedBackup;
 }
 
-export function createLocalResetBackup(
+export function createLocalDatabaseBackup(
   dbPath: string,
+  prefix: string,
   now: Date = new Date(),
 ): LocalResetBackup | null {
   if (!fs.existsSync(dbPath)) {
@@ -68,7 +69,7 @@ export function createLocalResetBackup(
   }
 
   const backupRoot = backupRootForDb(dbPath);
-  const baseName = `reset-${formatBackupTimestamp(now)}`;
+  const baseName = `${prefix}-${formatBackupTimestamp(now)}`;
   let backupDir = path.join(backupRoot, baseName);
   let suffix = 1;
   while (fs.existsSync(backupDir)) {
@@ -83,6 +84,13 @@ export function createLocalResetBackup(
   }
 
   return describeBackup(backupDir);
+}
+
+export function createLocalResetBackup(
+  dbPath: string,
+  now: Date = new Date(),
+): LocalResetBackup | null {
+  return createLocalDatabaseBackup(dbPath, "reset", now);
 }
 
 export function listLocalResetBackups(dbPath: string): LocalResetBackup[] {
