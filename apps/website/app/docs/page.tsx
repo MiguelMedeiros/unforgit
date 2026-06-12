@@ -420,6 +420,8 @@ $ unforgit unconsolidate <consolidation-id> --dry-run`}
 $ unforgit supersede <old-id> --with <new-id>
 $ unforgit delete <id>
 $ unforgit delete <id> --hard --force
+$ unforgit delete <id> --hard --force --no-backup
+$ unforgit backups list
 $ unforgit restore <id>`}
             />
           </div>

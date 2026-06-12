@@ -5,6 +5,7 @@ import { RemoteClient } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_ERROR } from "../exit-codes.js";
 import { confirm } from "../utils.js";
+import { createLocalDatabaseBackup } from "./backups.js";
 
 export const deleteCommand = new Command("delete")
   .description("Soft delete a memory (can be restored)")
@@ -13,10 +14,12 @@ export const deleteCommand = new Command("delete")
   .option("--remote", "Delete on remote")
   .option("--by <author>", "Author of the deletion")
   .option("--force", "Skip confirmation for hard delete")
+  .option("--no-backup", "Skip automatic local database backup before local hard delete")
   .addHelpText("after", `
 Examples:
   unforgit delete abc12345              Soft delete (can be restored)
-  unforgit delete abc12345 --hard       Permanent delete
+  unforgit delete abc12345 --hard       Permanent delete, with local backup by default
+  unforgit delete abc12345 --hard --no-backup
   unforgit delete abc12345 --remote     Delete on remote server`)
   .action(async (id, opts) => {
     if (opts.hard && !opts.force) {
@@ -46,7 +49,22 @@ Examples:
       return;
     }
 
-    const store = new LocalStore(getDbPath());
+    const dbPath = getDbPath();
+    if (opts.hard && opts.backup !== false) {
+      try {
+        const backup = createLocalDatabaseBackup(dbPath, "hard-delete");
+        if (backup) {
+          logger.info(`Created local hard-delete backup: ${backup.dir}`);
+        }
+      } catch (err) {
+        logger.error(
+          `Failed to create local hard-delete backup: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        process.exit(EXIT_ERROR);
+      }
+    }
+
+    const store = new LocalStore(dbPath);
 
     try {
       let ok: boolean;
