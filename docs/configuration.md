@@ -30,16 +30,16 @@ unforgit auth status
 unforgit auth remove
 ```
 
-## OpenAI API Key
+## Local-first embeddings and optional OpenAI
 
-Unforgit works **without** an OpenAI API key, but some advanced features require it.
+Unforgit works **without** an OpenAI API key. Embeddings default to `provider: auto`, which uses local no-key embeddings unless you explicitly configure an OpenAI embedding model and `OPENAI_API_KEY`.
 
 ### What works WITHOUT OpenAI
 
 | Feature | Status |
 |---------|--------|
 | Add memories (`unforgit add`) | Full |
-| Recall via text search (`unforgit recall`) | FTS5 |
+| Recall (`unforgit recall`) | FTS5 + local embeddings |
 | Promote, deprecate, supersede | Full |
 | Manual consolidation (`unforgit merge`) | Full |
 | Team sync (push/pull) | Full |
@@ -47,16 +47,14 @@ Unforgit works **without** an OpenAI API key, but some advanced features require
 | MCP integration (Cursor) | Full |
 | Links and history | Full |
 
-### What REQUIRES OpenAI
+### What still requires OpenAI or another LLM provider
 
 | Feature | Description |
 |---------|-------------|
-| Semantic search | `unforgit recall` uses AI embeddings for meaning-based search |
-| Embedding generation | `unforgit embeddings backfill` creates vectors for existing memories |
-| Auto-consolidation | AI-powered suggestions for merging similar memories |
-| Hybrid scoring | 50% semantic + 20% FTS + 15% recency + 15% confidence |
+| OpenAI-backed embeddings | Set `embeddings.provider: openai` plus `OPENAI_API_KEY` |
+| Auto-consolidation text generation | AI-powered text consolidation still needs a generative model |
 
-### Setting the Key
+### Optional OpenAI key
 
 ```bash
 # Set via CLI
@@ -69,7 +67,7 @@ openaiApiKey: sk-your-api-key
 export OPENAI_API_KEY=sk-your-api-key
 ```
 
-When the key is not configured, Unforgit gracefully falls back to FTS-only search without errors.
+When the key is not configured, Unforgit uses local embeddings by default. To force local-only behavior, set `embeddings.provider: local`. To disable embeddings entirely and use FTS-only recall, set `embeddings.provider: disabled` or `embeddings.enabled: false`.
 
 ## YAML Configuration File
 
@@ -81,7 +79,6 @@ remote:
   orgId: your-org
   repoId: your-repo
   apiKey: hk_your_api_key_here
-openaiApiKey: sk-your-openai-key
 defaults:
   visibility: auto
   memoryType: episodic
@@ -92,7 +89,8 @@ sync:
   autoResolveConflicts: last_write_wins  # or: local_wins, remote_wins, manual
 embeddings:
   enabled: true
-  model: text-embedding-3-small
+  provider: auto                 # auto, local, openai, disabled
+  model: local-hash-multilingual-v1
   autoGenerate: true          # Generate embeddings on memory creation
 lifecycle:
   ttlSecondsByType:

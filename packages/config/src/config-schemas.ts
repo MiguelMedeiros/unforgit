@@ -14,6 +14,7 @@ export const syncConfigSchema = z.object({
 
 export const embeddingConfigSchema = z.object({
   enabled: z.boolean(),
+  provider: z.enum(["auto", "local", "openai", "disabled"]).optional(),
   model: z.string(),
   autoGenerate: z.boolean(),
 });

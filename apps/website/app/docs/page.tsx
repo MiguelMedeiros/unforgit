@@ -260,9 +260,9 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
 
         <Subsection id="embeddings" title="Embeddings And Hybrid Search">
           <p className="text-dracula-foreground/70 mb-4">
-            OpenAI is optional. Without it, <UnforgitBrand /> still works with local
-            FTS recall, sync, links, lifecycle, and manual consolidation. With
-            OpenAI, you unlock embeddings, server-side hybrid recall, and
+            Embeddings are local-first. <UnforgitBrand /> can generate semantic
+            recall vectors without <code>OPENAI_API_KEY</code>; OpenAI remains
+            optional for teams that explicitly want cloud-backed embeddings or
             LLM-based consolidation flows.
           </p>
           <div className="space-y-4">
@@ -275,6 +275,8 @@ $ unforgit recall "race condition" --local-only`}
             <Terminal
               title="Embedding maintenance"
               code={`$ unforgit embeddings backfill
+$ unforgit embeddings backfill --provider local
+$ unforgit embeddings backfill --provider openai --model text-embedding-3-small
 $ unforgit embeddings stats
 $ unforgit embeddings clear --yes`}
             />

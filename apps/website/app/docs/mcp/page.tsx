@@ -562,8 +562,8 @@ $ unforgit init`}
 
         <Terminal
           title=".env (at repo root, already in .gitignore)"
-          code={`# Optional: enables semantic search and AI consolidation
-OPENAI_API_KEY=sk-your-openai-key
+          code={`# Optional: enables OpenAI-backed embeddings and AI consolidation
+OPENAI_API_KEY=sk-you...-key
 
 # Optional: for remote sync operations
 UNFORGIT_API_KEY=hk_your_api_key`}
@@ -609,20 +609,17 @@ UNFORGIT_API_KEY=hk_your_api_key`}
 
         <Subsection id="mcp-openai-key" title="OpenAI API Key (Optional)">
           <p className="text-sm text-dracula-foreground/70 mb-4">
-            Adding an OpenAI key unlocks local embedding generation, semantic
-            recall via the MCP{" "}
-            <code className="text-dracula-foreground/80">
-              unforgit_embedding_recall
-            </code>{" "}
-            tool, and AI-powered consolidation flows.
+            Semantic recall works without an OpenAI key by using local-first
+            embeddings. Add an OpenAI key only when you explicitly want
+            OpenAI-backed embeddings or AI-powered consolidation flows.
           </p>
           <p className="text-sm text-dracula-foreground/60 mt-3">
-            Without this key, <UnforgitBrand /> is fully functional. Local recall
-            uses FTS5 text search. Add{" "}
-            <code className="text-dracula-foreground/70">OPENAI_API_KEY</code>{" "}
-            to your{" "}
-            <code className="text-dracula-foreground/70">.env</code> file to
-            enable AI features.
+            Without this key, <UnforgitBrand /> remains fully functional and the
+            MCP <code className="text-dracula-foreground/80">unforgit_embedding_recall</code>{" "}
+            tool can use locally generated embeddings. Set{" "}
+            <code className="text-dracula-foreground/70">embeddings.provider</code>{" "}
+            to <code className="text-dracula-foreground/70">openai</code> only if
+            you want cloud embeddings.
           </p>
         </Subsection>
       </Section>

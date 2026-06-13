@@ -17,7 +17,7 @@ src/
 │   ├── schemas.ts   # Zod validation schemas
 │   ├── policy.ts    # Auto-visibility policy
 │   ├── recall.ts    # Merge + dedup + rank + hybrid scoring
-│   ├── embeddings.ts    # OpenAI embeddings generation & similarity
+│   ├── embeddings.ts    # Local/OpenAI embedding providers & similarity
 │   ├── quality.ts       # Memory quality scoring
 │   ├── suggestions.ts   # Curation suggestions generation
 │   ├── notifications.ts # Notification system
@@ -45,7 +45,7 @@ website/             # Public website and docs (Next.js)
 
 ## Semantic Search
 
-Unforgit uses OpenAI embeddings for semantic search, finding memories by meaning rather than just keywords.
+Unforgit uses local-first embeddings for semantic search, finding memories by meaning rather than just keywords without requiring cloud credentials. OpenAI embeddings remain available when explicitly configured.
 
 The system uses a hybrid scoring approach with a bounded usage boost:
 - Semantic similarity (embeddings)

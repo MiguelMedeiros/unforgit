@@ -215,7 +215,8 @@ export function defaultConfig(): AppConfig & { configVersion: number } {
     },
     embeddings: {
       enabled: true,
-      model: "text-embedding-3-small",
+      provider: "auto",
+      model: "local-hash-multilingual-v1",
       autoGenerate: true,
     },
     lifecycle: resolveLifecycleConfig(),

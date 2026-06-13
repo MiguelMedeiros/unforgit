@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { LocalStore } from "unforgit-db";
 import { loadConfig, getDbPath, isInitialized } from "unforgit-config";
-import { generateEmbedding } from "unforgit-core";
+import { generateEmbedding, resolveEmbeddingProvider } from "unforgit-core";
 import { logger } from "../logger.js";
 import { EXIT_ERROR, EXIT_CONFIG_ERROR } from "../exit-codes.js";
 import { parsePositiveInt } from "unforgit-config";
@@ -29,6 +29,7 @@ function embeddingCoverage(stats: EmbeddingStats): number {
 export function buildBackfillJsonPayload(options: {
   dryRun: boolean;
   model: string;
+  provider?: string;
   statsBefore: EmbeddingStats;
   statsAfter?: EmbeddingStats;
   planned: number;
@@ -42,6 +43,7 @@ export function buildBackfillJsonPayload(options: {
   return {
     dryRun: options.dryRun,
     model: options.model,
+    ...(options.provider ? { provider: options.provider } : {}),
     planned: options.planned,
     processed: options.processed,
     errors: failures.length,
@@ -67,7 +69,8 @@ embeddingsCommand
   .option("--batch-size <n>", "Number of memories to process in parallel", "5")
   .option("--delay <ms>", "Delay between batches (ms)", "500")
   .option("--dry-run", "Show what would be done without making changes")
-  .option("--model <model>", "OpenAI embedding model", "text-embedding-3-small")
+  .option("--provider <provider>", "Embedding provider: auto, local, openai, disabled")
+  .option("--model <model>", "Embedding model (defaults to configured provider model)")
   .action(async (opts) => {
     if (!isInitialized(cwd)) {
       logger.error("Unforgit not initialized. Run 'unforgit init' first.");
@@ -75,11 +78,16 @@ embeddingsCommand
     }
 
     const config = loadConfig(cwd);
-    const apiKey = process.env.OPENAI_API_KEY;
+    const embeddingConfig = {
+      provider: opts.provider ?? config.embeddings?.provider ?? "auto",
+      model: opts.model ?? config.embeddings?.model,
+      apiKey: process.env.OPENAI_API_KEY,
+    };
+    const provider = resolveEmbeddingProvider(embeddingConfig);
 
-    if (!apiKey && !opts.dryRun) {
-      logger.error("OpenAI API key not set.");
-      logger.error("Set the OPENAI_API_KEY environment variable.");
+    if (!provider.available && !opts.dryRun) {
+      logger.error(provider.reason ?? "Embedding provider is not available.");
+      logger.error("Use 'unforgit config set embeddings.provider local' for no-key local embeddings.");
       process.exit(EXIT_ERROR);
     }
 
@@ -95,7 +103,8 @@ embeddingsCommand
       if (isJsonMode() && opts.dryRun) {
         outputJson(buildBackfillJsonPayload({
           dryRun: true,
-          model: opts.model,
+          model: provider.model,
+          provider: provider.provider,
           statsBefore: stats,
           planned: memories.length,
           processed: 0,
@@ -118,7 +127,8 @@ embeddingsCommand
         if (isJsonMode()) {
           outputJson(buildBackfillJsonPayload({
             dryRun: Boolean(opts.dryRun),
-            model: opts.model,
+            model: provider.model,
+            provider: provider.provider,
             statsBefore: stats,
             planned: 0,
             processed: 0,
@@ -130,6 +140,8 @@ embeddingsCommand
       }
 
       logger.info(`Found ${memories.length} memories without embeddings.`);
+      logger.info(`Embedding provider: ${provider.provider}`);
+      logger.info(`Embedding model: ${provider.model}`);
 
       if (opts.dryRun) {
         logger.info("\n[Dry run - no changes made]");
@@ -157,8 +169,7 @@ embeddingsCommand
           batch.map(async (memory) => {
             try {
               const result = await generateEmbedding(memory.text, {
-                apiKey,
-                model: opts.model,
+                ...embeddingConfig,
               });
               await store.storeEmbedding(memory.id, result.embedding, result.model);
               processed++;
@@ -187,7 +198,8 @@ embeddingsCommand
       if (isJsonMode()) {
         outputJson(buildBackfillJsonPayload({
           dryRun: false,
-          model: opts.model,
+          model: provider.model,
+          provider: provider.provider,
           statsBefore: stats,
           statsAfter,
           planned: memories.length,

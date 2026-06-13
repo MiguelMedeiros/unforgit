@@ -124,9 +124,15 @@ Duplicate pending suggestions for the same type and memory IDs are skipped, keep
 
 ## Embeddings
 
+Embeddings are local-first. `unforgit embeddings backfill` works without `OPENAI_API_KEY` by using the configured `auto`/`local` provider. OpenAI is optional: use `--provider openai --model text-embedding-3-small` when you explicitly want cloud embeddings.
+
 ```bash
-# Generate embeddings for existing memories
+# Generate local embeddings for existing memories (no API key required)
 unforgit embeddings backfill
+
+# Force a provider for one run
+unforgit embeddings backfill --provider local
+unforgit embeddings backfill --provider openai --model text-embedding-3-small
 
 # Check embedding coverage
 unforgit embeddings stats

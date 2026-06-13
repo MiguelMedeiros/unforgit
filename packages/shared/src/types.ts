@@ -208,6 +208,7 @@ export interface SyncConfig {
 
 export interface EmbeddingConfig {
   enabled: boolean;
+  provider?: "auto" | "local" | "openai" | "disabled";
   model: string;
   autoGenerate: boolean;
 }

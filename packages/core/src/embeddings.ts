@@ -1,28 +1,96 @@
 import OpenAI from "openai";
+import { createHash } from "node:crypto";
 
-const EMBEDDING_MODEL = "text-embedding-3-small";
-const EMBEDDING_DIMENSIONS = 1536;
+const OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
+const OPENAI_EMBEDDING_DIMENSIONS = 1536;
+export const LOCAL_EMBEDDING_MODEL = "local-hash-multilingual-v1";
+const LOCAL_EMBEDDING_DIMENSIONS = 384;
+
+export type EmbeddingProviderName = "auto" | "local" | "openai" | "disabled";
 
 export interface EmbeddingResult {
   embedding: number[];
   model: string;
   tokensUsed: number;
+  provider?: Exclude<EmbeddingProviderName, "auto" | "disabled">;
 }
 
 export interface EmbeddingConfig {
   apiKey?: string;
   model?: string;
+  provider?: EmbeddingProviderName;
+}
+
+export interface ResolvedEmbeddingProvider {
+  provider: Exclude<EmbeddingProviderName, "auto">;
+  model: string;
+  dimensions: number;
+  available: boolean;
+  reason?: string;
 }
 
 let cachedClient: OpenAI | null = null;
 
 /**
  * Check if OpenAI API key is configured.
- * Use this to gracefully skip embedding-related features when not available.
+ * Use this to gracefully skip OpenAI-only features when not available.
  */
 export function isOpenAIConfigured(apiKey?: string): boolean {
   const key = apiKey ?? process.env.OPENAI_API_KEY;
-  return !!key && key !== "sk-your-api-key-here" && key.startsWith("sk-");
+  return !!key && key !== "sk-you...here" && key.startsWith("sk-");
+}
+
+export function resolveEmbeddingProvider(config?: EmbeddingConfig): ResolvedEmbeddingProvider {
+  const requested = config?.provider ?? "auto";
+  const openaiAvailable = isOpenAIConfigured(config?.apiKey);
+
+  if (requested === "disabled") {
+    return {
+      provider: "disabled",
+      model: config?.model ?? "disabled",
+      dimensions: 0,
+      available: false,
+      reason: "Embeddings are disabled by configuration.",
+    };
+  }
+
+  if (requested === "openai") {
+    const model = config?.model ?? OPENAI_EMBEDDING_MODEL;
+    return {
+      provider: "openai",
+      model,
+      dimensions: getEmbeddingDimensions(model),
+      available: openaiAvailable,
+      reason: openaiAvailable ? undefined : "OPENAI_API_KEY is not configured.",
+    };
+  }
+
+  if (requested === "local") {
+    return {
+      provider: "local",
+      model: config?.model ?? LOCAL_EMBEDDING_MODEL,
+      dimensions: LOCAL_EMBEDDING_DIMENSIONS,
+      available: true,
+    };
+  }
+
+  if (openaiAvailable && config?.model && config.model.startsWith("text-embedding-")) {
+    return {
+      provider: "openai",
+      model: config.model,
+      dimensions: getEmbeddingDimensions(config.model),
+      available: true,
+    };
+  }
+
+  return {
+    provider: "local",
+    model: config?.model && !config.model.startsWith("text-embedding-")
+      ? config.model
+      : LOCAL_EMBEDDING_MODEL,
+    dimensions: LOCAL_EMBEDDING_DIMENSIONS,
+    available: true,
+  };
 }
 
 /**
@@ -32,8 +100,8 @@ function getClient(apiKey?: string): OpenAI {
   const key = apiKey ?? process.env.OPENAI_API_KEY;
   if (!key) {
     throw new Error(
-      "OpenAI API key not configured. Set OPENAI_API_KEY environment variable or pass apiKey option. " +
-      "Semantic search features are disabled. Unforgit will use FTS-only search."
+      "OpenAI API key not configured. Set OPENAI_API_KEY environment variable or use embeddings.provider=local. " +
+      "Unforgit can generate local embeddings without cloud credentials."
     );
   }
   if (!cachedClient || apiKey) {
@@ -42,12 +110,67 @@ function getClient(apiKey?: string): OpenAI {
   return cachedClient;
 }
 
+function hashToUint32(value: string): number {
+  const digest = createHash("sha256").update(value).digest();
+  return digest.readUInt32LE(0);
+}
+
+function normalizeToken(token: string): string {
+  return token.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function featuresForText(text: string): string[] {
+  const words = text
+    .split(/[^\p{L}\p{N}_-]+/u)
+    .map(normalizeToken)
+    .filter((token) => token.length > 1);
+  const features: string[] = [];
+  for (const word of words) {
+    features.push(`w:${word}`);
+    if (word.length > 4) {
+      for (let i = 0; i <= word.length - 3; i++) {
+        features.push(`g:${word.slice(i, i + 3)}`);
+      }
+    }
+  }
+  for (let i = 0; i < words.length - 1; i++) {
+    features.push(`b:${words[i]} ${words[i + 1]}`);
+  }
+  return features.length > 0 ? features : ["empty"];
+}
+
+function generateLocalEmbedding(text: string, model = LOCAL_EMBEDDING_MODEL): EmbeddingResult {
+  const vector = new Array<number>(LOCAL_EMBEDDING_DIMENSIONS).fill(0);
+  for (const feature of featuresForText(text.trim().slice(0, 8000))) {
+    const bucket = hashToUint32(`${model}:bucket:${feature}`) % LOCAL_EMBEDDING_DIMENSIONS;
+    const sign = hashToUint32(`${model}:sign:${feature}`) % 2 === 0 ? 1 : -1;
+    vector[bucket] += sign;
+  }
+
+  const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
+  const embedding = magnitude > 0 ? vector.map((value) => value / magnitude) : vector;
+  return {
+    embedding,
+    model,
+    provider: "local",
+    tokensUsed: 0,
+  };
+}
+
 export async function generateEmbedding(
   text: string,
   config?: EmbeddingConfig
 ): Promise<EmbeddingResult> {
+  const resolved = resolveEmbeddingProvider(config);
+  if (resolved.provider === "disabled") {
+    throw new Error("Embeddings are disabled by configuration.");
+  }
+  if (resolved.provider === "local") {
+    return generateLocalEmbedding(text, resolved.model);
+  }
+
   const client = getClient(config?.apiKey);
-  const model = config?.model ?? EMBEDDING_MODEL;
+  const model = resolved.model;
 
   const cleanText = text.trim().slice(0, 8000);
 
@@ -64,6 +187,7 @@ export async function generateEmbedding(
   return {
     embedding: data.embedding,
     model,
+    provider: "openai",
     tokensUsed: response.usage?.total_tokens ?? 0,
   };
 }
@@ -74,8 +198,16 @@ export async function generateEmbeddings(
 ): Promise<EmbeddingResult[]> {
   if (texts.length === 0) return [];
 
+  const resolved = resolveEmbeddingProvider(config);
+  if (resolved.provider === "disabled") {
+    throw new Error("Embeddings are disabled by configuration.");
+  }
+  if (resolved.provider === "local") {
+    return texts.map((text) => generateLocalEmbedding(text, resolved.model));
+  }
+
   const client = getClient(config?.apiKey);
-  const model = config?.model ?? EMBEDDING_MODEL;
+  const model = resolved.model;
 
   const cleanTexts = texts.map((t) => t.trim().slice(0, 8000));
 
@@ -87,6 +219,7 @@ export async function generateEmbeddings(
   return response.data.map((item) => ({
     embedding: item.embedding,
     model,
+    provider: "openai" as const,
     tokensUsed: Math.floor((response.usage?.total_tokens ?? 0) / texts.length),
   }));
 }
@@ -166,20 +299,24 @@ export function findTopKSimilar(
 }
 
 export const EMBEDDING_DIMENSIONS_MAP: Record<string, number> = {
+  [LOCAL_EMBEDDING_MODEL]: LOCAL_EMBEDDING_DIMENSIONS,
   "text-embedding-3-small": 1536,
   "text-embedding-3-large": 3072,
   "text-embedding-ada-002": 1536,
 };
 
 export function getEmbeddingDimensions(model: string): number {
-  return EMBEDDING_DIMENSIONS_MAP[model] ?? EMBEDDING_DIMENSIONS;
+  return EMBEDDING_DIMENSIONS_MAP[model] ?? (
+    model.startsWith("local-") ? LOCAL_EMBEDDING_DIMENSIONS : OPENAI_EMBEDDING_DIMENSIONS
+  );
 }
 
-export async function isEmbeddingsAvailable(apiKey?: string): Promise<boolean> {
+export async function isEmbeddingsAvailable(config?: EmbeddingConfig | string): Promise<boolean> {
   try {
-    const key = apiKey ?? process.env.OPENAI_API_KEY;
-    if (!key) return false;
-    return true;
+    const resolved = typeof config === "string"
+      ? resolveEmbeddingProvider({ apiKey: config, provider: "openai" })
+      : resolveEmbeddingProvider(config);
+    return resolved.available;
   } catch {
     return false;
   }
