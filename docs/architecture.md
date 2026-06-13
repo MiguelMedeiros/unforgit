@@ -45,7 +45,7 @@ website/             # Public website and docs (Next.js)
 
 ## Semantic Search
 
-Unforgit uses local-first embeddings for semantic search, finding memories by meaning rather than just keywords without requiring cloud credentials. OpenAI embeddings remain available when explicitly configured.
+Unforgit uses local-first embeddings for semantic search, finding memories by meaning rather than just keywords without requiring cloud credentials. OpenAI embeddings remain available when explicitly configured. Stored vectors carry provider/model/dimension metadata, and backfill treats incompatible vectors as stale when the configured provider changes.
 
 The system uses a hybrid scoring approach with a bounded usage boost:
 - Semantic similarity (embeddings)

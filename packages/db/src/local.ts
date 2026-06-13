@@ -34,6 +34,7 @@ import {
   generateEmbedding,
   serializeEmbedding,
   deserializeEmbedding,
+  getEmbeddingDimensions,
   cosineSimilarity,
   type EmbeddingConfig,
 } from "unforgit-core";
@@ -129,6 +130,8 @@ CREATE TABLE IF NOT EXISTS memory_embeddings (
   memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
   embedding BLOB NOT NULL,
   model TEXT NOT NULL,
+  provider TEXT,
+  dimensions INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -339,9 +342,24 @@ export class LocalStore {
           memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
           embedding BLOB NOT NULL,
           model TEXT NOT NULL,
+          provider TEXT,
+          dimensions INTEGER,
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
       `);
+    }
+    const embeddingColumns = this.db
+      .prepare("PRAGMA table_info(memory_embeddings)")
+      .all() as Array<{ name: string }>;
+    const embeddingColumnNames = embeddingColumns.map((c) => c.name);
+    if (!embeddingColumnNames.includes("provider")) {
+      this.db.exec("ALTER TABLE memory_embeddings ADD COLUMN provider TEXT");
+    }
+    if (!embeddingColumnNames.includes("dimensions")) {
+      this.db.exec("ALTER TABLE memory_embeddings ADD COLUMN dimensions INTEGER");
+      this.db
+        .prepare("UPDATE memory_embeddings SET dimensions = length(embedding) / 4 WHERE dimensions IS NULL")
+        .run();
     }
 
     const usageTables = this.db
@@ -1770,17 +1788,19 @@ export class LocalStore {
   async storeEmbedding(
     memoryId: string,
     embedding: number[],
-    model: string
+    model: string,
+    provider?: string
   ): Promise<void> {
     const now = new Date().toISOString();
     const blob = serializeEmbedding(embedding);
+    const dimensions = embedding.length || getEmbeddingDimensions(model);
 
     this.db
       .prepare(
-        `INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, created_at)
-         VALUES (?, ?, ?, ?)`
+        `INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, provider, dimensions, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(memoryId, blob, model, now);
+      .run(memoryId, blob, model, provider ?? null, dimensions, now);
   }
 
   async generateAndStoreEmbedding(
@@ -1790,7 +1810,7 @@ export class LocalStore {
   ): Promise<void> {
     try {
       const result = await generateEmbedding(text, config);
-      await this.storeEmbedding(memoryId, result.embedding, result.model);
+      await this.storeEmbedding(memoryId, result.embedding, result.model, result.provider);
     } catch (error) {
       console.error(`Failed to generate embedding for ${memoryId}:`, error);
     }
@@ -1814,15 +1834,18 @@ export class LocalStore {
 
   getAllEmbeddings(
     orgId: string,
-    repoId: string
+    repoId: string,
+    dimensions?: number
   ): Array<{ memoryId: string; embedding: number[] }> {
+    const dimensionClause = dimensions ? " AND e.dimensions = ?" : "";
+    const params = dimensions ? [orgId, repoId, dimensions] : [orgId, repoId];
     const rows = this.db
       .prepare(
         `SELECT e.memory_id, e.embedding FROM memory_embeddings e
          JOIN memories m ON e.memory_id = m.id
-         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'`
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'${dimensionClause}`
       )
-      .all(orgId, repoId) as Array<{ memory_id: string; embedding: Buffer }>;
+      .all(...params) as Array<{ memory_id: string; embedding: Buffer }>;
 
     return rows.map((row) => ({
       memoryId: row.memory_id,
@@ -1830,14 +1853,33 @@ export class LocalStore {
     }));
   }
 
-  getMemoriesWithoutEmbeddings(orgId: string, repoId: string): Memory[] {
+  getMemoriesWithoutEmbeddings(
+    orgId: string,
+    repoId: string,
+    expected?: { model?: string; provider?: string; dimensions?: number }
+  ): Memory[] {
+    const compatibilityClauses: string[] = ["e.memory_id IS NULL"];
+    const params: unknown[] = [orgId, repoId];
+    if (expected?.model) {
+      compatibilityClauses.push("e.model != ?");
+      params.push(expected.model);
+    }
+    if (expected?.provider) {
+      compatibilityClauses.push("e.provider IS NULL OR e.provider != ?");
+      params.push(expected.provider);
+    }
+    if (expected?.dimensions) {
+      compatibilityClauses.push("e.dimensions IS NULL OR e.dimensions != ?");
+      params.push(expected.dimensions);
+    }
     const rows = this.db
       .prepare(
         `SELECT m.* FROM memories m
          LEFT JOIN memory_embeddings e ON m.id = e.memory_id
-         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active' AND e.memory_id IS NULL`
+         WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'
+           AND (${compatibilityClauses.map((clause) => `(${clause})`).join(" OR ")})`
       )
-      .all(orgId, repoId) as Array<Record<string, unknown>>;
+      .all(...params) as Array<Record<string, unknown>>;
 
     return rows.map(rowToMemory);
   }
@@ -1852,7 +1894,7 @@ export class LocalStore {
       return ftsResults;
     }
 
-    const allEmbeddings = this.getAllEmbeddings(query.orgId, query.repoId);
+    const allEmbeddings = this.getAllEmbeddings(query.orgId, query.repoId, queryEmbedding.length);
 
     if (allEmbeddings.length === 0) {
       return ftsResults;

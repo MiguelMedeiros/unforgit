@@ -67,7 +67,7 @@ openaiApiKey: sk-your-api-key
 export OPENAI_API_KEY=sk-your-api-key
 ```
 
-When the key is not configured, Unforgit uses local embeddings by default. To force local-only behavior, set `embeddings.provider: local`. To disable embeddings entirely and use FTS-only recall, set `embeddings.provider: disabled` or `embeddings.enabled: false`.
+When the key is not configured, Unforgit uses local embeddings by default. To force local-only behavior, set `embeddings.provider: local`. To disable embeddings entirely and use FTS-only recall, set `embeddings.provider: disabled` or `embeddings.enabled: false`. If you change providers or models, `unforgit embeddings backfill` detects incompatible provider/model/dimension metadata and regenerates the affected vectors.
 
 ## YAML Configuration File
 

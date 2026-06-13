@@ -97,7 +97,11 @@ embeddingsCommand
     const repoId = config.remote.repoId || "local";
 
     try {
-      const memories = store.getMemoriesWithoutEmbeddings(orgId, repoId);
+      const memories = store.getMemoriesWithoutEmbeddings(orgId, repoId, {
+        model: provider.model,
+        provider: provider.provider,
+        dimensions: provider.dimensions,
+      });
       const stats = store.getEmbeddingStats(orgId, repoId);
 
       if (isJsonMode() && opts.dryRun) {
@@ -171,7 +175,7 @@ embeddingsCommand
               const result = await generateEmbedding(memory.text, {
                 ...embeddingConfig,
               });
-              await store.storeEmbedding(memory.id, result.embedding, result.model);
+              await store.storeEmbedding(memory.id, result.embedding, result.model, result.provider);
               processed++;
               logger.progress(processed, memories.length, "embeddings");
             } catch (err) {

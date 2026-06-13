@@ -154,6 +154,36 @@ describe("embeddings", () => {
     }
   });
 
+  it("backfill regenerates embeddings when the stored model is incompatible", async () => {
+    process.chdir(tmpDir.dir);
+    const memory = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "local provider should replace stale vectors",
+      tags: [],
+      visibility: "auto",
+    });
+    await store.storeEmbedding(memory.id, [0.1, 0.2, 0.3], "text-embedding-3-small");
+    store.close();
+
+    const result = await runCommand(["embeddings", "backfill", "--json", "--delay", "1"]);
+
+    expect(result.exitCode).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload).toMatchObject({
+      provider: "local",
+      model: "local-hash-multilingual-v1",
+      planned: 1,
+      processed: 1,
+      errors: 0,
+    });
+
+    store = new LocalStore(tmpDir.dbPath);
+    const embedding = store.getEmbedding(memory.id);
+    expect(embedding).toHaveLength(384);
+  });
+
   it("embeddings clear creates a recoverable backup by default", async () => {
     process.chdir(tmpDir.dir);
     const memory = store.store({
