@@ -44,7 +44,7 @@ unforgit dashboard
 |-------|-------------|
 | [Concepts](docs/concepts.md) | Memory types, scopes, statuses, visibility policy, lifecycle |
 | [CLI Reference](docs/cli.md) | All CLI commands — add, recall, templates, curate, merge, sync |
-| [Configuration](docs/configuration.md) | OpenAI, authentication, sync settings, YAML config |
+| [Configuration](docs/configuration.md) | Local-first embeddings, optional OpenAI, authentication, sync settings, YAML config |
 | [API Server](docs/api.md) | HTTP API setup, endpoints, request examples |
 | [Server-Side AI](docs/server-ai.md) | Team mode with server-side OpenAI integration |
 | [MCP Server](docs/mcp.md) | Cursor IDE integration via Model Context Protocol |

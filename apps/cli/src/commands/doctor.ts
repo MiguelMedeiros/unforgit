@@ -7,6 +7,7 @@ import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
 import { isJsonMode, outputJson } from "../utils.js";
 import fs from "node:fs";
 import YAML from "yaml";
+import { isOpenAIConfigured, resolveEmbeddingProvider } from "unforgit-core";
 
 interface DiagnosticResult {
   check: string;
@@ -93,6 +94,23 @@ export const doctorCommand = new Command("doctor")
           check: "memory-stats",
           status: "ok",
           message: `${memoryStats.total} memories (${memoryStats.byType.episodic} episodic, ${memoryStats.byType.semantic} semantic, ${memoryStats.byType.procedural} procedural)`,
+        });
+
+        const provider = resolveEmbeddingProvider({
+          provider: config.embeddings?.provider ?? "auto",
+          model: config.embeddings?.model,
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+        results.push({
+          check: "embedding-provider",
+          status: provider.available ? "ok" : "warn",
+          message: `${provider.provider} embeddings (${provider.model}, ${provider.dimensions} dimensions)${provider.reason ? `: ${provider.reason}` : ""}`,
+          details: {
+            provider: provider.provider,
+            model: provider.model,
+            dimensions: provider.dimensions,
+            available: provider.available,
+          },
         });
 
         const stats = store.getEmbeddingStats(orgId, repoId);
@@ -212,15 +230,23 @@ export const doctorCommand = new Command("doctor")
         });
       }
 
-      const openaiKey = process.env.OPENAI_API_KEY;
-      if (openaiKey) {
-        results.push({ check: "openai", status: "ok", message: "OpenAI API key configured ([REDACTED])" });
+      if (isOpenAIConfigured()) {
+        results.push({ check: "openai", status: "ok", message: "OpenAI API key configured ([REDACTED]) for optional cloud AI features" });
       } else {
+        const embeddingProvider = resolveEmbeddingProvider({
+          provider: config.embeddings?.provider ?? "auto",
+          model: config.embeddings?.model,
+        });
+        const message = embeddingProvider.provider === "local"
+          ? "No OpenAI API key configured; local embeddings are active. OpenAI is only needed for OpenAI-backed embeddings or AI consolidation."
+          : "No OpenAI API key. OpenAI-backed embeddings and AI consolidation require it.";
         results.push({
           check: "openai",
-          status: "warn",
-          message: "No OpenAI API key. Auto-consolidation and embeddings backfill require it.",
-          fix: "Set OPENAI_API_KEY before running embedding backfill or AI consolidation.",
+          status: embeddingProvider.provider === "local" ? "ok" : "warn",
+          message,
+          fix: embeddingProvider.provider === "local"
+            ? undefined
+            : "Set OPENAI_API_KEY or configure embeddings.provider=local.",
         });
       }
     } catch (err) {

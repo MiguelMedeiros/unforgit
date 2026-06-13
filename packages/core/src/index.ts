@@ -26,6 +26,7 @@ export { resolveVisibility } from "./policy.js";
 
 export {
   isOpenAIConfigured,
+  resolveEmbeddingProvider,
   generateEmbedding,
   generateEmbeddings,
   cosineSimilarity,
@@ -41,6 +42,8 @@ export {
   isEmbeddingsAvailable,
   type EmbeddingResult,
   type EmbeddingConfig,
+  type EmbeddingProviderName,
+  type ResolvedEmbeddingProvider,
 } from "./embeddings.js";
 
 export {

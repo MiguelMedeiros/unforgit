@@ -92,7 +92,8 @@ describe("embeddings", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload).toMatchObject({
       dryRun: true,
-      model: "text-embedding-3-small",
+      provider: "local",
+      model: "local-hash-multilingual-v1",
       planned: 1,
       processed: 0,
       errors: 0,
@@ -110,6 +111,47 @@ describe("embeddings", () => {
       },
     });
     expect(payload.memories[0]).toMatchObject({ textPreview: "needs embedding" });
+  });
+
+  it("backfill generates local embeddings without requiring an OpenAI key", async () => {
+    process.chdir(tmpDir.dir);
+    const originalOpenAI = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    const memory = store.store({
+      orgId: "test-org",
+      repoId: "test-repo",
+      memoryType: "semantic",
+      text: "política de release local-first",
+      tags: [],
+      visibility: "auto",
+    });
+    store.close();
+
+    try {
+      const result = await runCommand(["embeddings", "backfill", "--json", "--delay", "1"]);
+
+      expect(result.exitCode).toBe(0);
+      const payload = JSON.parse(result.stdout);
+      expect(payload).toMatchObject({
+        dryRun: false,
+        provider: "local",
+        model: "local-hash-multilingual-v1",
+        planned: 1,
+        processed: 1,
+        errors: 0,
+        statsAfter: { total: 1, withEmbedding: 1, withoutEmbedding: 0, coverage: 100 },
+      });
+
+      store = new LocalStore(tmpDir.dbPath);
+      const embedding = store.getEmbedding(memory.id);
+      expect(embedding).toHaveLength(384);
+    } finally {
+      if (originalOpenAI) {
+        process.env.OPENAI_API_KEY = originalOpenAI;
+      } else {
+        delete process.env.OPENAI_API_KEY;
+      }
+    }
   });
 
   it("embeddings clear creates a recoverable backup by default", async () => {
