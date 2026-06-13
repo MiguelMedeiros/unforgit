@@ -114,16 +114,22 @@ export const doctorCommand = new Command("doctor")
         });
 
         const stats = store.getEmbeddingStats(orgId, repoId);
+        const incompatibleOrMissing = store.getMemoriesWithoutEmbeddings(orgId, repoId, {
+          model: provider.model,
+          provider: provider.provider,
+          dimensions: provider.dimensions,
+        }).length;
         if (stats.total === 0) {
           results.push({ check: "embeddings", status: "ok", message: "No memories yet" });
-        } else if (stats.withoutEmbedding === 0) {
-          results.push({ check: "embeddings", status: "ok", message: `All ${stats.total} memories have embeddings` });
+        } else if (incompatibleOrMissing === 0) {
+          results.push({ check: "embeddings", status: "ok", message: `All ${stats.total} memories have compatible embeddings` });
         } else {
-          const pct = ((stats.withEmbedding / stats.total) * 100).toFixed(1);
+          const compatible = stats.total - incompatibleOrMissing;
+          const pct = ((compatible / stats.total) * 100).toFixed(1);
           results.push({
             check: "embeddings",
             status: "warn",
-            message: `${stats.withoutEmbedding}/${stats.total} memories lack embeddings (${pct}% coverage). Run 'unforgit embeddings backfill'`,
+            message: `${incompatibleOrMissing}/${stats.total} memories lack compatible embeddings for ${provider.provider}/${provider.model} (${pct}% coverage). Run 'unforgit embeddings backfill'`,
             fix: "Run 'unforgit embeddings backfill'.",
           });
         }

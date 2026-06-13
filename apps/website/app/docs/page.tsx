@@ -263,7 +263,9 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
             Embeddings are local-first. <UnforgitBrand /> can generate semantic
             recall vectors without <code>OPENAI_API_KEY</code>; OpenAI remains
             optional for teams that explicitly want cloud-backed embeddings or
-            LLM-based consolidation flows.
+            LLM-based consolidation flows. Backfill records provider, model, and
+            dimensions so switching providers safely regenerates incompatible
+            vectors instead of mixing them silently.
           </p>
           <div className="space-y-4">
             <Terminal
