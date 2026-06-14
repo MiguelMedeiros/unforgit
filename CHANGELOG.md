@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.6.0...v0.7.0) (2026-06-14)
+
+
+### Features
+
+* add local-first embeddings ([#42](https://github.com/MiguelMedeiros/unforgit/issues/42)) ([d28088f](https://github.com/MiguelMedeiros/unforgit/commit/d28088fd7de46ad69b86e26909bc30b7f510d705))
+
+
+### Bug Fixes
+
+* clarify local memory versus remote API diagnostics ([#45](https://github.com/MiguelMedeiros/unforgit/issues/45)) ([71cf8dc](https://github.com/MiguelMedeiros/unforgit/commit/71cf8dc335fd0b91722c8fc325c3e9a7502d752b))
+* guard embedding provider compatibility ([#44](https://github.com/MiguelMedeiros/unforgit/issues/44)) ([f4203d5](https://github.com/MiguelMedeiros/unforgit/commit/f4203d5be3b437e4f98db04a2f430d1368943434))
+
 ## [0.6.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.5.6...v0.6.0) (2026-06-12)
 
 
