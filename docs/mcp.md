@@ -119,7 +119,7 @@ Restart your IDE after adding the MCP config.
 | `unforgit_notifications` | Get pending notifications | - |
 | `unforgit_templates` | List available memory templates | - |
 
-The MCP server works with the local SQLite store only (no remote dependency). It automatically discovers the `.unforgit/unforgit.yaml` config by walking up the filesystem from the working directory, and loads environment variables from the repo's `.env` file.
+The MCP server works with the local SQLite store only (no remote dependency). It automatically discovers the `.unforgit/unforgit.yaml` config by walking up the filesystem from the working directory, and loads environment variables from the repo's `.env` file. A broken or offline `remote.url` affects CLI/API sync commands such as `push` and `pull`, but it does not stop local MCP recall/add tools from working.
 
 ## IDE Rules
 

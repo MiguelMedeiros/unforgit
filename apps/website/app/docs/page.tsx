@@ -235,7 +235,7 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
             <ul className="text-sm text-dracula-foreground/70 space-y-2">
               <li>
                 Local recall uses SQLite FTS5 with a fallback string search when
-                needed.
+                needed. Local embeddings can run without cloud credentials.
               </li>
               <li>
                 The CLI merges local recall with remote recall and re-ranks the
@@ -243,7 +243,9 @@ $ unforgit add --template security "Never commit OAuth client secrets into repo 
               </li>
               <li>
                 Remote <code>/v1/recall</code> becomes hybrid when the server
-                has <code>OPENAI_API_KEY</code> configured.
+                has <code>OPENAI_API_KEY</code> configured. If the remote API is
+                offline, local recall and MCP tools still work; only remote sync
+                and remote recall are unavailable.
               </li>
               <li>
                 Ranking factors include text match, embedding similarity when

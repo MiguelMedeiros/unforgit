@@ -73,7 +73,7 @@ unforgit add --list-templates
 
 ## Doctor (Diagnostics)
 
-Use `doctor` before troubleshooting sync, embeddings, local database, or remote API issues. It validates initialization, config shape and permissions, deprecated secret-bearing config keys, SQLite access, memory counts, embedding coverage, tombstone/sync state, remote reachability, and required environment variables without printing secret values.
+Use `doctor` before troubleshooting sync, embeddings, local database, or remote API issues. It validates initialization, config shape and permissions, deprecated secret-bearing config keys, SQLite access, memory counts, embedding coverage, tombstone/sync state, remote reachability, and required environment variables without printing secret values. Local memory, MCP tools, and the remote API are separate: if a localhost `remote.url` is offline, `doctor` reports remote sync as unavailable while making clear that local memory and local embeddings still work.
 
 ```bash
 # Human-readable diagnostics with suggested fixes
