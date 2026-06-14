@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import YAML from "yaml";
 import { createTempDataDir, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
 
@@ -70,5 +72,45 @@ describe("doctor command", () => {
       ]),
     );
     expect(result.stdout).not.toContain(process.env.OPENAI_API_KEY ?? "__missing_openai_key__");
+  });
+
+  it("reports localhost remote API offline separately from local memory/provider health", async () => {
+    tmp = createTempDataDir({ remote: { url: "http://127.0.0.1:9" } });
+    process.chdir(tmp.dir);
+
+    const config = YAML.parse(fs.readFileSync(tmp.configPath, "utf-8"));
+    config.sync.enabled = false;
+    fs.writeFileSync(tmp.configPath, YAML.stringify(config), "utf-8");
+
+    const store = new LocalStore(tmp.dbPath);
+    try {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        scopeType: "repo",
+        memoryType: "semantic",
+        visibility: "private",
+        text: "Local provider should remain healthy when remote API is offline",
+        tags: [],
+      });
+      await store.storeEmbedding(memory.id, [0.1, 0.2, 0.3], "local-hash-multilingual-v1", "local");
+    } finally {
+      store.close();
+    }
+
+    const result = await runCommand(["doctor", "--json"]);
+
+    expect(result.exitCode).toBe(1);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ check: "embedding-provider", status: "ok" }),
+        expect.objectContaining({ check: "openai", status: "ok" }),
+        expect.objectContaining({ check: "remote", status: "error" }),
+      ]),
+    );
+    const remote = payload.results.find((r: { check: string }) => r.check === "remote");
+    expect(remote.message).toContain("Local memory and local embeddings still work");
+    expect(remote.fix).toContain("remote.url points to localhost");
   });
 });

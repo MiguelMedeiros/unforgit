@@ -629,7 +629,9 @@ UNFORGIT_API_KEY=hk_your_api_key`}
         <Subsection id="mcp-remote-config" title="Configure the Remote URL">
           <p className="text-sm text-dracula-foreground/70 mb-4">
             Point your local <UnforgitBrand /> at a remote API server for team-shared
-            memory, hybrid recall, and server-side AI features.
+            memory, remote recall, and server-side AI features. The remote API is
+            only needed for sync/remote commands; local SQLite memory and MCP tools
+            continue to work if this endpoint is offline.
           </p>
           <div className="space-y-4">
             <Terminal

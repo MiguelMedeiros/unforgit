@@ -220,11 +220,16 @@ export const doctorCommand = new Command("doctor")
             });
           }
         } catch (err) {
+          const localhostRemote = isLocalhostUrl(config.remote.url);
           results.push({
             check: "remote",
             status: "error",
-            message: `Cannot connect to ${config.remote.url}: ${err instanceof Error ? err.message : err}`,
-            fix: "Start the Unforgit API server or update remote.url in unforgit.yaml.",
+            message: localhostRemote
+              ? `Cannot connect to local remote API at ${config.remote.url}: ${err instanceof Error ? err.message : err}. Local memory and local embeddings still work; only remote sync is unavailable.`
+              : `Cannot connect to ${config.remote.url}: ${err instanceof Error ? err.message : err}`,
+            fix: localhostRemote
+              ? "remote.url points to localhost. Start the Unforgit API server on this machine/port, update remote.url, or disable sync if this repository is intentionally local-only."
+              : "Start the Unforgit API server or update remote.url in unforgit.yaml.",
           });
         }
       } else {
@@ -284,6 +289,15 @@ function summarize(results: DiagnosticResult[]): DoctorSummary {
 
 function buildPayload(results: DiagnosticResult[]): { summary: DoctorSummary; results: DiagnosticResult[] } {
   return { summary: summarize(results), results };
+}
+
+function isLocalhostUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function exitForResults(results: DiagnosticResult[]): void {
