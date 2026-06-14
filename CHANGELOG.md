@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.0...v0.7.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **api:** validate GitHub OAuth state ([2a656d2](https://github.com/MiguelMedeiros/unforgit/commit/2a656d299386e0e7a9ccfb3527e5be08db6cb313))
+
 ## [0.7.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.6.0...v0.7.0) (2026-06-14)
 
 
