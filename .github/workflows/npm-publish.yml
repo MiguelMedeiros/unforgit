@@ -65,16 +65,16 @@ jobs:
           tmp=$(mktemp -d)
           cd "$tmp"
           npm init -y >/dev/null
-          for attempt in 1 2 3 4 5; do
-            if npm install "unforgit@${version}"; then
+          for attempt in $(seq 1 12); do
+            if npm view "unforgit@${version}" version >/dev/null 2>&1 && npm install --prefer-online "unforgit@${version}"; then
               break
             fi
-            if [ "$attempt" -eq 5 ]; then
+            if [ "$attempt" -eq 12 ]; then
               echo "unforgit@${version} was not installable after ${attempt} attempts" >&2
               exit 1
             fi
-            echo "unforgit@${version} not visible from npm yet; retrying in 15s..."
-            sleep 15
+            echo "unforgit@${version} not visible/installable from npm yet; retrying in 20s..."
+            sleep 20
           done
           test -x node_modules/.bin/unforgit
           test -x node_modules/.bin/unforgit-mcp
