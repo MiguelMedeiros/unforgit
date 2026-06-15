@@ -29,58 +29,31 @@ interface CallbackQuery {
   state?: string;
 }
 
-const OAUTH_STATE_COOKIE = "unforgit_oauth_state";
-
-function serializeCookie(
-  name: string,
-  value: string,
-  options: { maxAge?: number; httpOnly?: boolean; sameSite?: "Lax" | "Strict" | "None"; secure?: boolean; path?: string } = {},
-): string {
-  const parts = [`${name}=${encodeURIComponent(value)}`];
-  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
-  if (options.path) parts.push(`Path=${options.path}`);
-  if (options.httpOnly) parts.push("HttpOnly");
-  if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
-  if (options.secure) parts.push("Secure");
-  return parts.join("; ");
-}
-
-export function parseCookieHeader(header: string | undefined): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  if (!header) return cookies;
-
-  for (const part of header.split(";")) {
-    const [rawName, ...rawValue] = part.trim().split("=");
-    if (!rawName || rawValue.length === 0) continue;
-
-    try {
-      cookies[rawName] = decodeURIComponent(rawValue.join("="));
-    } catch {
-      cookies[rawName] = rawValue.join("=");
-    }
+function getOAuthStateSecret(): Uint8Array {
+  const secret = process.env.GITHUB_CLIENT_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("GITHUB_CLIENT_SECRET or JWT_SECRET environment variable is required");
   }
-
-  return cookies;
+  return new TextEncoder().encode(secret);
 }
 
-function getOAuthStateCookie(state: string, secure: boolean): string {
-  return serializeCookie(OAUTH_STATE_COOKIE, state, {
-    httpOnly: true,
-    sameSite: "Lax",
-    secure,
-    path: "/v1/auth/github/callback",
-    maxAge: 600,
-  });
+async function createOAuthState(): Promise<string> {
+  return new SignJWT({ nonce: crypto.randomUUID() })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(getOAuthStateSecret());
 }
 
-function clearOAuthStateCookie(secure: boolean): string {
-  return serializeCookie(OAUTH_STATE_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "Lax",
-    secure,
-    path: "/v1/auth/github/callback",
-    maxAge: 0,
-  });
+async function verifyOAuthState(state: string | undefined): Promise<boolean> {
+  if (!state) return false;
+
+  try {
+    await jwtVerify(state, getOAuthStateSecret());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getJwtSecret(): Uint8Array {
@@ -217,50 +190,50 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store }
 ) => {
-  app.get("/v1/auth/github", async (request, reply) => {
-    const clientId = process.env.GITHUB_CLIENT_ID;
-    const callbackUrl = process.env.GITHUB_CALLBACK_URL;
+  app.get(
+    "/v1/auth/github",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (_request, reply) => {
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const clientSecret = process.env.GITHUB_CLIENT_SECRET || process.env.JWT_SECRET;
+      const callbackUrl = process.env.GITHUB_CALLBACK_URL;
 
-    if (!clientId) {
-      return reply.status(503).send({
-        error: "Service Unavailable",
-        message: "GitHub OAuth is not configured",
-      });
+      if (!clientId || !clientSecret) {
+        return reply.status(503).send({
+          error: "Service Unavailable",
+          message: "GitHub OAuth is not configured",
+        });
+      }
+
+      const state = await createOAuthState();
+      const scope = "read:user,user:email,repo";
+
+      const authUrl = new URL("https://github.com/login/oauth/authorize");
+      authUrl.searchParams.set("client_id", clientId);
+      authUrl.searchParams.set("scope", scope);
+      authUrl.searchParams.set("state", state);
+      if (callbackUrl) {
+        authUrl.searchParams.set("redirect_uri", callbackUrl);
+      }
+
+      return reply.redirect(authUrl.toString());
     }
-
-    const state = crypto.randomUUID();
-    const scope = "read:user,user:email,repo";
-    const secureCookie = request.protocol === "https";
-
-    const authUrl = new URL("https://github.com/login/oauth/authorize");
-    authUrl.searchParams.set("client_id", clientId);
-    authUrl.searchParams.set("scope", scope);
-    authUrl.searchParams.set("state", state);
-    if (callbackUrl) {
-      authUrl.searchParams.set("redirect_uri", callbackUrl);
-    }
-
-    reply.header("Set-Cookie", getOAuthStateCookie(state, secureCookie));
-    return reply.redirect(authUrl.toString());
-  });
+  );
 
   app.get<{ Querystring: CallbackQuery }>(
     "/v1/auth/github/callback",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
       const { code, state } = request.query;
-      const secureCookie = request.protocol === "https";
-      const expectedState = parseCookieHeader(request.headers.cookie)[OAUTH_STATE_COOKIE];
 
       if (!code) {
-        reply.header("Set-Cookie", clearOAuthStateCookie(secureCookie));
         return reply.status(400).send({
           error: "Bad Request",
           message: "Missing code parameter",
         });
       }
 
-      if (!state || !expectedState || state !== expectedState) {
-        reply.header("Set-Cookie", clearOAuthStateCookie(secureCookie));
+      if (!(await verifyOAuthState(state))) {
         return reply.status(400).send({
           error: "Bad Request",
           message: "Invalid OAuth state",
@@ -298,14 +271,12 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
 
         const adminUrl = process.env.ADMIN_DASHBOARD_URL || "http://localhost:3939";
-        reply.header("Set-Cookie", clearOAuthStateCookie(secureCookie));
         return reply.redirect(`${adminUrl}/auth/callback?token=${token}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         app.log.error(`GitHub OAuth error: ${message}`);
 
         const adminUrl = process.env.ADMIN_DASHBOARD_URL || "http://localhost:3939";
-        reply.header("Set-Cookie", clearOAuthStateCookie(secureCookie));
         return reply.redirect(`${adminUrl}/auth/callback?error=${encodeURIComponent(message)}`);
       }
     }
