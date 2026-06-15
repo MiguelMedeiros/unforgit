@@ -9,7 +9,7 @@ import { LocalStore } from "unforgit-db";
 import type { AppConfig } from "unforgit-shared";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
-const tsxPath = path.join(repoRoot, "node_modules", ".bin", "tsx");
+const tsxPath = path.join(repoRoot, "apps", "mcp", "node_modules", ".bin", "tsx");
 const mcpEntry = path.join(repoRoot, "apps", "mcp", "src", "index.ts");
 
 type TempRepo = {
