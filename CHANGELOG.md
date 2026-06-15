@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.1...v0.7.2) (2026-06-15)
+
+
+### Bug Fixes
+
+* **auth:** harden OAuth state validation ([0a2a526](https://github.com/MiguelMedeiros/unforgit/commit/0a2a526db03e71f8875e8c76f5e5be18632de857))
+
 ## [0.7.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.0...v0.7.1) (2026-06-14)
 
 
