@@ -764,6 +764,27 @@ $ unforgit recall "deploy" --remote-only`}
         </div>
       </Section>
 
+      {/* ── Agent Integration Behavior ───────────────── */}
+      <Section id="mcp-agent-behavior" title="Agent Integration Behavior">
+        <p className="text-dracula-foreground/70 mb-4">
+          The MCP server is covered by an end-to-end test that starts the stdio
+          server the same way an agent client does, then exercises the
+          local-first read/write path.
+        </p>
+        <div className="rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
+          <ul className="text-sm text-dracula-foreground/70 space-y-2">
+            <li><code className="text-dracula-foreground/80">unforgit_recall</code> reads existing local memories from SQLite.</li>
+            <li><code className="text-dracula-foreground/80">unforgit_add</code> writes new local memories and returns the stored memory id.</li>
+            <li>Follow-up recall can find memories written through MCP.</li>
+            <li>Uninitialized repositories return a tool error with the actionable <code className="text-dracula-foreground/80">unforgit init</code> instruction instead of crashing the client.</li>
+          </ul>
+        </div>
+        <p className="text-sm text-dracula-foreground/60 mt-4">
+          Local memory remains available without remote API reachability, and
+          initialization failures are surfaced as user-actionable tool errors.
+        </p>
+      </Section>
+
       {/* ── IDE Rules ─────────────────────────────── */}
       <Section id="mcp-ide-rules" title="IDE Rules">
         <p className="text-dracula-foreground/70 mb-4">

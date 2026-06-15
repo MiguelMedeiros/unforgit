@@ -121,6 +121,17 @@ Restart your IDE after adding the MCP config.
 
 The MCP server works with the local SQLite store only (no remote dependency). It automatically discovers the `.unforgit/unforgit.yaml` config by walking up the filesystem from the working directory, and loads environment variables from the repo's `.env` file. A broken or offline `remote.url` affects CLI/API sync commands such as `push` and `pull`, but it does not stop local MCP recall/add tools from working.
 
+## Agent integration behavior
+
+The MCP server is covered by an end-to-end test that starts the stdio server the same way an agent client does, then exercises the local-first read/write path:
+
+- `unforgit_recall` reads existing local memories from SQLite.
+- `unforgit_add` writes new local memories and returns the stored memory id.
+- The follow-up recall path can find memories written through MCP.
+- An uninitialized working directory returns a tool error with the actionable `unforgit init` instruction instead of crashing the client.
+
+This makes the expected Hermes/agent provider behavior explicit: local memory remains available without remote API reachability, and initialization failures should be surfaced as user-actionable tool errors.
+
 ## IDE Rules
 
 `unforgit init` creates IDE-specific instruction files that teach the AI agent to:
