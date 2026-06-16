@@ -35,9 +35,9 @@ export function createAuthMiddleware(store: RemoteStore) {
       return;
     }
 
-    const [scheme, token] = authHeader.split(" ");
+    const tokenMatch = /^Bearer\s+(\S+)$/i.exec(authHeader.trim());
 
-    if (scheme?.toLowerCase() !== "bearer" || !token) {
+    if (!tokenMatch) {
       reply.status(401).send({
         error: "Unauthorized",
         message: "Invalid Authorization header format. Expected: Bearer <token>",
@@ -45,7 +45,7 @@ export function createAuthMiddleware(store: RemoteStore) {
       return;
     }
 
-    const apiKeyData = await store.validateApiKey(token);
+    const apiKeyData = await store.validateApiKey(tokenMatch[1]);
 
     if (!apiKeyData) {
       reply.status(401).send({
