@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.2...v0.7.3) (2026-06-16)
+
+
+### Bug Fixes
+
+* override vulnerable babel core dependency ([b06e05a](https://github.com/MiguelMedeiros/unforgit/commit/b06e05af07f0921a5c3181bcf0e4fc85277ce83f))
+
 ## [0.7.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.1...v0.7.2) (2026-06-15)
 
 
