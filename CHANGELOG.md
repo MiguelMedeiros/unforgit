@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.3...v0.7.4) (2026-06-16)
+
+
+### Bug Fixes
+
+* **auth:** reject malformed bearer headers ([a21425d](https://github.com/MiguelMedeiros/unforgit/commit/a21425db9852890a078b167e0cfbab6a680e5cbd))
+
 ## [0.7.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.2...v0.7.3) (2026-06-16)
 
 
