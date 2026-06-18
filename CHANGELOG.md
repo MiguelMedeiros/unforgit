@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.4...v0.7.5) (2026-06-18)
+
+
+### Bug Fixes
+
+* **api:** tighten public auth route matching ([d8c36a3](https://github.com/MiguelMedeiros/unforgit/commit/d8c36a3b0525c56f712eeac8a4de9373f39ffea7))
+
 ## [0.7.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.3...v0.7.4) (2026-06-16)
 
 
