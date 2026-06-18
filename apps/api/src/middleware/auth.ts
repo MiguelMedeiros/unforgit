@@ -14,6 +14,10 @@ declare module "fastify" {
 const PUBLIC_ROUTES = ["/health"];
 const PUBLIC_PREFIXES = ["/v1/admin", "/v1/auth"];
 
+function matchesPublicPrefix(urlPath: string, prefix: string): boolean {
+  return urlPath === prefix || urlPath.startsWith(`${prefix}/`);
+}
+
 export function createAuthMiddleware(store: RemoteStore) {
   return async function authMiddleware(
     request: FastifyRequest,
@@ -21,7 +25,7 @@ export function createAuthMiddleware(store: RemoteStore) {
   ): Promise<void> {
     const urlPath = request.url.split("?")[0];
     
-    if (PUBLIC_ROUTES.includes(urlPath) || PUBLIC_PREFIXES.some(prefix => urlPath.startsWith(prefix))) {
+    if (PUBLIC_ROUTES.includes(urlPath) || PUBLIC_PREFIXES.some(prefix => matchesPublicPrefix(urlPath, prefix))) {
       return;
     }
 
