@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.6](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.5...v0.7.6) (2026-06-21)
+
+
+### Bug Fixes
+
+* **api:** reject malformed admin bearer headers ([#56](https://github.com/MiguelMedeiros/unforgit/issues/56)) ([42fed8e](https://github.com/MiguelMedeiros/unforgit/commit/42fed8effb552d40d184002f4cbf22bd0d8158d6))
+
 ## [0.7.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.4...v0.7.5) (2026-06-18)
 
 
