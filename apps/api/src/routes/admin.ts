@@ -135,7 +135,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/admin/api-keys",
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
-      const { name, orgId, label } = request.body;
+      const { name, orgId, label } = request.body ?? {};
 
       if (!name || !orgId) {
         return reply

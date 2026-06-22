@@ -7,7 +7,11 @@ import { adminRoutes } from "../routes/admin.js";
 function buildStore() {
   return {
     listApiKeysWithUsers: vi.fn(),
-  } as unknown as RemoteStore & { listApiKeysWithUsers: ReturnType<typeof vi.fn> };
+    createApiKey: vi.fn(),
+  } as unknown as RemoteStore & {
+    listApiKeysWithUsers: ReturnType<typeof vi.fn>;
+    createApiKey: ReturnType<typeof vi.fn>;
+  };
 }
 
 async function buildAdminApp(store: RemoteStore) {
@@ -48,6 +52,29 @@ describe("admin auth", () => {
       message: "Invalid Authorization header format",
     });
     expect(store.listApiKeysWithUsers).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("returns a bad request instead of crashing when creating an API key without a body", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/api-keys",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "name and orgId are required",
+    });
+    expect(store.createApiKey).not.toHaveBeenCalled();
 
     await app.close();
   });
