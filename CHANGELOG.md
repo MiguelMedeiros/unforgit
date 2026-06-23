@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.7](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.6...v0.7.7) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** handle missing admin API key body ([f05cb20](https://github.com/MiguelMedeiros/unforgit/commit/f05cb20e0a4f1dd29e8eb472919763e787a60ba1))
+
 ## [0.7.6](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.5...v0.7.6) (2026-06-21)
 
 
