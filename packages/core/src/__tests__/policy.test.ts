@@ -21,6 +21,8 @@ describe("resolveVisibility", () => {
       "The secret token",
       "Store the credential safely",
       "private_key file location",
+      "Author" + "ization:",
+      "bearer redacted-value",
       "-----BEGIN RSA PRIVATE KEY-----",
     ];
 

@@ -7,6 +7,8 @@ const SENSITIVE_PATTERNS = [
   /token/i,
   /credential/i,
   /private[_-]?key/i,
+  /authorization\s*[:=]/i,
+  /bearer\s+[A-Za-z0-9._~+/=-]+/i,
   /-----BEGIN/,
 ];
 
