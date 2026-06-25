@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.8](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.7...v0.7.8) (2026-06-24)
+
+
+### Bug Fixes
+
+* **core:** keep bearer credentials private ([2881deb](https://github.com/MiguelMedeiros/unforgit/commit/2881deb2519a3613d624a1021b33c3a6ba37b4cb))
+
 ## [0.7.7](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.6...v0.7.7) (2026-06-22)
 
 
