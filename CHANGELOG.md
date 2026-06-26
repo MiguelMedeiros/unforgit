@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.9](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.8...v0.7.9) (2026-06-26)
+
+
+### Bug Fixes
+
+* encode remote client path identifiers ([e86ad1a](https://github.com/MiguelMedeiros/unforgit/commit/e86ad1aa2dbd2e20b8a6fb924eb9c95947a82b42))
+
 ## [0.7.8](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.7...v0.7.8) (2026-06-24)
 
 
