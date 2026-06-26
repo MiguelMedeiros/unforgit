@@ -13,6 +13,10 @@ function isTransientError(status: number): boolean {
   return status >= 500 || status === 429;
 }
 
+function pathSegment(value: string): string {
+  return encodeURIComponent(value);
+}
+
 export class RemoteClient {
   private apiKey?: string;
   private timeoutMs: number;
@@ -132,7 +136,7 @@ export class RemoteClient {
 
   async deprecate(id: string, reason?: string): Promise<{ ok: boolean }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${id}/deprecate`,
+      `${this.baseUrl}/v1/memory/${pathSegment(id)}/deprecate`,
       { method: "POST", headers: this.getHeaders(), body: JSON.stringify({ reason }) },
       "deprecate",
     );
@@ -144,7 +148,7 @@ export class RemoteClient {
 
   async supersede(oldId: string, newId: string): Promise<{ ok: boolean }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${oldId}/supersede`,
+      `${this.baseUrl}/v1/memory/${pathSegment(oldId)}/supersede`,
       { method: "POST", headers: this.getHeaders(), body: JSON.stringify({ newId }) },
       "supersede",
     );
@@ -161,7 +165,7 @@ export class RemoteClient {
     metadata?: Record<string, unknown>,
   ): Promise<{ link: MemoryLink }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${sourceId}/link`,
+      `${this.baseUrl}/v1/memory/${pathSegment(sourceId)}/link`,
       {
         method: "POST",
         headers: this.getHeaders(),
@@ -181,7 +185,7 @@ export class RemoteClient {
     linkType: string,
   ): Promise<{ ok: boolean }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${sourceId}/link`,
+      `${this.baseUrl}/v1/memory/${pathSegment(sourceId)}/link`,
       {
         method: "DELETE",
         headers: this.getHeaders(),
@@ -202,7 +206,7 @@ export class RemoteClient {
     const params = new URLSearchParams();
     if (linkType) params.set("linkType", linkType);
     const qs = params.toString();
-    const url = `${this.baseUrl}/v1/memory/${memoryId}/links${qs ? `?${qs}` : ""}`;
+    const url = `${this.baseUrl}/v1/memory/${pathSegment(memoryId)}/links${qs ? `?${qs}` : ""}`;
 
     const res = await this.fetchWithRetry(url, { headers: this.getHeaders() }, "getLinks");
     if (!res.ok) {
@@ -237,7 +241,7 @@ export class RemoteClient {
     hardDelete?: boolean,
   ): Promise<{ success: boolean; action: string }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${id}`,
+      `${this.baseUrl}/v1/memory/${pathSegment(id)}`,
       {
         method: "DELETE",
         headers: this.getHeaders(),
@@ -253,7 +257,7 @@ export class RemoteClient {
 
   async restore(id: string): Promise<{ success: boolean }> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/memory/${id}/restore`,
+      `${this.baseUrl}/v1/memory/${pathSegment(id)}/restore`,
       { method: "POST", headers: this.getHeaders() },
       "restore",
     );
@@ -429,7 +433,7 @@ export class RemoteClient {
 
   async revokeApiKey(id: string): Promise<void> {
     const res = await this.fetchWithRetry(
-      `${this.baseUrl}/v1/api-keys/${id}`,
+      `${this.baseUrl}/v1/api-keys/${pathSegment(id)}`,
       { method: "DELETE", headers: this.getHeaders() },
       "revokeApiKey",
     );

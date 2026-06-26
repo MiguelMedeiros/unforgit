@@ -217,6 +217,20 @@ describe("RemoteClient", () => {
     });
   });
 
+  describe("URL path identifiers", () => {
+    it("encodes dynamic path segments before sending requests", async () => {
+      const client = new RemoteClient("http://localhost");
+      mockFetch([{ status: 200, body: { ok: true } }]);
+
+      await client.deprecate("team/memory id", "outdated");
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "http://localhost/v1/memory/team%2Fmemory%20id/deprecate",
+        expect.any(Object),
+      );
+    });
+  });
+
   describe("link / unlink / getLinks", () => {
     it("creates a link", async () => {
       const client = new RemoteClient("http://localhost");
