@@ -12,6 +12,12 @@ export interface ActivityHeatmapProps {
   dailyCounts: Array<{ date: string; count: number }>;
 }
 
+export function formatActivitySummary(totalMemories: number, totalDays: number): string {
+  const recordLabel = totalMemories === 1 ? "memory record" : "memory records";
+  const dayLabel = totalDays === 1 ? "active day" : "active days";
+  return `${totalMemories} ${recordLabel} across all statuses in ${totalDays} ${dayLabel}`;
+}
+
 export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
   const { weeks, maxCount, totalMemories, totalDays } = useMemo(() => {
     const countMap = new Map(dailyCounts.map((d) => [d.date, d.count]));
@@ -110,7 +116,7 @@ export function ActivityHeatmap({ dailyCounts }: ActivityHeatmapProps) {
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold">Activity</h3>
         <p className="text-[12px] text-muted-foreground">
-          {totalMemories} memories in {totalDays} days
+          {formatActivitySummary(totalMemories, totalDays)}
         </p>
       </div>
 
