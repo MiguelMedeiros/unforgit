@@ -218,6 +218,43 @@ export class RemoteStore {
     const sanitizedQuery = query.query.replace(/[^\w\s]/g, " ").trim();
 
     if (sanitizedQuery) {
+      const params: unknown[] = [sanitizedQuery, query.orgId, query.repoId];
+      const conditions = [
+        "to_tsvector('english', m.text || ' ' || coalesce(m.summary, '')) @@ plainto_tsquery('english', $1)",
+        "m.org_id = $2",
+        "m.repo_id = $3",
+      ];
+      const nextParam = (value: unknown): string => {
+        params.push(value);
+        return `$${params.length}`;
+      };
+
+      if (!query.includeDeprecated) {
+        conditions.push(`m.status = ${nextParam("active")}`);
+      }
+      if (!query.includeExpired) {
+        conditions.push(
+          "(m.status != 'active' OR m.ttl_seconds IS NULL OR m.created_at + (m.ttl_seconds * INTERVAL '1 second') >= NOW())",
+        );
+      }
+      if (query.types && query.types.length > 0) {
+        conditions.push(
+          `m.memory_type IN (${query.types.map((type) => nextParam(type)).join(", ")})`,
+        );
+      }
+      if (query.tags && query.tags.length > 0) {
+        conditions.push(
+          `m.tags && ARRAY[${query.tags.map((tag) => nextParam(tag)).join(", ")}]::text[]`,
+        );
+      }
+      if (query.timeRange?.from) {
+        conditions.push(`m.created_at >= ${nextParam(query.timeRange.from)}`);
+      }
+      if (query.timeRange?.to) {
+        conditions.push(`m.created_at <= ${nextParam(query.timeRange.to)}`);
+      }
+      const limitParam = nextParam(k * 2);
+
       const ftsResults = await this.prisma.$queryRawUnsafe<
         Array<Record<string, unknown>>
       >(
@@ -225,23 +262,10 @@ export class RemoteStore {
                 ts_rank(to_tsvector('english', m.text || ' ' || coalesce(m.summary, '')),
                         plainto_tsquery('english', $1)) AS fts_rank
          FROM memories m
-         WHERE to_tsvector('english', m.text || ' ' || coalesce(m.summary, ''))
-               @@ plainto_tsquery('english', $1)
-           AND m.org_id = $2
-           AND m.repo_id = $3
-           AND m.status = $4
-           AND (
-             m.status != 'active'
-             OR m.ttl_seconds IS NULL
-             OR m.created_at + (m.ttl_seconds * INTERVAL '1 second') >= NOW()
-           )
+         WHERE ${conditions.join("\n           AND ")}
          ORDER BY fts_rank DESC
-         LIMIT $5`,
-        sanitizedQuery,
-        query.orgId,
-        query.repoId,
-        query.includeDeprecated ? "active" : "active",
-        k * 2,
+         LIMIT ${limitParam}`,
+        ...params,
       );
 
       return ftsResults.map((row) => {
