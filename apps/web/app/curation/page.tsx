@@ -14,25 +14,20 @@ import {
   Trash2,
   ArrowUp,
   Zap,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  buildReviewPayload,
+  removeReviewedSuggestion,
+  type DashboardSuggestion,
+} from "@/lib/curation-review";
 
-interface Suggestion {
-  id: string;
-  type: string;
-  priority: "high" | "medium" | "low";
-  memoryIds: string[];
-  reason: string;
-  confidence: number;
-  action?: {
-    command: string;
-    description: string;
-  };
-}
+type Suggestion = DashboardSuggestion;
 
 interface HealthResponse {
   overallScore: number;
@@ -78,6 +73,8 @@ export default function CurationPage() {
   const [embeddingStats, setEmbeddingStats] = useState<EmbeddingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -106,6 +103,55 @@ export default function CurationPage() {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchData();
+  };
+
+  const handleGenerateSuggestions = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/suggestions?generate=true");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate suggestions");
+      }
+      setSuggestions(data.suggestions || []);
+      toast.success(
+        `Generated ${data.stats?.suggestionsGenerated ?? 0}; created ${data.stats?.created ?? 0} review items`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate suggestions");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleReviewSuggestion = async (
+    suggestion: Suggestion,
+    status: "approved" | "rejected",
+  ) => {
+    setReviewingId(suggestion.id);
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          buildReviewPayload(
+            suggestion.id,
+            status,
+            status === "approved" ? "Approved from dashboard" : "Rejected from dashboard",
+          ),
+        ),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to mark suggestion ${status}`);
+      }
+      setSuggestions((current) => removeReviewedSuggestion(current, suggestion.id));
+      toast.success(`Suggestion ${status}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to mark suggestion ${status}`);
+    } finally {
+      setReviewingId(null);
+    }
   };
 
   const handleRunBackfill = async () => {
@@ -152,15 +198,26 @@ export default function CurationPage() {
             AI-powered suggestions to improve memory quality
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleGenerateSuggestions}
+            disabled={generating}
+          >
+            <Sparkles className={`h-4 w-4 mr-2 ${generating ? "animate-pulse" : ""}`} />
+            Generate review inbox
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -346,6 +403,26 @@ export default function CurationPage() {
                         )}
                       </div>
                     )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={reviewingId === suggestion.id}
+                        onClick={() => handleReviewSuggestion(suggestion, "approved")}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={reviewingId === suggestion.id}
+                        onClick={() => handleReviewSuggestion(suggestion, "rejected")}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
