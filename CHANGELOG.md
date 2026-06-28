@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.8...v0.8.0) (2026-06-28)
+
+
+### Features
+
+* **web:** add reviewable curation dashboard actions ([4a30891](https://github.com/MiguelMedeiros/unforgit/commit/4a308912bfdb640280aa2b2edb76a4ecb7c81481))
+
+
+### Bug Fixes
+
+* encode remote client path identifiers ([e86ad1a](https://github.com/MiguelMedeiros/unforgit/commit/e86ad1aa2dbd2e20b8a6fb924eb9c95947a82b42))
+
 ## [0.7.8](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.7...v0.7.8) (2026-06-24)
 
 
