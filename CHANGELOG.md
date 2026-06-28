@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.0...v0.8.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* **website:** refresh audited dependency lockfile ([c49c55f](https://github.com/MiguelMedeiros/unforgit/commit/c49c55f5aa5cb66aa66628e360e44f22f18c21cc))
+
 ## [0.8.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.7.8...v0.8.0) (2026-06-28)
 
 
