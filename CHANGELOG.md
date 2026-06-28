@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.2...v0.8.3) (2026-06-28)
+
+
+### Bug Fixes
+
+* **db:** apply filters in remote FTS recall ([3aecb69](https://github.com/MiguelMedeiros/unforgit/commit/3aecb690b6aa58682f4f6c649a2e6f0b317ddc89))
+* **web:** clarify activity heatmap scope ([b891a11](https://github.com/MiguelMedeiros/unforgit/commit/b891a11649ff549b3a35a433ddc2eb69e1327c30))
+
 ## [0.8.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.1...v0.8.2) (2026-06-28)
 
 
