@@ -122,6 +122,8 @@ unforgit suggestions review <suggestion-id> --applied --reviewer hermes
 
 Duplicate pending suggestions for the same type and memory IDs are skipped, keeping the inbox from filling with repeated agent proposals.
 
+The local dashboard exposes the same review inbox from the **Memory Curation** page: generate pending review items, inspect confidence/reason/source memory IDs, then approve or reject each proposal before any broad memory operation is applied.
+
 ## Embeddings
 
 Embeddings are local-first. `unforgit embeddings backfill` works without `OPENAI_API_KEY` by using the configured `auto`/`local` provider. OpenAI is optional: use `--provider openai --model text-embedding-3-small` when you explicitly want cloud embeddings. Backfill also checks provider/model/dimensions and regenerates stale vectors when you switch embedding providers.

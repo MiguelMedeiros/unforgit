@@ -410,7 +410,9 @@ $ unforgit suggestions review <suggestion-id> --applied --reviewer hermes`}
               Suggestions are stored as a review inbox before any durable memory
               operation is applied. Duplicate pending suggestions for the same
               operation are skipped, so agents can propose curation without
-              spamming repeated review items.
+              spamming repeated review items. The local dashboard's Memory
+              Curation page can generate the same inbox and approve or reject
+              proposals before any broad merge is applied.
             </p>
             <Terminal
               title="Server and local consolidation flows"
