@@ -78,7 +78,8 @@ export function validateMemoryType(value: string): value is (typeof VALID_MEMORY
 }
 
 export function parseConfidence(value: string): number {
-  const n = parseFloat(value);
+  const normalized = value.trim();
+  const n = normalized === "" ? Number.NaN : Number(normalized);
   if (Number.isNaN(n) || n < 0 || n > 1) {
     throw new Error("--confidence must be a number between 0 and 1");
   }
@@ -86,7 +87,8 @@ export function parseConfidence(value: string): number {
 }
 
 export function parseThreshold(value: string): number {
-  const n = parseFloat(value);
+  const normalized = value.trim();
+  const n = normalized === "" ? Number.NaN : Number(normalized);
   if (Number.isNaN(n) || n < 0 || n > 1) {
     throw new Error("--threshold must be a number between 0 and 1");
   }
@@ -94,16 +96,18 @@ export function parseThreshold(value: string): number {
 }
 
 export function parseTtl(value: string): number {
-  const n = parseInt(value, 10);
-  if (Number.isNaN(n) || n <= 0) {
+  const normalized = value.trim();
+  const n = Number(normalized);
+  if (!/^\d+$/.test(normalized) || n <= 0) {
     throw new Error("--ttl must be a positive integer (seconds)");
   }
   return n;
 }
 
 export function parsePositiveInt(value: string, name: string): number {
-  const n = parseInt(value, 10);
-  if (Number.isNaN(n) || n <= 0) {
+  const normalized = value.trim();
+  const n = Number(normalized);
+  if (!/^\d+$/.test(normalized) || n <= 0) {
     throw new Error(`--${name} must be a positive integer`);
   }
   return n;

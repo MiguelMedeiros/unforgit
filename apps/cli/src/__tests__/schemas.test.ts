@@ -3,6 +3,7 @@ import {
   appConfigSchema,
   validateMemoryType,
   parseConfidence,
+  parseThreshold,
   parseTtl,
   parsePositiveInt,
 } from "unforgit-config";
@@ -106,11 +107,32 @@ describe("parseConfidence", () => {
 
   it("rejects NaN", () => {
     expect(() => parseConfidence("abc")).toThrow();
+    expect(() => parseConfidence("0.5abc")).toThrow();
+    expect(() => parseConfidence("")).toThrow();
   });
 
   it("rejects out of range", () => {
     expect(() => parseConfidence("1.5")).toThrow();
     expect(() => parseConfidence("-0.1")).toThrow();
+  });
+});
+
+describe("parseThreshold", () => {
+  it("accepts valid threshold values", () => {
+    expect(parseThreshold("0")).toBe(0);
+    expect(parseThreshold("0.5")).toBe(0.5);
+    expect(parseThreshold("1")).toBe(1);
+  });
+
+  it("rejects malformed values", () => {
+    expect(() => parseThreshold("abc")).toThrow();
+    expect(() => parseThreshold("0.5abc")).toThrow();
+    expect(() => parseThreshold("")).toThrow();
+  });
+
+  it("rejects out of range", () => {
+    expect(() => parseThreshold("1.5")).toThrow();
+    expect(() => parseThreshold("-0.1")).toThrow();
   });
 });
 
@@ -127,6 +149,8 @@ describe("parseTtl", () => {
 
   it("rejects NaN", () => {
     expect(() => parseTtl("abc")).toThrow();
+    expect(() => parseTtl("60s")).toThrow();
+    expect(() => parseTtl("1.5")).toThrow();
   });
 });
 
@@ -141,5 +165,7 @@ describe("parsePositiveInt", () => {
 
   it("rejects NaN", () => {
     expect(() => parsePositiveInt("foo", "limit")).toThrow();
+    expect(() => parsePositiveInt("10px", "limit")).toThrow();
+    expect(() => parsePositiveInt("1.5", "limit")).toThrow();
   });
 });
