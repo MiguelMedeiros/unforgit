@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.3...v0.8.4) (2026-06-30)
+
+
+### Bug Fixes
+
+* **config:** reject malformed numeric options ([d962811](https://github.com/MiguelMedeiros/unforgit/commit/d9628111e7e5f6ae23007660fce3a55dafba2331))
+
 ## [0.8.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.2...v0.8.3) (2026-06-28)
 
 
