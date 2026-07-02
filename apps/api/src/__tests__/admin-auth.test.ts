@@ -8,9 +8,15 @@ function buildStore() {
   return {
     listApiKeysWithUsers: vi.fn(),
     createApiKey: vi.fn(),
+    getUserById: vi.fn(),
+    upsertRepoAccess: vi.fn(),
+    createApiKeyForUser: vi.fn(),
   } as unknown as RemoteStore & {
     listApiKeysWithUsers: ReturnType<typeof vi.fn>;
     createApiKey: ReturnType<typeof vi.fn>;
+    getUserById: ReturnType<typeof vi.fn>;
+    upsertRepoAccess: ReturnType<typeof vi.fn>;
+    createApiKeyForUser: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -75,6 +81,54 @@ describe("admin auth", () => {
       message: "name and orgId are required",
     });
     expect(store.createApiKey).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("returns a bad request instead of crashing when granting repo access without a body", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/users/user-id/repos",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "orgId, repoId, and permission are required",
+    });
+    expect(store.getUserById).not.toHaveBeenCalled();
+    expect(store.upsertRepoAccess).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("returns a bad request instead of crashing when creating a user API key without a body", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/users/user-id/api-keys",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "name and orgId are required",
+    });
+    expect(store.getUserById).not.toHaveBeenCalled();
+    expect(store.createApiKeyForUser).not.toHaveBeenCalled();
 
     await app.close();
   });

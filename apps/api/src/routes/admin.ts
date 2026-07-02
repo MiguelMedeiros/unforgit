@@ -300,7 +300,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const { id } = request.params;
-      const { orgId, repoId, permission } = request.body;
+      const { orgId, repoId, permission } = request.body ?? {};
 
       if (!orgId || !repoId || !permission) {
         return reply
@@ -355,7 +355,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const { id } = request.params;
-      const { name, orgId, repoId, label } = request.body;
+      const { name, orgId, repoId, label } = request.body ?? {};
 
       if (!name || !orgId) {
         return reply
