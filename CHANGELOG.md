@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.4...v0.8.5) (2026-07-02)
+
+
+### Bug Fixes
+
+* handle empty admin user request bodies ([833ca77](https://github.com/MiguelMedeiros/unforgit/commit/833ca77c06d02769afcf15e4c0cd2826d73f7510))
+
 ## [0.8.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.3...v0.8.4) (2026-06-30)
 
 
