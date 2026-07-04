@@ -11,12 +11,14 @@ function buildStore() {
     getUserById: vi.fn(),
     upsertRepoAccess: vi.fn(),
     createApiKeyForUser: vi.fn(),
+    getById: vi.fn(),
   } as unknown as RemoteStore & {
     listApiKeysWithUsers: ReturnType<typeof vi.fn>;
     createApiKey: ReturnType<typeof vi.fn>;
     getUserById: ReturnType<typeof vi.fn>;
     upsertRepoAccess: ReturnType<typeof vi.fn>;
     createApiKeyForUser: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -36,6 +38,7 @@ async function signAdminToken(): Promise<string> {
 describe("admin auth", () => {
   afterEach(() => {
     delete process.env.JWT_SECRET;
+    delete process.env.OPENAI_API_KEY;
     vi.restoreAllMocks();
   });
 
@@ -131,5 +134,30 @@ describe("admin auth", () => {
     expect(store.createApiKeyForUser).not.toHaveBeenCalled();
 
     await app.close();
+  });
+
+  it("returns a bad request instead of crashing when manually consolidating without a body", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    process.env.OPENAI_API_KEY = "sk-test";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/repos/org-id/repo-id/consolidation/execute",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      error: "sourceIds must be an array with at least 2 IDs",
+    });
+    expect(store.getById).not.toHaveBeenCalled();
+
+    await app.close();
+    delete process.env.OPENAI_API_KEY;
   });
 });

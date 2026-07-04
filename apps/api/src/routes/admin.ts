@@ -530,7 +530,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
-      const body = request.body as Record<string, unknown>;
+      const body = (request.body ?? {}) as Record<string, unknown>;
 
       const threshold = typeof body.threshold === "number" ? body.threshold : 0.6;
       const maxGroups = typeof body.maxGroups === "number" ? body.maxGroups : 10;
@@ -588,7 +588,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       }
 
       const { orgId, repoId } = request.params;
-      const body = request.body as Record<string, unknown>;
+      const body = (request.body ?? {}) as Record<string, unknown>;
       const sourceIds = body.sourceIds as string[] | undefined;
       const model = body.model as string | undefined;
 
