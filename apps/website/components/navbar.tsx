@@ -20,6 +20,7 @@ const navLinks = [
   { href: "#get-started", label: "get started", icon: Rocket },
   { href: "#team-memory", label: "team memory", icon: Users },
   { href: "#semantic-search", label: "semantic search", icon: Search },
+  { href: "#markdown-bridge", label: "md bridge", icon: FileText },
   { href: "#dashboard", label: "dashboard", icon: LayoutDashboard },
   { href: "#mcp-integrations", label: "mcp server", icon: Server },
   { href: "/docs", label: "docs", external: true, icon: FileText },

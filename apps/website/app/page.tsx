@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { SemanticSearch } from "@/components/semantic-search";
+import { MarkdownBridge } from "@/components/markdown-bridge";
 import { TeamMemory } from "@/components/team-memory";
 import { ELI5 } from "@/components/eli5";
 import { McpIntegrations } from "@/components/mcp-integrations";
@@ -31,6 +32,8 @@ export default function Home() {
       <TeamMemory />
       <Divider />
       <SemanticSearch />
+      <Divider />
+      <MarkdownBridge />
       <Divider />
       <DashboardShowcase />
       <Divider />
