@@ -56,14 +56,14 @@ export function DashboardShowcase() {
   }, [isPaused, goToNext]);
 
   return (
-    <section id="dashboard" className="py-40 px-6 bg-linear-to-b from-transparent via-white/2 to-transparent">
+    <section id="dashboard" className="py-28 md:py-40 px-5 md:px-6 bg-linear-to-b from-transparent via-white/2 to-transparent">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-10 md:mb-12"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-dracula-foreground/10 border border-dracula-comment/30 mb-6">
             <LayoutDashboard className="w-4 h-4 text-dracula-foreground/70" />
@@ -95,20 +95,20 @@ export function DashboardShowcase() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-xl bg-dracula-background/80 border border-dracula-current mb-8">
+          <div className="grid w-full grid-cols-3 gap-1.5 rounded-2xl border border-dracula-current/30 bg-dracula-current/10 p-1.5 mb-7 md:mb-8 md:flex md:w-auto md:items-center md:justify-center md:gap-2 md:rounded-xl md:bg-dracula-background/80 md:border-dracula-current">
             {tabs.map((tab, index) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveIndex(index)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  "flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs font-semibold transition-all duration-200 md:gap-2 md:rounded-lg md:px-4 md:py-2.5 md:text-sm md:font-medium",
                   activeIndex === index
                     ? "bg-dracula-foreground text-dracula-background"
                     : "text-muted-foreground hover:text-foreground hover:bg-dracula-current/50"
                 )}
               >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <tab.icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </button>
             ))}
           </div>

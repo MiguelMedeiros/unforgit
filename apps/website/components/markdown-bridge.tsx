@@ -33,8 +33,19 @@ const bridgePoints = [
 ];
 
 export function MarkdownBridge() {
+  const mobileCommands = [
+    {
+      label: "Import",
+      parts: ["unforgit md import", "CLAUDE.md", "--dry-run"],
+    },
+    {
+      label: "Export",
+      parts: ["unforgit md export", "--format claude", "--out CLAUDE.md"],
+    },
+  ];
+
   return (
-    <section id="markdown-bridge" className="py-40 px-6 relative overflow-hidden">
+    <section id="markdown-bridge" className="py-28 md:py-40 px-5 md:px-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-linear-to-b from-transparent via-dracula-current/10 to-transparent" />
       <div className="max-w-4xl mx-auto relative">
         <motion.div
@@ -105,10 +116,39 @@ export function MarkdownBridge() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="grid lg:grid-cols-2 gap-4"
+          className="hidden md:grid lg:grid-cols-2 gap-4"
         >
           <CodeBlock code="unforgit md import CLAUDE.md --dry-run" />
           <CodeBlock code="unforgit md export --format claude --out CLAUDE.md" />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="grid gap-3 md:hidden"
+        >
+          {mobileCommands.map((command) => (
+            <div
+              key={command.label}
+              className="rounded-2xl border border-dracula-current/40 bg-dracula-current/15 p-4"
+            >
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-dracula-foreground/55">
+                {command.label}
+              </div>
+              <code className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-[13px] leading-relaxed text-dracula-foreground">
+                {command.parts.map((part) => (
+                  <span
+                    key={part}
+                    className="rounded-md bg-dracula-background/70 px-2 py-1"
+                  >
+                    {part}
+                  </span>
+                ))}
+              </code>
+            </div>
+          ))}
         </motion.div>
       </div>
     </section>
