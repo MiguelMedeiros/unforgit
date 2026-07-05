@@ -34,6 +34,10 @@ unforgit add "We use UTC timestamps everywhere" --type semantic --tags "conventi
 # Recall by meaning
 unforgit recall "how to deploy" --types procedural,semantic --k 5
 
+# Bridge markdown memory files used by coding agents
+unforgit md import CLAUDE.md --dry-run
+unforgit md export --format claude --out CLAUDE.md
+
 # Open the local memory dashboard
 unforgit dashboard
 ```

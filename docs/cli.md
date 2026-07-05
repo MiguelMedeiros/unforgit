@@ -71,6 +71,28 @@ unforgit add --template bug "Fixed race condition in queue worker by adding mute
 unforgit add --list-templates
 ```
 
+## Markdown Memory Bridge
+
+Use `md` commands to bridge Unforgit with markdown memory files used by coding agents, such as `CLAUDE.md` and `MEMORY.md`. Imports are conservative: dry-run is the default, likely secrets and prompt-injection-like instructions are skipped, and imported memories record markdown source provenance.
+
+```bash
+# Preview what would be imported from an agent memory file
+unforgit md import CLAUDE.md --dry-run
+unforgit md import CLAUDE.md --dry-run --json
+
+# Store safe, non-duplicate entries with markdown provenance
+unforgit md import MEMORY.md --apply
+
+# Export curated active memory for Claude Code or another markdown-based agent
+unforgit md export --format claude --out CLAUDE.md
+unforgit md export --out MEMORY.md --tags convention,gotcha,playbook
+
+# Safety/parse diagnostics without writing
+unforgit md doctor CLAUDE.md --json
+```
+
+The parser understands bullets under markdown headings, optional metadata comments such as `<!-- unforgit:id=abc type=semantic tags=convention,project -->`, fenced-code blocks, and heading-derived tags like `convention`, `gotcha`, and `playbook`. Exported markdown preserves stable Unforgit IDs in HTML comments so future sync/review flows can detect edits without treating every line as new memory.
+
 ## Doctor (Diagnostics)
 
 Use `doctor` before troubleshooting sync, embeddings, local database, or remote API issues. It validates initialization, config shape and permissions, deprecated secret-bearing config keys, SQLite access, memory counts, embedding coverage, tombstone/sync state, remote reachability, and required environment variables without printing secret values. Local memory, MCP tools, and the remote API are separate: if a localhost `remote.url` is offline, `doctor` reports remote sync as unavailable while making clear that local memory and local embeddings still work.
