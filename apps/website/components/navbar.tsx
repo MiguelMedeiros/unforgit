@@ -11,6 +11,8 @@ import {
   LayoutDashboard,
   Server,
   FileText,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UnforgitBrand } from "./unforgit-brand";
@@ -26,9 +28,24 @@ const navLinks = [
   { href: "/docs", label: "docs", external: true, icon: FileText },
 ];
 
+const mobilePrimaryLinks = [
+  { href: "#get-started", label: "start", icon: Rocket },
+  { href: "#semantic-search", label: "search", icon: Search },
+  { href: "#markdown-bridge", label: "bridge", icon: FileText },
+  { href: "/docs", label: "docs", external: true, icon: FileText },
+];
+
+const mobileMoreLinks = [
+  { href: "#why", label: "Why Unforgit?", icon: HelpCircle },
+  { href: "#team-memory", label: "Team memory", icon: Users },
+  { href: "#dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "#mcp-integrations", label: "MCP server", icon: Server },
+];
+
 export function Navbar() {
   const [activeSection, setActiveSection] = useState<string>("");
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const updateActiveSection = useCallback(() => {
     const sectionIds = navLinks
@@ -87,11 +104,13 @@ export function Navbar() {
         top: offsetPosition,
         behavior: "smooth",
       });
+      setMobileMenuOpen(false);
     }
   };
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
+    setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -186,10 +205,65 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Bottom navigation bar — mobile only */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-dracula-background/95 backdrop-blur-xl border-t border-dracula-current/30">
-        <div className="flex items-center justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {navLinks.map((link) => {
+      {mobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.18 }}
+            className="absolute left-3 right-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] rounded-2xl border border-dracula-current/40 bg-dracula-background/95 shadow-2xl shadow-black/40 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-dracula-current/30">
+              <span className="text-sm font-semibold text-dracula-foreground/80">
+                More sections
+              </span>
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-lg text-dracula-foreground/60 active:text-dracula-foreground active:bg-dracula-current/40 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 p-3">
+              {mobileMoreLinks.map((link) => {
+                const Icon = link.icon;
+                const sectionId = link.href.replace("#", "");
+                const isActive = activeSection === sectionId;
+
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={(e) => handleSmoothScroll(e, link.href)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border px-3 py-3 text-sm transition-colors",
+                      isActive
+                        ? "border-dracula-foreground/40 bg-dracula-foreground/10 text-dracula-foreground"
+                        : "border-dracula-current/30 bg-dracula-current/20 text-dracula-foreground/70 active:text-dracula-foreground active:bg-dracula-current/40"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="font-medium">{link.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Bottom navigation bar — mobile only. Keep it sparse; overflow lives in More. */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-dracula-background/95 backdrop-blur-xl border-t border-dracula-current/30 shadow-2xl shadow-black/40">
+        <div className="grid grid-cols-5 items-center gap-1 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          {mobilePrimaryLinks.map((link) => {
             const sectionId = link.href.replace("#", "");
             const isActive = !link.external && activeSection === sectionId;
             const Icon = link.icon;
@@ -199,10 +273,10 @@ export function Navbar() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg text-dracula-foreground/40 active:text-dracula-foreground transition-colors min-w-14"
+                  className="flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl text-dracula-foreground/55 active:text-dracula-foreground transition-colors"
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{link.label}</span>
+                  <span className="text-[11px] font-medium leading-none">{link.label}</span>
                 </a>
               );
             }
@@ -213,14 +287,14 @@ export function Navbar() {
                 href={link.href}
                 onClick={(e) => handleSmoothScroll(e, link.href)}
                 className={cn(
-                  "relative flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-colors min-w-14",
+                  "relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl transition-colors",
                   isActive
-                    ? "text-dracula-foreground"
-                    : "text-dracula-foreground/40 active:text-dracula-foreground"
+                    ? "bg-dracula-foreground/10 text-dracula-foreground"
+                    : "text-dracula-foreground/55 active:text-dracula-foreground active:bg-dracula-current/40"
                 )}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{link.label}</span>
+                <span className="text-[11px] font-medium leading-none">{link.label}</span>
                 {isActive && (
                   <motion.div
                     layoutId="activeMobileNav"
@@ -235,6 +309,21 @@ export function Navbar() {
               </a>
             );
           })}
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className={cn(
+              "relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl transition-colors",
+              mobileMenuOpen
+                ? "bg-dracula-foreground/10 text-dracula-foreground"
+                : "text-dracula-foreground/55 active:text-dracula-foreground active:bg-dracula-current/40"
+            )}
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[11px] font-medium leading-none">more</span>
+          </button>
         </div>
       </div>
     </>
