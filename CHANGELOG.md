@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.5...v0.9.0) (2026-07-05)
+
+
+### Features
+
+* add markdown memory bridge ([#68](https://github.com/MiguelMedeiros/unforgit/issues/68)) ([962ca4d](https://github.com/MiguelMedeiros/unforgit/commit/962ca4d003e236ef965643b9f0040d887ef0f6a6))
+
+
+### Bug Fixes
+
+* **api:** tolerate empty admin consolidation bodies ([c2d3ff8](https://github.com/MiguelMedeiros/unforgit/commit/c2d3ff827229e185853b4fdbfc18e16e5c98c67b))
+
 ## [0.8.5](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.4...v0.8.5) (2026-07-02)
 
 
