@@ -375,6 +375,19 @@ $ unforgit embeddings clear --yes`}
             />
 
             <CommandReference
+              name="unforgit md"
+              description="Import and export markdown memory files such as CLAUDE.md and MEMORY.md"
+              usage="unforgit md <import|scan|export|doctor> [options]"
+              options={[
+                { flag: "import <file> --dry-run", description: "Preview parsed markdown memories without writing" },
+                { flag: "import <file> --apply", description: "Store safe, non-duplicate markdown memories" },
+                { flag: "export --format claude --out CLAUDE.md", description: "Generate Claude-compatible markdown from active memory" },
+                { flag: "doctor <file> --json", description: "Report parse and safety findings for automation" },
+              ]}
+              example="unforgit md import CLAUDE.md --dry-run --json"
+            />
+
+            <CommandReference
               name="unforgit promote"
               description="Promote a local memory to shared repo memory"
               usage="unforgit promote <id> [options]"

@@ -129,3 +129,15 @@ export {
   formatTemplateList,
   MEMORY_TEMPLATES,
 } from "./templates.js";
+
+export {
+  parseMarkdownMemories,
+  findUnsafeMarkdownMemoryFindings,
+  shouldImportMarkdownMemory,
+  exportMarkdownMemories,
+  type ParsedMarkdownMemory,
+  type MarkdownUnsafeFinding,
+  type ExportableMarkdownMemory,
+  type ParseMarkdownMemoriesOptions,
+  type ExportMarkdownMemoriesOptions,
+} from "./markdown-memory.js";
