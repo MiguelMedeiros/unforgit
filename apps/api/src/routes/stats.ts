@@ -43,6 +43,17 @@ function getTimeframeDate(timeframe?: string): Date | undefined {
   }
 }
 
+function parsePositiveIntegerParam(
+  value: string | undefined,
+  fallback: number
+): number | undefined {
+  if (value === undefined) return fallback;
+  if (!/^\d+$/.test(value)) return undefined;
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 export async function statsRoutes(
   app: FastifyInstance,
   store: RemoteStore
@@ -80,7 +91,14 @@ export async function statsRoutes(
         });
       }
 
-      const days = daysStr ? parseInt(daysStr, 10) : 365;
+      const days = parsePositiveIntegerParam(daysStr, 365);
+      if (days === undefined) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "days must be a positive integer",
+        });
+      }
+
       const sinceDate = getTimeframeDate(timeframe);
 
       const [dailyCounts, hourlyCounts, weeklyTrend] = await Promise.all([
@@ -110,7 +128,14 @@ export async function statsRoutes(
         });
       }
 
-      const limit = limitStr ? parseInt(limitStr, 10) : 20;
+      const limit = parsePositiveIntegerParam(limitStr, 20);
+      if (limit === undefined) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "limit must be a positive integer",
+        });
+      }
+
       const sinceDate = getTimeframeDate(timeframe);
 
       const tags = await store.topTags(orgId, repoId, limit, sinceDate);
