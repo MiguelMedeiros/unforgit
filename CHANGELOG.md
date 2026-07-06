@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.1...v0.9.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* **api:** validate stats numeric query params ([955b386](https://github.com/MiguelMedeiros/unforgit/commit/955b3866e0e6026dd9efe4608d9fceb93ed448de))
+
 ## [0.9.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.0...v0.9.1) (2026-07-05)
 
 
