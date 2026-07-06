@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.0...v0.9.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* **website:** improve mobile bridge and dashboard sections ([726bdc0](https://github.com/MiguelMedeiros/unforgit/commit/726bdc0d07cf47d26fe27452d2c7c4c44f6df4b9))
+* **website:** simplify mobile navigation ([feaca8e](https://github.com/MiguelMedeiros/unforgit/commit/feaca8e3d0993997fde2450dd2ed0f471757a61d))
+* **website:** tighten mobile intro spacing ([67943a7](https://github.com/MiguelMedeiros/unforgit/commit/67943a77d96fef698b8734e1b6b0db08854ad194))
+
 ## [0.9.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.8.5...v0.9.0) (2026-07-05)
 
 
