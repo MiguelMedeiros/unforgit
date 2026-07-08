@@ -431,7 +431,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       });
     }
 
-    const { name, orgId, repoId, label } = request.body;
+    const { name, orgId, repoId, label } = request.body ?? {};
 
     if (!name || !orgId) {
       return reply.status(400).send({
