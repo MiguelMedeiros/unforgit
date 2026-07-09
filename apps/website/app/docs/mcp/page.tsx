@@ -304,16 +304,35 @@ $ unforgit init`}
         </Subsection>
 
         <Subsection id="mcp-claude-code" title="Claude Code (CLI)">
+          <div className="rounded-lg border border-dracula-purple/30 bg-dracula-purple/10 p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Download className="w-4 h-4 text-dracula-foreground" />
+              <span className="text-sm font-semibold text-dracula-foreground">
+                Plugin Marketplace
+              </span>
+            </div>
+            <p className="text-sm text-dracula-foreground/70 mb-3">
+              The Claude Code plugin installs Unforgit's MCP config, memory
+              rules, skill, and slash commands in one step after you add the
+              Unforgit marketplace.
+            </p>
+            <Terminal
+              title="Claude Code"
+              code={`/plugin marketplace add MiguelMedeiros/unforgit
+/plugin install unforgit`}
+            />
+          </div>
+
           <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <Monitor className="w-4 h-4 text-dracula-foreground" />
               <span className="text-sm font-semibold text-dracula-foreground">
-                Automatic Setup
+                Project File Setup
               </span>
             </div>
             <p className="text-sm text-dracula-foreground/70">
               <code className="text-dracula-foreground/80">unforgit init</code>{" "}
-              (or <code className="text-dracula-foreground/80">unforgit init --ide claude</code>)
+              (or <code className="text-dracula-foreground/80">unforgit init --ide claude-code</code>)
               automatically creates{" "}
               <code className="text-dracula-foreground/80">CLAUDE.md</code>{" "}
               with memory instructions and{" "}

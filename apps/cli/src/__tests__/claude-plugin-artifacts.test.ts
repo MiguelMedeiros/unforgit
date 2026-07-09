@@ -104,7 +104,12 @@ describe("Claude Code plugin artifacts", () => {
     const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
     const mcpDocs = fs.readFileSync(path.join(repoRoot, "docs", "mcp.md"), "utf-8");
 
-    for (const docs of [readme, mcpDocs]) {
+    const websiteMcpPage = fs.readFileSync(
+      path.join(repoRoot, "apps", "website", "app", "docs", "mcp", "page.tsx"),
+      "utf-8",
+    );
+
+    for (const docs of [readme, mcpDocs, websiteMcpPage]) {
       expect(docs).toContain("/plugin marketplace add MiguelMedeiros/unforgit");
       expect(docs).toContain("/plugin install unforgit");
     }
