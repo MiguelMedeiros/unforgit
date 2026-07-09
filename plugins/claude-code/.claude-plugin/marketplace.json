@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "unforgit-claude-code-marketplace",
+  "description": "Claude Code plugins for Unforgit persistent repository memory.",
+  "owner": {
+    "name": "Unforgit"
+  },
+  "plugins": [
+    {
+      "name": "unforgit",
+      "description": "Persistent repository memory for AI coding agents using MCP tools, repository rules, and durable project knowledge.",
+      "author": {
+        "name": "Unforgit"
+      },
+      "category": "development",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/MiguelMedeiros/unforgit.git",
+        "path": "plugins/claude-code/unforgit",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/MiguelMedeiros/unforgit"
+    }
+  ]
+}

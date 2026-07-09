@@ -288,15 +288,21 @@ export function logIdeResults(results: IdeSetupResult[]): void {
   }
 }
 
+const IDE_ALIASES: Record<string, IdeName> = {
+  "claude-code": "claude",
+  claude_code: "claude",
+};
+
 export function parseIdeOption(value: string): IdeName[] {
   if (value === "all") return [...ALL_IDE_NAMES];
   const names = value.split(",").map((s) => s.trim().toLowerCase());
   const valid: IdeName[] = [];
-  for (const name of names) {
+  for (const rawName of names) {
+    const name = IDE_ALIASES[rawName] ?? rawName;
     if (ALL_IDE_NAMES.includes(name as IdeName)) {
       valid.push(name as IdeName);
     } else {
-      logger.warn(`Unknown IDE: "${name}". Valid options: ${ALL_IDE_NAMES.join(", ")}`);
+      logger.warn(`Unknown IDE: "${rawName}". Valid options: ${ALL_IDE_NAMES.join(", ")}`);
     }
   }
   return valid;

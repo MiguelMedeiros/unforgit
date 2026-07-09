@@ -42,6 +42,33 @@ unforgit md export --format claude --out CLAUDE.md
 unforgit dashboard
 ```
 
+## Install in your AI agent
+
+Unforgit can be installed as an MCP-backed memory integration for coding agents.
+
+### Claude Code plugin
+
+```text
+/plugin marketplace add MiguelMedeiros/unforgit
+/plugin install unforgit
+```
+
+The Claude Code plugin ships MCP registration, memory rules, skills, and slash commands. Install the CLI first so `unforgit-mcp` is available:
+
+```bash
+npm install -g unforgit
+```
+
+### Direct IDE setup
+
+```bash
+unforgit init --ide claude     # Claude Code project files
+unforgit init --ide cursor     # Cursor rules + MCP
+unforgit init --ide vscode     # VS Code/Copilot MCP + instructions
+unforgit init --ide windsurf   # Windsurf rules + MCP
+unforgit init --ide all        # All supported project integrations
+```
+
 ## Documentation
 
 | Topic | Description |
@@ -51,7 +78,7 @@ unforgit dashboard
 | [Configuration](docs/configuration.md) | Local-first embeddings, optional OpenAI, authentication, sync settings, YAML config |
 | [API Server](docs/api.md) | HTTP API setup, endpoints, request examples |
 | [Server-Side AI](docs/server-ai.md) | Team mode with server-side OpenAI integration |
-| [MCP Server](docs/mcp.md) | Cursor IDE integration via Model Context Protocol |
+| [MCP Server](docs/mcp.md) | Agent/IDE integration via Model Context Protocol and Claude Code plugin |
 | [Agent Tools](docs/agent-tools.md) | Programmatic TypeScript interface |
 | [Architecture](docs/architecture.md) | Project structure, semantic search, development |
 

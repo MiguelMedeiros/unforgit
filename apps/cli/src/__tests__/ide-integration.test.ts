@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { setupIdes } from "../ide-integration.js";
+import { setupIdes, parseIdeOption } from "../ide-integration.js";
 
 describe("IDE integration setup", () => {
   const dirs: string[] = [];
@@ -90,5 +90,10 @@ describe("IDE integration setup", () => {
     const config = JSON.parse(fs.readFileSync(mcpPath, "utf-8"));
     expect(config.mcpServers.existing).toEqual({ command: "existing-mcp" });
     expect(config.mcpServers.unforgit).toEqual({ command: "unforgit-mcp", args: [] });
+  });
+
+  it("accepts Claude Code aliases for CLI IDE setup", () => {
+    expect(parseIdeOption("claude-code")).toEqual(["claude"]);
+    expect(parseIdeOption("claude_code,cursor")).toEqual(["claude", "cursor"]);
   });
 });

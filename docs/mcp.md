@@ -4,6 +4,25 @@ Unforgit includes an MCP (Model Context Protocol) server for native integration 
 
 ## Setup
 
+### Claude Code plugin marketplace
+
+Claude Code users can install the official Unforgit plugin from the Unforgit marketplace. The plugin includes MCP registration, memory rules, skills, and slash commands for recall, remember, health, and curation workflows.
+
+```text
+/plugin marketplace add MiguelMedeiros/unforgit
+/plugin install unforgit
+```
+
+Install the CLI first so the plugin's MCP config can launch `unforgit-mcp`:
+
+```bash
+npm install -g unforgit
+```
+
+The plugin MCP config does not include secrets. Keep optional embedding or sync credentials in your repository `.env` file or your normal secret manager.
+
+### Project-level IDE setup
+
 `unforgit init` automatically detects which IDEs you use and creates the appropriate config files. You can also specify IDEs explicitly:
 
 ```bash
