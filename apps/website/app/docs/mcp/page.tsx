@@ -211,7 +211,7 @@ $ unforgit init`}
           <code className="text-dracula-foreground/70">unforgit init</code>{" "}
           creates the <code>.unforgit/</code> directory with the local database
           and config file. It auto-detects which IDEs are present (Cursor, Claude Code,
-          VS Code, Windsurf) and generates the appropriate MCP config and rules for each.
+          VS Code, Windsurf, Cline, Roo Code, Codex CLI, OpenCode) and generates the appropriate MCP config and rules for each.
         </p>
         <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
           <p className="text-sm text-dracula-foreground/70 mb-3">
@@ -223,11 +223,11 @@ $ unforgit init`}
               Cursor only
             </li>
             <li>
-              <code className="text-dracula-foreground/80">--ide claude</code>{" "}
+              <code className="text-dracula-foreground/80">--ide claude-code</code>{" "}
               Claude Code only
             </li>
             <li>
-              <code className="text-dracula-foreground/80">--ide cursor,claude</code>{" "}
+              <code className="text-dracula-foreground/80">--ide cursor,codex</code>{" "}
               multiple IDEs
             </li>
             <li>
@@ -503,6 +503,91 @@ $ unforgit init`}
     "unforgit": {
       "command": "unforgit-mcp",
       "args": []
+    }
+  }
+}`}
+          />
+        </Subsection>
+
+        <Subsection id="mcp-cline" title="Cline">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init --ide cline</code>{" "}
+              creates <code className="text-dracula-foreground/80">.cline/mcp.json</code>{" "}
+              and <code className="text-dracula-foreground/80">.clinerules/unforgit-memory.md</code>.
+            </p>
+          </div>
+          <Terminal
+            title=".cline/mcp.json"
+            language="json"
+            code={`{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": []
+    }
+  }
+}`}
+          />
+        </Subsection>
+
+        <Subsection id="mcp-roo" title="Roo Code">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init --ide roo-code</code>{" "}
+              creates <code className="text-dracula-foreground/80">.roo/mcp.json</code>{" "}
+              and <code className="text-dracula-foreground/80">.roo/rules/unforgit-memory.md</code>.
+            </p>
+          </div>
+          <Terminal
+            title=".roo/mcp.json"
+            language="json"
+            code={`{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": []
+    }
+  }
+}`}
+          />
+        </Subsection>
+
+        <Subsection id="mcp-codex" title="Codex CLI">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init --ide codex</code>{" "}
+              creates <code className="text-dracula-foreground/80">.codex/config.toml</code>{" "}
+              and appends Unforgit memory guidance to <code className="text-dracula-foreground/80">AGENTS.md</code>.
+            </p>
+          </div>
+          <Terminal
+            title=".codex/config.toml"
+            language="text"
+            code={`[mcp_servers.unforgit]
+command = "unforgit-mcp"
+args = []`}
+          />
+        </Subsection>
+
+        <Subsection id="mcp-opencode" title="OpenCode">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init --ide opencode</code>{" "}
+              creates <code className="text-dracula-foreground/80">opencode.json</code>{" "}
+              and appends Unforgit memory guidance to <code className="text-dracula-foreground/80">AGENTS.md</code>.
+            </p>
+          </div>
+          <Terminal
+            title="opencode.json"
+            language="json"
+            code={`{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "unforgit": {
+      "type": "local",
+      "command": ["unforgit-mcp"],
+      "enabled": true
     }
   }
 }`}
@@ -855,6 +940,26 @@ $ unforgit recall "deploy" --remote-only`}
               <tr>
                 <td className="py-3 px-4 text-dracula-foreground">Windsurf</td>
                 <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.windsurfrules</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Cline</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.clinerules/unforgit-memory.md</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Created with workspace rules</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Roo Code</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">.roo/rules/unforgit-memory.md</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Created with project rules</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">Codex CLI</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">AGENTS.md</code></td>
+                <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 text-dracula-foreground">OpenCode</td>
+                <td className="py-3 px-4"><code className="text-dracula-foreground/80 text-xs">AGENTS.md</code></td>
                 <td className="py-3 px-4 text-dracula-foreground/70">Appended safely</td>
               </tr>
             </tbody>

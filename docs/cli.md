@@ -8,12 +8,12 @@ unforgit init
 
 Creates `.unforgit/` with `local.db` and `unforgit.yaml`, plus IDE-specific integration files. The org and repo are auto-detected from the git remote (`origin`). You can override with `--org-id` and `--repo-id` if needed.
 
-By default, `unforgit init` auto-detects which IDEs are present in the project (Cursor, Claude Code, VS Code, Windsurf) and creates the appropriate rules and MCP config files for each. You can control this with `--ide`:
+By default, `unforgit init` auto-detects which IDEs are present in the project (Cursor, Claude Code, VS Code, Windsurf, Cline, Roo Code, Codex CLI, OpenCode) and creates the appropriate rules and MCP config files for each. You can control this with `--ide`:
 
 ```bash
 unforgit init --ide cursor           # Cursor only
-unforgit init --ide claude           # Claude Code only
-unforgit init --ide cursor,claude    # multiple IDEs
+unforgit init --ide claude-code      # Claude Code only
+unforgit init --ide cursor,codex     # multiple IDEs
 unforgit init --ide all              # all supported IDEs
 unforgit init --no-ide               # skip all IDE integration
 ```
@@ -24,6 +24,10 @@ unforgit init --no-ide               # skip all IDE integration
 | Claude Code | `CLAUDE.md` | `.mcp.json` |
 | VS Code (Copilot) | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
 | Windsurf | `.windsurfrules` | `.windsurf/mcp.json` |
+| Cline | `.clinerules/unforgit-memory.md` | `.cline/mcp.json` |
+| Roo Code | `.roo/rules/unforgit-memory.md` | `.roo/mcp.json` |
+| Codex CLI | `AGENTS.md` | `.codex/config.toml` |
+| OpenCode | `AGENTS.md` | `opencode.json` |
 
 ## Add Memories
 

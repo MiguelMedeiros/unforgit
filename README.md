@@ -62,11 +62,15 @@ npm install -g unforgit
 ### Direct IDE setup
 
 ```bash
-unforgit init --ide claude     # Claude Code project files
-unforgit init --ide cursor     # Cursor rules + MCP
-unforgit init --ide vscode     # VS Code/Copilot MCP + instructions
-unforgit init --ide windsurf   # Windsurf rules + MCP
-unforgit init --ide all        # All supported project integrations
+unforgit init --ide claude-code # Claude Code project files
+unforgit init --ide cursor      # Cursor rules + MCP
+unforgit init --ide vscode      # VS Code/Copilot MCP + instructions
+unforgit init --ide windsurf    # Windsurf rules + MCP
+unforgit init --ide cline       # Cline workspace rules + MCP
+unforgit init --ide roo-code    # Roo Code project rules + MCP
+unforgit init --ide codex       # Codex AGENTS.md + MCP config
+unforgit init --ide opencode    # OpenCode AGENTS.md + MCP config
+unforgit init --ide all         # All supported project integrations
 ```
 
 ## Documentation

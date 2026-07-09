@@ -28,8 +28,8 @@ The plugin MCP config does not include secrets. Keep optional embedding or sync 
 ```bash
 unforgit init                        # auto-detect IDEs
 unforgit init --ide cursor           # Cursor only
-unforgit init --ide claude           # Claude Code only
-unforgit init --ide cursor,claude    # multiple IDEs
+unforgit init --ide claude-code      # Claude Code only
+unforgit init --ide cursor,codex     # multiple IDEs
 unforgit init --ide all              # all supported IDEs
 unforgit init --no-ide               # skip IDE integration
 ```
@@ -42,6 +42,10 @@ unforgit init --no-ide               # skip IDE integration
 | **Claude Code** | `CLAUDE.md` | `.mcp.json` |
 | **VS Code (Copilot)** | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
 | **Windsurf** | `.windsurfrules` | `.windsurf/mcp.json` |
+| **Cline** | `.clinerules/unforgit-memory.md` | `.cline/mcp.json` |
+| **Roo Code** | `.roo/rules/unforgit-memory.md` | `.roo/mcp.json` |
+| **Codex CLI** | `AGENTS.md` | `.codex/config.toml` |
+| **OpenCode** | `AGENTS.md` | `opencode.json` |
 
 ### Project-level vs global config
 
@@ -115,6 +119,42 @@ Example for VS Code (`.vscode/mcp.json`):
 }
 ```
 
+Example for Cline (`.cline/mcp.json`) and Roo Code (`.roo/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Example for Codex CLI (`.codex/config.toml`):
+
+```toml
+[mcp_servers.unforgit]
+command = "unforgit-mcp"
+args = []
+```
+
+Example for OpenCode (`opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "unforgit": {
+      "type": "local",
+      "command": ["unforgit-mcp"],
+      "enabled": true
+    }
+  }
+}
+```
+
 Restart your IDE after adding the MCP config.
 
 ## Available Tools
@@ -163,5 +203,9 @@ This makes the expected Hermes/agent provider behavior explicit: local memory re
 | Claude Code | `CLAUDE.md` (appended) |
 | VS Code | `.github/copilot-instructions.md` (appended) |
 | Windsurf | `.windsurfrules` (appended) |
+| Cline | `.clinerules/unforgit-memory.md` |
+| Roo Code | `.roo/rules/unforgit-memory.md` |
+| Codex CLI | `AGENTS.md` (appended) |
+| OpenCode | `AGENTS.md` (appended) |
 
 For IDEs that use shared files (like `CLAUDE.md`), `unforgit init` safely appends the memory instructions without overwriting existing content.

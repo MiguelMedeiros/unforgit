@@ -2,13 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { logger } from "./logger.js";
 
-export type IdeName = "cursor" | "claude" | "vscode" | "windsurf";
+export type IdeName =
+  | "cursor"
+  | "claude"
+  | "vscode"
+  | "windsurf"
+  | "cline"
+  | "roo"
+  | "codex"
+  | "opencode";
 
 export const ALL_IDE_NAMES: IdeName[] = [
   "cursor",
   "claude",
   "vscode",
   "windsurf",
+  "cline",
+  "roo",
+  "codex",
+  "opencode",
 ];
 
 const UNFORGIT_MARKER = "Unforgit Memory Integration";
@@ -144,6 +156,29 @@ function replaceMarkdownIfMissingMarker(
   }
 }
 
+function appendOrCreateTomlSection(
+  filePath: string,
+  sectionHeader: string,
+  content: string,
+): SetupAction {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const fd = fs.openSync(filePath, "a+");
+  try {
+    const existing = fs.readFileSync(fd, "utf-8");
+    if (existing.includes(sectionHeader)) {
+      return { path: filePath, action: "exists" };
+    }
+
+    const separator = existing.length === 0 ? "" : existing.endsWith("\n") ? "\n" : "\n\n";
+    fs.writeSync(fd, separator + content + "\n", undefined, "utf-8");
+    return { path: filePath, action: existing.length === 0 ? "created" : "updated" };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 // --- Cursor ---
 
 const CURSOR_RULE_CONTENT = `---
@@ -220,6 +255,66 @@ function setupWindsurf(cwd: string): IdeSetupResult {
   return { ide: "windsurf", rules, mcp };
 }
 
+// --- Cline ---
+
+const CLINE_RULE_CONTENT = `${MEMORY_INSTRUCTIONS}
+`;
+
+function setupCline(cwd: string): IdeSetupResult {
+  const rules = replaceMarkdownIfMissingMarker(
+    path.join(cwd, ".clinerules", "unforgit-memory.md"),
+    CLINE_RULE_CONTENT,
+  );
+  const mcp = upsertJsonMcp(path.join(cwd, ".cline", "mcp.json"), "mcpServers", {
+    command: "unforgit-mcp",
+    args: [],
+  });
+  return { ide: "cline", rules, mcp };
+}
+
+// --- Roo Code ---
+
+const ROO_RULE_CONTENT = `${MEMORY_INSTRUCTIONS}
+`;
+
+function setupRoo(cwd: string): IdeSetupResult {
+  const rules = replaceMarkdownIfMissingMarker(
+    path.join(cwd, ".roo", "rules", "unforgit-memory.md"),
+    ROO_RULE_CONTENT,
+  );
+  const mcp = upsertJsonMcp(path.join(cwd, ".roo", "mcp.json"), "mcpServers", {
+    command: "unforgit-mcp",
+    args: [],
+  });
+  return { ide: "roo", rules, mcp };
+}
+
+// --- Codex CLI ---
+
+function setupCodex(cwd: string): IdeSetupResult {
+  const rules = appendOrCreateMarkdown(path.join(cwd, "AGENTS.md"), MEMORY_INSTRUCTIONS);
+  const mcp = appendOrCreateTomlSection(
+    path.join(cwd, ".codex", "config.toml"),
+    "[mcp_servers.unforgit]",
+    `[mcp_servers.unforgit]
+command = "unforgit-mcp"
+args = []`,
+  );
+  return { ide: "codex", rules, mcp };
+}
+
+// --- OpenCode ---
+
+function setupOpenCode(cwd: string): IdeSetupResult {
+  const rules = appendOrCreateMarkdown(path.join(cwd, "AGENTS.md"), MEMORY_INSTRUCTIONS);
+  const mcp = upsertJsonMcp(path.join(cwd, "opencode.json"), "mcp", {
+    type: "local",
+    command: ["unforgit-mcp"],
+    enabled: true,
+  });
+  return { ide: "opencode", rules, mcp };
+}
+
 // --- Detection ---
 
 const IDE_INDICATORS: Record<IdeName, string[]> = {
@@ -227,6 +322,10 @@ const IDE_INDICATORS: Record<IdeName, string[]> = {
   claude: ["CLAUDE.md", ".claude"],
   vscode: [".vscode"],
   windsurf: [".windsurf", ".windsurfrules"],
+  cline: [".cline", ".clinerules"],
+  roo: [".roo", ".roorules"],
+  codex: [".codex"],
+  opencode: ["opencode.json", ".opencode"],
 };
 
 export function detectIdes(cwd: string): IdeName[] {
@@ -247,6 +346,10 @@ const IDE_HANDLERS: Record<IdeName, (cwd: string) => IdeSetupResult> = {
   claude: setupClaude,
   vscode: setupVscode,
   windsurf: setupWindsurf,
+  cline: setupCline,
+  roo: setupRoo,
+  codex: setupCodex,
+  opencode: setupOpenCode,
 };
 
 const IDE_LABELS: Record<IdeName, string> = {
@@ -254,6 +357,10 @@ const IDE_LABELS: Record<IdeName, string> = {
   claude: "Claude Code",
   vscode: "VS Code (Copilot)",
   windsurf: "Windsurf",
+  cline: "Cline",
+  roo: "Roo Code",
+  codex: "Codex CLI",
+  opencode: "OpenCode",
 };
 
 export function setupIdes(cwd: string, ides: IdeName[]): IdeSetupResult[] {
@@ -291,6 +398,13 @@ export function logIdeResults(results: IdeSetupResult[]): void {
 const IDE_ALIASES: Record<string, IdeName> = {
   "claude-code": "claude",
   claude_code: "claude",
+  copilot: "vscode",
+  "vs-code": "vscode",
+  vs_code: "vscode",
+  roocode: "roo",
+  "roo-code": "roo",
+  open_code: "opencode",
+  "open-code": "opencode",
 };
 
 export function parseIdeOption(value: string): IdeName[] {

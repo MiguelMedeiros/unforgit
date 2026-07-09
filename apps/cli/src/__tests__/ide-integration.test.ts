@@ -92,8 +92,62 @@ describe("IDE integration setup", () => {
     expect(config.mcpServers.unforgit).toEqual({ command: "unforgit-mcp", args: [] });
   });
 
-  it("accepts Claude Code aliases for CLI IDE setup", () => {
+  it("accepts common aliases for CLI IDE setup", () => {
     expect(parseIdeOption("claude-code")).toEqual(["claude"]);
-    expect(parseIdeOption("claude_code,cursor")).toEqual(["claude", "cursor"]);
+    expect(parseIdeOption("claude_code,copilot")).toEqual(["claude", "vscode"]);
+  });
+
+  it("creates Cline project MCP config and workspace rules", () => {
+    const dir = makeTempDir();
+
+    const [result] = setupIdes(dir, ["cline"]);
+
+    expect(result.ide).toBe("cline");
+    const mcp = JSON.parse(fs.readFileSync(path.join(dir, ".cline", "mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.unforgit).toEqual({ command: "unforgit-mcp", args: [] });
+    const rules = fs.readFileSync(path.join(dir, ".clinerules", "unforgit-memory.md"), "utf-8");
+    expect(rules).toContain("Unforgit Memory Integration");
+  });
+
+  it("creates Roo project MCP config and rules", () => {
+    const dir = makeTempDir();
+
+    const [result] = setupIdes(dir, ["roo"]);
+
+    expect(result.ide).toBe("roo");
+    const mcp = JSON.parse(fs.readFileSync(path.join(dir, ".roo", "mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.unforgit).toEqual({ command: "unforgit-mcp", args: [] });
+    const rules = fs.readFileSync(path.join(dir, ".roo", "rules", "unforgit-memory.md"), "utf-8");
+    expect(rules).toContain("Unforgit Memory Integration");
+  });
+
+  it("creates Codex project MCP config and AGENTS instructions", () => {
+    const dir = makeTempDir();
+
+    const [result] = setupIdes(dir, ["codex"]);
+
+    expect(result.ide).toBe("codex");
+    const toml = fs.readFileSync(path.join(dir, ".codex", "config.toml"), "utf-8");
+    expect(toml).toContain("[mcp_servers.unforgit]");
+    expect(toml).toContain('command = "unforgit-mcp"');
+    expect(toml).toContain("args = []");
+    const agents = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("Unforgit Memory Integration");
+  });
+
+  it("creates OpenCode project config and AGENTS instructions", () => {
+    const dir = makeTempDir();
+
+    const [result] = setupIdes(dir, ["opencode"]);
+
+    expect(result.ide).toBe("opencode");
+    const config = JSON.parse(fs.readFileSync(path.join(dir, "opencode.json"), "utf-8"));
+    expect(config.mcp.unforgit).toEqual({
+      type: "local",
+      command: ["unforgit-mcp"],
+      enabled: true,
+    });
+    const agents = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("Unforgit Memory Integration");
   });
 });
