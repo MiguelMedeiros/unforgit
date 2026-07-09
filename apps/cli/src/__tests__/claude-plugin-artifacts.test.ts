@@ -100,6 +100,17 @@ describe("Claude Code plugin artifacts", () => {
     });
   });
 
+  it("ships a Hermes skill for Unforgit memory integration", () => {
+    const skill = fs.readFileSync(
+      path.join(repoRoot, "plugins", "hermes", "unforgit-memory", "SKILL.md"),
+      "utf-8",
+    );
+    expect(skill).toContain("mcp_servers");
+    expect(skill).toContain("unforgit_search");
+    expect(skill).toContain("unforgit_remember");
+    expect(skill).toContain("repository-scoped");
+  });
+
   it("documents marketplace installation in public docs", () => {
     const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
     const mcpDocs = fs.readFileSync(path.join(repoRoot, "docs", "mcp.md"), "utf-8");
