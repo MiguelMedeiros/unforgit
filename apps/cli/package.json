@@ -1,6 +1,6 @@
 {
   "name": "unforgit",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "type": "module",
   "bin": {
     "unforgit": "dist/index.js",

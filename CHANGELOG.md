@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.2...v0.9.3) (2026-07-08)
+
+
+### Bug Fixes
+
+* **api:** handle missing user api key body ([290ca12](https://github.com/MiguelMedeiros/unforgit/commit/290ca12eda70e8a0021c5b527ccadeb994010ee2))
+
 ## [0.9.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.1...v0.9.2) (2026-07-06)
 
 
