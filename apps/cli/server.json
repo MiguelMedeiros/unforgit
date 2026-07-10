@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.miguelmedeiros/unforgit",
+  "description": "Git-backed repository memory for AI coding agents, exposed as a local-first MCP server.",
+  "repository": {
+    "url": "https://github.com/MiguelMedeiros/unforgit",
+    "source": "github"
+  },
+  "websiteUrl": "https://unforgit.com",
+  "version": "0.9.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "unforgit",
+      "version": "0.9.3",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/MiguelMedeiros/unforgit/main/docs/unforgit-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["400x400"]
+    }
+  ]
+}

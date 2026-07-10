@@ -1,6 +1,7 @@
 {
   "name": "unforgit",
   "version": "0.9.3",
+  "mcpName": "io.github.miguelmedeiros/unforgit",
   "type": "module",
   "bin": {
     "unforgit": "dist/index.js",
