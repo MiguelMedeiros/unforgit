@@ -95,6 +95,7 @@ describe("IDE integration setup", () => {
   it("accepts common aliases for CLI IDE setup", () => {
     expect(parseIdeOption("claude-code")).toEqual(["claude"]);
     expect(parseIdeOption("claude_code,copilot")).toEqual(["claude", "vscode"]);
+    expect(parseIdeOption("kilo-code,kilocode")).toEqual(["kilo", "kilo"]);
   });
 
   it("creates Cline project MCP config and workspace rules", () => {
@@ -147,6 +148,18 @@ describe("IDE integration setup", () => {
       command: ["unforgit-mcp"],
       enabled: true,
     });
+    const agents = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("Unforgit Memory Integration");
+  });
+
+  it("creates Kilo Code project MCP config and AGENTS instructions", () => {
+    const dir = makeTempDir();
+
+    const [result] = setupIdes(dir, ["kilo"]);
+
+    expect(result.ide).toBe("kilo");
+    const mcp = JSON.parse(fs.readFileSync(path.join(dir, ".kilocode", "mcp.json"), "utf-8"));
+    expect(mcp.mcpServers.unforgit).toEqual({ command: "unforgit-mcp", args: [] });
     const agents = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf-8");
     expect(agents).toContain("Unforgit Memory Integration");
   });

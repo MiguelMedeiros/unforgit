@@ -70,6 +70,7 @@ unforgit init --ide cline       # Cline workspace rules + MCP
 unforgit init --ide roo-code    # Roo Code project rules + MCP
 unforgit init --ide codex       # Codex AGENTS.md + MCP config
 unforgit init --ide opencode    # OpenCode AGENTS.md + MCP config
+unforgit init --ide kilo-code   # Kilo Code AGENTS.md + MCP config
 unforgit init --ide all         # All supported project integrations
 ```
 

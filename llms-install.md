@@ -8,7 +8,7 @@ Unforgit is a Git-backed memory system for AI coding agents. The published `unfo
 
 - `unforgit` — CLI for initializing and managing repository memory.
 - `unforgit-mcp` — MCP stdio server for durable memory tools.
-- Agent/IDE setup helpers for Claude Code, Cursor, VS Code/Copilot, Windsurf, Cline, Roo Code, Codex CLI, and OpenCode.
+- Agent/IDE setup helpers for Claude Code, Cursor, VS Code/Copilot, Windsurf, Cline, Roo Code, Codex CLI, OpenCode, and Kilo Code.
 
 ## Requirements
 
@@ -50,6 +50,7 @@ unforgit init --ide windsurf    # Windsurf rules + MCP config
 unforgit init --ide claude-code # Claude Code project files
 unforgit init --ide codex       # Codex AGENTS.md + MCP config
 unforgit init --ide opencode    # OpenCode AGENTS.md + MCP config
+unforgit init --ide kilo-code   # Kilo Code AGENTS.md + MCP config
 unforgit init --ide all         # all supported project integrations
 ```
 
