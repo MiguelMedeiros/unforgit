@@ -12,6 +12,10 @@ function buildStore() {
     upsertRepoAccess: vi.fn(),
     createApiKeyForUser: vi.fn(),
     getById: vi.fn(),
+    dailyCounts: vi.fn(),
+    hourlyCounts: vi.fn(),
+    weeklyTrend: vi.fn(),
+    topTags: vi.fn(),
   } as unknown as RemoteStore & {
     listApiKeysWithUsers: ReturnType<typeof vi.fn>;
     createApiKey: ReturnType<typeof vi.fn>;
@@ -19,6 +23,10 @@ function buildStore() {
     upsertRepoAccess: ReturnType<typeof vi.fn>;
     createApiKeyForUser: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
+    dailyCounts: ReturnType<typeof vi.fn>;
+    hourlyCounts: ReturnType<typeof vi.fn>;
+    weeklyTrend: ReturnType<typeof vi.fn>;
+    topTags: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -132,6 +140,54 @@ describe("admin auth", () => {
     });
     expect(store.getUserById).not.toHaveBeenCalled();
     expect(store.createApiKeyForUser).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects invalid admin activity days before querying stats", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/admin/repos/org-id/repo-id/stats/activity?days=not-a-number",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "days must be a positive integer",
+    });
+    expect(store.dailyCounts).not.toHaveBeenCalled();
+    expect(store.hourlyCounts).not.toHaveBeenCalled();
+    expect(store.weeklyTrend).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects invalid admin tags limit before querying stats", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/admin/repos/org-id/repo-id/stats/tags?limit=0",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "limit must be a positive integer",
+    });
+    expect(store.topTags).not.toHaveBeenCalled();
 
     await app.close();
   });
