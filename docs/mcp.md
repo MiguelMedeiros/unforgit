@@ -46,6 +46,7 @@ unforgit init --no-ide               # skip IDE integration
 | **Roo Code** | `.roo/rules/unforgit-memory.md` | `.roo/mcp.json` |
 | **Codex CLI** | `AGENTS.md` | `.codex/config.toml` |
 | **OpenCode** | `AGENTS.md` | `opencode.json` |
+| **Kilo Code** | `AGENTS.md` | `.kilocode/mcp.json` |
 
 ### Project-level vs global config
 
@@ -119,7 +120,7 @@ Example for VS Code (`.vscode/mcp.json`):
 }
 ```
 
-Example for Cline (`.cline/mcp.json`) and Roo Code (`.roo/mcp.json`):
+Example for Cline (`.cline/mcp.json`), Roo Code (`.roo/mcp.json`), and Kilo Code (`.kilocode/mcp.json`):
 
 ```json
 {
@@ -207,5 +208,6 @@ This makes the expected Hermes/agent provider behavior explicit: local memory re
 | Roo Code | `.roo/rules/unforgit-memory.md` |
 | Codex CLI | `AGENTS.md` (appended) |
 | OpenCode | `AGENTS.md` (appended) |
+| Kilo Code | `AGENTS.md` (appended) |
 
 For IDEs that use shared files (like `CLAUDE.md`), `unforgit init` safely appends the memory instructions without overwriting existing content.

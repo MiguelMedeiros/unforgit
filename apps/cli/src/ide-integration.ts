@@ -10,7 +10,8 @@ export type IdeName =
   | "cline"
   | "roo"
   | "codex"
-  | "opencode";
+  | "opencode"
+  | "kilo";
 
 export const ALL_IDE_NAMES: IdeName[] = [
   "cursor",
@@ -21,6 +22,7 @@ export const ALL_IDE_NAMES: IdeName[] = [
   "roo",
   "codex",
   "opencode",
+  "kilo",
 ];
 
 const UNFORGIT_MARKER = "Unforgit Memory Integration";
@@ -315,6 +317,17 @@ function setupOpenCode(cwd: string): IdeSetupResult {
   return { ide: "opencode", rules, mcp };
 }
 
+// --- Kilo Code ---
+
+function setupKilo(cwd: string): IdeSetupResult {
+  const rules = appendOrCreateMarkdown(path.join(cwd, "AGENTS.md"), MEMORY_INSTRUCTIONS);
+  const mcp = upsertJsonMcp(path.join(cwd, ".kilocode", "mcp.json"), "mcpServers", {
+    command: "unforgit-mcp",
+    args: [],
+  });
+  return { ide: "kilo", rules, mcp };
+}
+
 // --- Detection ---
 
 const IDE_INDICATORS: Record<IdeName, string[]> = {
@@ -326,6 +339,7 @@ const IDE_INDICATORS: Record<IdeName, string[]> = {
   roo: [".roo", ".roorules"],
   codex: [".codex"],
   opencode: ["opencode.json", ".opencode"],
+  kilo: [".kilocode", "kilo.json", "kilo.jsonc", ".kilo"],
 };
 
 export function detectIdes(cwd: string): IdeName[] {
@@ -350,6 +364,7 @@ const IDE_HANDLERS: Record<IdeName, (cwd: string) => IdeSetupResult> = {
   roo: setupRoo,
   codex: setupCodex,
   opencode: setupOpenCode,
+  kilo: setupKilo,
 };
 
 const IDE_LABELS: Record<IdeName, string> = {
@@ -361,6 +376,7 @@ const IDE_LABELS: Record<IdeName, string> = {
   roo: "Roo Code",
   codex: "Codex CLI",
   opencode: "OpenCode",
+  kilo: "Kilo Code",
 };
 
 export function setupIdes(cwd: string, ides: IdeName[]): IdeSetupResult[] {
@@ -405,6 +421,8 @@ const IDE_ALIASES: Record<string, IdeName> = {
   "roo-code": "roo",
   open_code: "opencode",
   "open-code": "opencode",
+  kilocode: "kilo",
+  "kilo-code": "kilo",
 };
 
 export function parseIdeOption(value: string): IdeName[] {
