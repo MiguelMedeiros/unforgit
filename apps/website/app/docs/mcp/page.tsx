@@ -211,7 +211,7 @@ $ unforgit init`}
           <code className="text-dracula-foreground/70">unforgit init</code>{" "}
           creates the <code>.unforgit/</code> directory with the local database
           and config file. It auto-detects which IDEs are present (Cursor, Claude Code,
-          VS Code, Windsurf, Cline, Roo Code, Codex CLI, OpenCode) and generates the appropriate MCP config and rules for each.
+          VS Code, Windsurf, Cline, Roo Code, Codex CLI, OpenCode, Kilo Code) and generates the appropriate MCP config and rules for each.
         </p>
         <div className="mt-4 rounded-lg border border-dracula-current/50 bg-dracula-background p-4">
           <p className="text-sm text-dracula-foreground/70 mb-3">
@@ -588,6 +588,28 @@ args = []`}
       "type": "local",
       "command": ["unforgit-mcp"],
       "enabled": true
+    }
+  }
+}`}
+          />
+        </Subsection>
+
+        <Subsection id="mcp-kilo" title="Kilo Code">
+          <div className="rounded-lg border border-dracula-comment/20 bg-dracula-comment/5 p-4 mb-4">
+            <p className="text-sm text-dracula-foreground/70">
+              <code className="text-dracula-foreground/80">unforgit init --ide kilo-code</code>{" "}
+              creates <code className="text-dracula-foreground/80">.kilocode/mcp.json</code>{" "}
+              and appends Unforgit memory guidance to <code className="text-dracula-foreground/80">AGENTS.md</code>.
+            </p>
+          </div>
+          <Terminal
+            title=".kilocode/mcp.json"
+            language="json"
+            code={`{
+  "mcpServers": {
+    "unforgit": {
+      "command": "unforgit-mcp",
+      "args": []
     }
   }
 }`}
