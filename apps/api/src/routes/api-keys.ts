@@ -21,7 +21,7 @@ export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app.post<{ Body: CreateApiKeyBody }>(
     "/v1/api-keys",
     async (request, reply) => {
-      const { name, orgId } = request.body;
+      const { name, orgId } = request.body ?? {};
 
       if (!name || !orgId) {
         return reply.status(400).send({
