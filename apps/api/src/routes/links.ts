@@ -25,7 +25,7 @@ export async function linkRoutes(
     "/v1/memory/:id/link",
     async (request, reply) => {
       const { id } = request.params;
-      const body = request.body as Record<string, unknown>;
+      const body = (request.body ?? {}) as Record<string, unknown>;
 
       const parsed = createLinkSchema.safeParse({
         sourceId: id,
@@ -55,7 +55,7 @@ export async function linkRoutes(
     "/v1/memory/:id/link",
     async (request, reply) => {
       const { id } = request.params;
-      const body = request.body as Record<string, unknown>;
+      const body = (request.body ?? {}) as Record<string, unknown>;
 
       const targetId = body.targetId as string;
       const linkType = body.linkType as string;
