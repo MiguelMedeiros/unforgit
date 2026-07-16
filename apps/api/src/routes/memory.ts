@@ -4,6 +4,18 @@ import type { RemoteStore } from "unforgit-db";
 import { createMemorySchema } from "unforgit-shared";
 import type { ListQuery } from "unforgit-shared";
 
+function parseIntegerParam(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+): number | undefined {
+  if (value === undefined) return fallback;
+  if (!/^\d+$/.test(value)) return undefined;
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= minimum ? parsed : undefined;
+}
+
 export async function memoryRoutes(
   app: FastifyInstance,
   store: RemoteStore,
@@ -11,6 +23,26 @@ export async function memoryRoutes(
 ): Promise<void> {
   app.get("/v1/memories", async (request, reply) => {
     const query = request.query as Record<string, string>;
+
+    if (!query.orgId || !query.repoId) {
+      return reply.status(400).send({ error: "orgId and repoId are required" });
+    }
+
+    const limit = parseIntegerParam(query.limit, 50, 1);
+    if (limit === undefined) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "limit must be a positive integer",
+      });
+    }
+
+    const offset = parseIntegerParam(query.offset, 0, 0);
+    if (offset === undefined) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "offset must be a non-negative integer",
+      });
+    }
 
     const listQuery: ListQuery = {
       orgId: query.orgId,
@@ -20,15 +52,11 @@ export async function memoryRoutes(
       visibility: query.visibility?.split(",").filter(Boolean) as ListQuery["visibility"],
       tags: query.tags?.split(",").filter(Boolean),
       search: query.search,
-      limit: query.limit ? parseInt(query.limit, 10) : 50,
-      offset: query.offset ? parseInt(query.offset, 10) : 0,
+      limit,
+      offset,
       sortBy: (query.sortBy as ListQuery["sortBy"]) ?? "createdAt",
       sortOrder: (query.sortOrder as ListQuery["sortOrder"]) ?? "desc",
     };
-
-    if (!listQuery.orgId || !listQuery.repoId) {
-      return reply.status(400).send({ error: "orgId and repoId are required" });
-    }
 
     const memories = await store.list(listQuery);
     const total = await store.count(listQuery);
