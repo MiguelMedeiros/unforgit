@@ -92,6 +92,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const body = request.body;
 
+      if (!body) {
+        return reply.status(400).send({ error: "Request body is required" });
+      }
+
       const memory: Memory = {
         id: body.id,
         orgId: body.orgId,
