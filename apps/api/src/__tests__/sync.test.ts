@@ -5,8 +5,10 @@ import { syncRoutes } from "../routes/sync.js";
 
 function buildStore() {
   return {
+    applyTombstone: vi.fn(),
     upsertFromLocal: vi.fn(),
   } as unknown as RemoteStore & {
+    applyTombstone: ReturnType<typeof vi.fn>;
     upsertFromLocal: ReturnType<typeof vi.fn>;
   };
 }
@@ -29,6 +31,21 @@ describe("sync routes", () => {
 
     expect(response.statusCode).toBe(400);
     expect(store.upsertFromLocal).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects a missing tombstone body before calling the store", async () => {
+    const store = buildStore();
+    const app = await buildSyncApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/sync/tombstones",
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(store.applyTombstone).not.toHaveBeenCalled();
 
     await app.close();
   });
