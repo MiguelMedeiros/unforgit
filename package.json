@@ -54,7 +54,9 @@
       "flatted": "3.4.2",
       "micromatch>picomatch": "2.3.2",
       "tinyglobby>picomatch": "4.0.4",
-      "fast-uri": "3.1.2",
+      "fast-uri": "3.1.4",
+      "hono@<4.12.27": "4.12.31",
+      "sharp@<0.35.0": "0.35.3",
       "lodash-es": "4.18.1",
       "vite@>=7.0.0 <=7.3.1": "7.3.5",
       "picomatch@>=4.0.0 <4.0.4": "4.0.4",
@@ -64,7 +66,7 @@
       "brace-expansion@>=3.0.0 <5.0.7": "5.0.7",
       "js-yaml@>=4.0.0 <4.3.0": "4.3.0",
       "body-parser@>=2.0.0 <2.3.0": "2.3.0",
-      "@hono/node-server@<1.19.13": "1.19.13",
+      "@hono/node-server@<2.0.10": "2.0.10",
       "esbuild@>=0.17.0 <0.28.1": "0.28.1",
       "@babel/core@<=7.29.0": "7.29.7"
     }
