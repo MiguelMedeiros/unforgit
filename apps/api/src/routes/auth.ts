@@ -440,10 +440,33 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       });
     }
 
+    if (!repoId) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "repoId is required for user API keys",
+      });
+    }
+
+    const repoAccess = await store.getUserRepoAccess(payload.id);
+    const normalizedOrgId = orgId.toLowerCase();
+    const normalizedRepoId = repoId.toLowerCase();
+    const hasRepoAccess = repoAccess.some(
+      (access) =>
+        access.orgId.toLowerCase() === normalizedOrgId &&
+        access.repoId.toLowerCase() === normalizedRepoId
+    );
+
+    if (!hasRepoAccess) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "Repository access required",
+      });
+    }
+
     const apiKey = await store.createApiKeyForUser(
       name,
       orgId,
-      repoId ?? null,
+      repoId,
       payload.id,
       payload.id,
       label

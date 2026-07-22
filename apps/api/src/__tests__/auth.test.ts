@@ -90,4 +90,118 @@ describe("auth routes", () => {
 
     await app.close();
   });
+
+  it("rejects user API keys scoped to a repository the user cannot access", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      getUserRepoAccess: vi.fn().mockResolvedValue([
+        { orgId: "allowed-org", repoId: "allowed-repo" },
+      ]),
+      createApiKeyForUser: vi.fn(),
+    } as unknown as RemoteStore & {
+      getUserRepoAccess: ReturnType<typeof vi.fn>;
+      createApiKeyForUser: ReturnType<typeof vi.fn>;
+    };
+    const token = await signUserToken();
+    const app = await buildApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/auth/me/keys",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: {
+        name: "unauthorized-key",
+        orgId: "victim-org",
+        repoId: "private-repo",
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      message: "Repository access required",
+    });
+    expect(store.createApiKeyForUser).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects organization-wide user API keys", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      getUserRepoAccess: vi.fn(),
+      createApiKeyForUser: vi.fn(),
+    } as unknown as RemoteStore & {
+      getUserRepoAccess: ReturnType<typeof vi.fn>;
+      createApiKeyForUser: ReturnType<typeof vi.fn>;
+    };
+    const token = await signUserToken();
+    const app = await buildApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/auth/me/keys",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: { name: "org-key", orgId: "allowed-org" },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "repoId is required for user API keys",
+    });
+    expect(store.getUserRepoAccess).not.toHaveBeenCalled();
+    expect(store.createApiKeyForUser).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("creates a user API key for an authorized repository", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      getUserRepoAccess: vi.fn().mockResolvedValue([
+        { orgId: "allowed-org", repoId: "allowed-repo" },
+      ]),
+      createApiKeyForUser: vi.fn().mockResolvedValue({
+        id: "key-id",
+        key: "hk_secret",
+        name: "authorized-key",
+        label: null,
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+      }),
+    } as unknown as RemoteStore & {
+      getUserRepoAccess: ReturnType<typeof vi.fn>;
+      createApiKeyForUser: ReturnType<typeof vi.fn>;
+    };
+    const token = await signUserToken();
+    const app = await buildApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/auth/me/keys",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: {
+        name: "authorized-key",
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(store.createApiKeyForUser).toHaveBeenCalledWith(
+      "authorized-key",
+      "Allowed-Org",
+      "Allowed-Repo",
+      "user-id",
+      "user-id",
+      undefined
+    );
+
+    await app.close();
+  });
 });
