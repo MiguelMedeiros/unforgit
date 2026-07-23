@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.10.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.3...v0.10.0) (2026-07-23)
+
+
+### Features
+
+* add Claude Code plugin marketplace ([5c0cb7e](https://github.com/MiguelMedeiros/unforgit/commit/5c0cb7eec2f1ed1d310086971cb87676522fc205))
+* add Cline Roo Codex OpenCode integrations ([c75bf2e](https://github.com/MiguelMedeiros/unforgit/commit/c75bf2edef6f6cee3da3e0f96fd37df45bda7a4e))
+* add Hermes Unforgit memory skill ([f5d7366](https://github.com/MiguelMedeiros/unforgit/commit/f5d736625ba28d438ff2ddd87f233960de900ab7))
+* **cli:** add Kilo Code integration ([#73](https://github.com/MiguelMedeiros/unforgit/issues/73)) ([2ee0123](https://github.com/MiguelMedeiros/unforgit/commit/2ee01233f6094165631b9f66e54eaa13fcf9fba2))
+
+
+### Bug Fixes
+
+* **api:** reject missing API key request body ([76accde](https://github.com/MiguelMedeiros/unforgit/commit/76accdecf021531f2b12410435a4ee45605766e4))
+* **api:** reject missing link request bodies ([45d569d](https://github.com/MiguelMedeiros/unforgit/commit/45d569d563046e44fe42f6efa413e4a8b22a1099))
+* **api:** reject missing sync push body ([4ab0c00](https://github.com/MiguelMedeiros/unforgit/commit/4ab0c00639dc88c35c14a38d350ab5369c700167))
+* **api:** reject missing tombstone body ([421f5f0](https://github.com/MiguelMedeiros/unforgit/commit/421f5f04954008b5035c6e088451412be7cfcbdd))
+* **api:** validate admin stats query parameters ([846a2d7](https://github.com/MiguelMedeiros/unforgit/commit/846a2d7802fde66bd1183a339ca48ba9920c1ce1))
+* **api:** validate memory pagination parameters ([5c22d93](https://github.com/MiguelMedeiros/unforgit/commit/5c22d930de8e2691e18463d98f6b61f5bc743f17))
+* **auth:** authorize user API key scopes ([608a584](https://github.com/MiguelMedeiros/unforgit/commit/608a584ae5b91f7299d724433b203bca1773d1c7))
+* **deps:** patch newly disclosed security advisories ([#76](https://github.com/MiguelMedeiros/unforgit/issues/76)) ([f33fbb1](https://github.com/MiguelMedeiros/unforgit/commit/f33fbb1f037354eed4da231cc50ed5b42dd797c3))
+* **deps:** patch Next.js security advisories ([#77](https://github.com/MiguelMedeiros/unforgit/issues/77)) ([713a205](https://github.com/MiguelMedeiros/unforgit/commit/713a2050a02f45ed4c79682994d7b6370c8985d5))
+* **deps:** patch security advisories and api runtime ([#75](https://github.com/MiguelMedeiros/unforgit/issues/75)) ([dbeba92](https://github.com/MiguelMedeiros/unforgit/commit/dbeba92b4a850f1fe008b5440651bb07578408cb))
+* **docker:** pin compatible pnpm version ([#74](https://github.com/MiguelMedeiros/unforgit/issues/74)) ([8168712](https://github.com/MiguelMedeiros/unforgit/commit/816871267b92e09b8e60fef48058453eb5294fdb))
+
 ## [0.9.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.2...v0.9.3) (2026-07-08)
 
 
