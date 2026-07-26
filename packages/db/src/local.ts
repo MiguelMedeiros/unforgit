@@ -995,7 +995,7 @@ export class LocalStore {
       });
     }
 
-    if (preserveOriginals) {
+    if (!preserveOriginals) {
       for (const sourceId of sourceIds) {
         this.supersede(sourceId, id);
       }
@@ -1012,7 +1012,7 @@ export class LocalStore {
     return {
       consolidatedId: id,
       version,
-      sourcesPreserved: sourceIds.length,
+      sourcesPreserved: preserveOriginals ? sourceIds.length : 0,
       sourceIds,
     };
   }

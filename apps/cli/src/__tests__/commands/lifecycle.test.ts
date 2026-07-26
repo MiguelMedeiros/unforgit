@@ -62,6 +62,39 @@ describe("lifecycle commands", () => {
     });
   });
 
+  describe("consolidate", () => {
+    it.each([
+      { preserveOriginals: true, expectedStatus: "active", expectedPreserved: 2 },
+      { preserveOriginals: false, expectedStatus: "superseded", expectedPreserved: 0 },
+    ])(
+      "sets source status when preserveOriginals is $preserveOriginals",
+      ({ preserveOriginals, expectedStatus, expectedPreserved }) => {
+        const sources = ["First source", "Second source"].map((text) =>
+          store.store({
+            orgId: "org",
+            repoId: "repo",
+            memoryType: "semantic",
+            text,
+          }),
+        );
+
+        const result = store.consolidateMemories({
+          orgId: "org",
+          repoId: "repo",
+          sourceIds: sources.map(({ id }) => id),
+          consolidatedText: "Combined source",
+          preserveOriginals,
+        });
+
+        expect(result.sourcesPreserved).toBe(expectedPreserved);
+        expect(sources.map(({ id }) => store.getById(id)?.status)).toEqual([
+          expectedStatus,
+          expectedStatus,
+        ]);
+      },
+    );
+  });
+
   describe("soft delete / restore", () => {
     it("soft deletes and restores a memory", () => {
       const memory = store.store({
