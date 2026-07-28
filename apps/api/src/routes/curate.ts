@@ -12,6 +12,11 @@ const lifecycleRunSchema = z.object({
   preserveOriginals: z.boolean().optional(),
 });
 
+const resetSchema = z.object({
+  orgId: z.string().min(1),
+  repoId: z.string().min(1),
+});
+
 export async function curateRoutes(
   app: FastifyInstance,
   store: RemoteStore,
@@ -57,12 +62,23 @@ export async function curateRoutes(
   );
 
   app.post("/v1/memories/reset", async (request, reply) => {
-    const body = request.body as { orgId?: string; repoId?: string } | undefined;
-    if (!body?.orgId || !body?.repoId) {
+    const parsed = resetSchema.safeParse(request.body);
+    if (!parsed.success) {
       return reply.status(400).send({ error: "orgId and repoId are required" });
     }
 
-    const result = await store.resetAll(body.orgId, body.repoId);
+    const { orgId, repoId } = parsed.data;
+    const apiKey = request.apiKey;
+    const orgMatches = apiKey?.orgId.toLowerCase() === orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    const result = await store.resetAll(orgId, repoId);
     return reply.send(result);
   });
 
