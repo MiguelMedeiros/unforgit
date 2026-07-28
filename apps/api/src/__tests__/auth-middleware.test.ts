@@ -24,6 +24,7 @@ describe("auth middleware", () => {
     store.validateApiKey.mockResolvedValue({
       id: "key-id",
       orgId: "org-id",
+      repoId: null,
       name: "test-key",
     });
     const app = await buildProtectedApp(store);

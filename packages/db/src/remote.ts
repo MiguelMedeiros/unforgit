@@ -917,7 +917,7 @@ export class RemoteStore {
     await this.prisma.$disconnect();
   }
 
-  async validateApiKey(key: string): Promise<{ id: string; orgId: string; name: string } | null> {
+  async validateApiKey(key: string): Promise<{ id: string; orgId: string; repoId: string | null; name: string } | null> {
     const apiKey = await this.prisma.apiKey.findUnique({
       where: { key },
     });
@@ -934,6 +934,7 @@ export class RemoteStore {
     return {
       id: apiKey.id,
       orgId: apiKey.orgId,
+      repoId: apiKey.repoId,
       name: apiKey.name,
     };
   }

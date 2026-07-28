@@ -6,6 +6,7 @@ declare module "fastify" {
     apiKey?: {
       id: string;
       orgId: string;
+      repoId: string | null;
       name: string;
     };
   }
