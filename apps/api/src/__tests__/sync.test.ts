@@ -1,15 +1,22 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 import type { RemoteStore } from "unforgit-db";
+import { createAuthMiddleware } from "../middleware/auth.js";
 import { syncRoutes } from "../routes/sync.js";
 
 function buildStore() {
   return {
     applyTombstone: vi.fn(),
+    getById: vi.fn(),
+    hardDelete: vi.fn(),
     upsertFromLocal: vi.fn(),
+    validateApiKey: vi.fn(),
   } as unknown as RemoteStore & {
     applyTombstone: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
+    hardDelete: ReturnType<typeof vi.fn>;
     upsertFromLocal: ReturnType<typeof vi.fn>;
+    validateApiKey: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -46,6 +53,39 @@ describe("sync routes", () => {
 
     expect(response.statusCode).toBe(400);
     expect(store.applyTombstone).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("does not let a repository-scoped API key hard-delete another repository's memory", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-b",
+    });
+    store.hardDelete.mockResolvedValue(true);
+
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/memory/memory-id",
+      headers: { authorization: "Bearer valid-token" },
+      payload: { hardDelete: true },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.hardDelete).not.toHaveBeenCalled();
 
     await app.close();
   });
