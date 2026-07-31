@@ -194,6 +194,22 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { id } = request.params;
       const { deletedBy, hardDelete } = request.body ?? {};
+      const memory = await store.getById(id);
+
+      if (!memory) {
+        return reply.status(404).send({ error: "Memory not found" });
+      }
+
+      const apiKey = request.apiKey;
+      const orgMatches =
+        apiKey?.orgId.toLowerCase() === memory.orgId.toLowerCase();
+      const repoMatches =
+        apiKey?.repoId === null ||
+        apiKey?.repoId.toLowerCase() === memory.repoId.toLowerCase();
+
+      if (!orgMatches || !repoMatches) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
 
       if (hardDelete) {
         const success = await store.hardDelete(id);
