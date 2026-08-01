@@ -1,13 +1,16 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 import type { RemoteStore } from "unforgit-db";
+import { createAuthMiddleware } from "../middleware/auth.js";
 import { apiKeyRoutes } from "../routes/api-keys.js";
 
 function buildStore() {
   return {
     createApiKey: vi.fn(),
+    validateApiKey: vi.fn(),
   } as unknown as RemoteStore & {
     createApiKey: ReturnType<typeof vi.fn>;
+    validateApiKey: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -32,6 +35,63 @@ describe("API key routes", () => {
       error: "Bad Request",
       message: "name and orgId are required",
     });
+    expect(store.createApiKey).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("allows an organization-scoped API key to create a key for its organization", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "org-key-id",
+      orgId: "Org-A",
+      repoId: null,
+      name: "organization-key",
+    });
+    store.createApiKey.mockResolvedValue({
+      id: "created-key-id",
+      key: "hk_created",
+      name: "new-key",
+      orgId: "org-a",
+    });
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await apiKeyRoutes(app, { store });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/api-keys",
+      headers: { authorization: "Bearer valid-token" },
+      payload: { name: "new-key", orgId: "org-a" },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(store.createApiKey).toHaveBeenCalledWith("new-key", "org-a");
+
+    await app.close();
+  });
+
+  it("does not let a repository-scoped API key create an organization key", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "repo-key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "repository-key",
+    });
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await apiKeyRoutes(app, { store });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/api-keys",
+      headers: { authorization: "Bearer valid-token" },
+      payload: { name: "escalated-key", orgId: "org-b" },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
     expect(store.createApiKey).not.toHaveBeenCalled();
 
     await app.close();

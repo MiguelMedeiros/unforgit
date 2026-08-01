@@ -30,6 +30,15 @@ export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
       }
 
+      const callerKey = request.apiKey;
+      const canManageOrgKeys =
+        callerKey?.repoId === null &&
+        callerKey.orgId.toLowerCase() === orgId.toLowerCase();
+
+      if (!canManageOrgKeys) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const apiKey = await store.createApiKey(name, orgId);
 
       return reply.status(201).send({
