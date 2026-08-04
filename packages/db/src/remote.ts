@@ -891,6 +891,10 @@ export class RemoteStore {
 
     const hasConflict = localVersion !== remoteVersion && existing.updatedAt > memory.updatedAt;
 
+    if (hasConflict) {
+      return { action: "skipped", conflict: true };
+    }
+
     await this.prisma.memory.update({
       where: { id: memory.id },
       data: {
@@ -910,7 +914,7 @@ export class RemoteStore {
       },
     });
 
-    return { action: "updated", conflict: hasConflict };
+    return { action: "updated", conflict: false };
   }
 
   async disconnect(): Promise<void> {
