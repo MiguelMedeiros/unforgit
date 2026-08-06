@@ -89,6 +89,15 @@ export async function curateRoutes(
     }
 
     const { orgId, repoId, ...options } = parsed.data;
+    const apiKey = request.apiKey;
+    const orgMatches = apiKey?.orgId.toLowerCase() === orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
 
     try {
       const result = await runRemoteLifecycleMaintenance(
