@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.10.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.3...v0.10.0) (2026-08-07)
+
+
+### Features
+
+* add Claude Code plugin marketplace ([5c0cb7e](https://github.com/MiguelMedeiros/unforgit/commit/5c0cb7eec2f1ed1d310086971cb87676522fc205))
+* add Cline Roo Codex OpenCode integrations ([c75bf2e](https://github.com/MiguelMedeiros/unforgit/commit/c75bf2edef6f6cee3da3e0f96fd37df45bda7a4e))
+* add Hermes Unforgit memory skill ([f5d7366](https://github.com/MiguelMedeiros/unforgit/commit/f5d736625ba28d438ff2ddd87f233960de900ab7))
+* **cli:** add Kilo Code integration ([#73](https://github.com/MiguelMedeiros/unforgit/issues/73)) ([2ee0123](https://github.com/MiguelMedeiros/unforgit/commit/2ee01233f6094165631b9f66e54eaa13fcf9fba2))
+
+
+### Bug Fixes
+
+* **api:** authorize destructive repository reset ([#82](https://github.com/MiguelMedeiros/unforgit/issues/82)) ([6a0e033](https://github.com/MiguelMedeiros/unforgit/commit/6a0e033a67764aab6230de07fb8537aa58f544d7))
+* **api:** authorize lifecycle maintenance ([#86](https://github.com/MiguelMedeiros/unforgit/issues/86)) ([58e7f39](https://github.com/MiguelMedeiros/unforgit/commit/58e7f39d688aecc97272681ac622bc00b148bbcc))
+* **api:** authorize memory deletion ([#83](https://github.com/MiguelMedeiros/unforgit/issues/83)) ([2cc512a](https://github.com/MiguelMedeiros/unforgit/commit/2cc512ae75c36a033676e098038f26a675a61acc))
+* **api:** authorize organization API key creation ([#84](https://github.com/MiguelMedeiros/unforgit/issues/84)) ([d93edc8](https://github.com/MiguelMedeiros/unforgit/commit/d93edc840d2c68d5559e23ca47daae2ca48da96c))
+* **api:** reject missing API key request body ([76accde](https://github.com/MiguelMedeiros/unforgit/commit/76accdecf021531f2b12410435a4ee45605766e4))
+* **api:** reject missing link request bodies ([45d569d](https://github.com/MiguelMedeiros/unforgit/commit/45d569d563046e44fe42f6efa413e4a8b22a1099))
+* **api:** reject missing sync push body ([4ab0c00](https://github.com/MiguelMedeiros/unforgit/commit/4ab0c00639dc88c35c14a38d350ab5369c700167))
+* **api:** reject missing tombstone body ([421f5f0](https://github.com/MiguelMedeiros/unforgit/commit/421f5f04954008b5035c6e088451412be7cfcbdd))
+* **api:** validate admin stats query parameters ([846a2d7](https://github.com/MiguelMedeiros/unforgit/commit/846a2d7802fde66bd1183a339ca48ba9920c1ce1))
+* **api:** validate memory pagination parameters ([5c22d93](https://github.com/MiguelMedeiros/unforgit/commit/5c22d930de8e2691e18463d98f6b61f5bc743f17))
+* **auth:** authorize user API key scopes ([608a584](https://github.com/MiguelMedeiros/unforgit/commit/608a584ae5b91f7299d724433b203bca1773d1c7))
+* **deps:** patch brace expansion memory DoS ([#81](https://github.com/MiguelMedeiros/unforgit/issues/81)) ([155bd5f](https://github.com/MiguelMedeiros/unforgit/commit/155bd5f2be6f6d60def199dd659968e72706d5bf))
+* **deps:** patch find-my-way HTTP/2 DoS ([#78](https://github.com/MiguelMedeiros/unforgit/issues/78)) ([462766b](https://github.com/MiguelMedeiros/unforgit/commit/462766be9c689118fea9bef883281a4041ea1b82))
+* **deps:** patch js-yaml ordered-map DoS ([#87](https://github.com/MiguelMedeiros/unforgit/issues/87)) ([2323122](https://github.com/MiguelMedeiros/unforgit/commit/23231229071e4178aeb4811546cdd1ff5614d035))
+* **deps:** patch newly disclosed security advisories ([#76](https://github.com/MiguelMedeiros/unforgit/issues/76)) ([f33fbb1](https://github.com/MiguelMedeiros/unforgit/commit/f33fbb1f037354eed4da231cc50ed5b42dd797c3))
+* **deps:** patch Next.js security advisories ([#77](https://github.com/MiguelMedeiros/unforgit/issues/77)) ([713a205](https://github.com/MiguelMedeiros/unforgit/commit/713a2050a02f45ed4c79682994d7b6370c8985d5))
+* **deps:** patch PostCSS source map disclosure ([#79](https://github.com/MiguelMedeiros/unforgit/issues/79)) ([c0a987d](https://github.com/MiguelMedeiros/unforgit/commit/c0a987ddf4b5e7c1c9e0ac158f32aa7c378eebe6))
+* **deps:** patch security advisories and api runtime ([#75](https://github.com/MiguelMedeiros/unforgit/issues/75)) ([dbeba92](https://github.com/MiguelMedeiros/unforgit/commit/dbeba92b4a850f1fe008b5440651bb07578408cb))
+* **docker:** pin compatible pnpm version ([#74](https://github.com/MiguelMedeiros/unforgit/issues/74)) ([8168712](https://github.com/MiguelMedeiros/unforgit/commit/816871267b92e09b8e60fef48058453eb5294fdb))
+* preserve consolidation sources and patch advisories ([#80](https://github.com/MiguelMedeiros/unforgit/issues/80)) ([544bbf8](https://github.com/MiguelMedeiros/unforgit/commit/544bbf8a90432fa74aa44a2a03f87be5fd00dfc2))
+* preserve sync conflicts and patch advisories ([#85](https://github.com/MiguelMedeiros/unforgit/issues/85)) ([e1cbef1](https://github.com/MiguelMedeiros/unforgit/commit/e1cbef117b39ebb49161588ea6d4cc2934893e1d))
+
 ## [0.9.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.2...v0.9.3) (2026-07-08)
 
 
