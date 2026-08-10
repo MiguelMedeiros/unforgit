@@ -14,6 +14,15 @@ export async function consolidateRoutes(
 
     const { orgId, repoId, source, lastN } = parsed.data;
     const window = parsed.data.window;
+    const apiKey = request.apiKey;
+    const orgMatches = apiKey?.orgId.toLowerCase() === orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
 
     const recentMemories = await store.recall({
       orgId,
