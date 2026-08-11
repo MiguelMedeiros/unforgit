@@ -28,6 +28,16 @@ export async function memoryRoutes(
       return reply.status(400).send({ error: "orgId and repoId are required" });
     }
 
+    const apiKey = request.apiKey;
+    const orgMatches = apiKey?.orgId.toLowerCase() === query.orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === query.repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
     const limit = parseIntegerParam(query.limit, 50, 1);
     if (limit === undefined) {
       return reply.status(400).send({
@@ -69,6 +79,18 @@ export async function memoryRoutes(
     if (!memory) {
       return reply.status(404).send({ error: "Memory not found" });
     }
+
+    const apiKey = request.apiKey;
+    const orgMatches =
+      apiKey?.orgId.toLowerCase() === memory.orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === memory.repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
     return reply.send({ memory });
   });
 
