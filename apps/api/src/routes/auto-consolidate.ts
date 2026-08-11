@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { RemoteStore } from "unforgit-db";
 import {
@@ -44,6 +44,19 @@ const executeGroupSchema = z.object({
   model: z.string().optional(),
 });
 
+function hasRepositoryAccess(
+  apiKey: FastifyRequest["apiKey"],
+  orgId: string,
+  repoId: string
+): boolean {
+  const orgMatches = apiKey?.orgId.toLowerCase() === orgId.toLowerCase();
+  const repoMatches =
+    apiKey?.repoId === null ||
+    apiKey?.repoId.toLowerCase() === repoId.toLowerCase();
+
+  return orgMatches && repoMatches;
+}
+
 export async function autoConsolidateRoutes(
   app: FastifyInstance,
   store: RemoteStore
@@ -55,6 +68,10 @@ export async function autoConsolidateRoutes(
     }
 
     const { orgId, repoId, ...options } = parsed.data;
+
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
 
     try {
       const result = await findConsolidationCandidatesRemote(
@@ -94,19 +111,23 @@ export async function autoConsolidateRoutes(
   });
 
   app.post("/v1/auto-consolidate", async (request, reply) => {
-    if (!isOpenAIConfigured()) {
-      return reply.status(503).send({
-        error: "OpenAI API key not configured on server",
-        hint: "Set OPENAI_API_KEY environment variable for LLM-powered consolidation",
-      });
-    }
-
     const parsed = executeSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues });
     }
 
     const { orgId, repoId, model, preserveOriginals, ...options } = parsed.data;
+
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    if (!isOpenAIConfigured()) {
+      return reply.status(503).send({
+        error: "OpenAI API key not configured on server",
+        hint: "Set OPENAI_API_KEY environment variable for LLM-powered consolidation",
+      });
+    }
 
     try {
       const result = await autoConsolidateRemote(store, orgId, repoId, {
@@ -139,13 +160,6 @@ export async function autoConsolidateRoutes(
   });
 
   app.post("/v1/auto-consolidate/execute", async (request, reply) => {
-    if (!isOpenAIConfigured()) {
-      return reply.status(503).send({
-        error: "OpenAI API key not configured on server",
-        hint: "Set OPENAI_API_KEY environment variable for LLM-powered consolidation",
-      });
-    }
-
     const parsed = executeGroupSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues });
@@ -153,10 +167,25 @@ export async function autoConsolidateRoutes(
 
     const { orgId, repoId, sourceIds, preserveOriginals, model } = parsed.data;
 
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    if (!isOpenAIConfigured()) {
+      return reply.status(503).send({
+        error: "OpenAI API key not configured on server",
+        hint: "Set OPENAI_API_KEY environment variable for LLM-powered consolidation",
+      });
+    }
+
     const memories = [];
     for (const id of sourceIds) {
       const memory = await store.getById(id);
-      if (!memory) {
+      if (
+        !memory ||
+        memory.orgId.toLowerCase() !== orgId.toLowerCase() ||
+        memory.repoId.toLowerCase() !== repoId.toLowerCase()
+      ) {
         return reply.status(404).send({ error: `Memory not found: ${id}` });
       }
       memories.push(memory);
