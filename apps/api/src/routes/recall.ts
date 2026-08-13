@@ -16,6 +16,16 @@ export async function recallRoutes(
     }
 
     const query = parsed.data;
+    const apiKey = request.apiKey;
+    const orgMatches = apiKey?.orgId.toLowerCase() === query.orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === query.repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
     let queryEmbedding: number[] | undefined;
 
     if (isOpenAIConfigured() && query.query) {
