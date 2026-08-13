@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { RemoteStore } from "unforgit-db";
 import type { Memory, Tombstone } from "unforgit-shared";
 
@@ -38,6 +38,19 @@ interface PushBody {
   updatedAt: string;
 }
 
+function hasApiKeyScope(
+  request: FastifyRequest,
+  orgId: string,
+  repoId: string,
+): boolean {
+  const apiKey = request.apiKey;
+  return Boolean(
+    apiKey?.orgId.toLowerCase() === orgId.toLowerCase() &&
+    (apiKey.repoId === null ||
+      apiKey.repoId.toLowerCase() === repoId.toLowerCase()),
+  );
+}
+
 export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
@@ -49,6 +62,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
       if (!orgId || !repoId) {
         return reply.status(400).send({ error: "orgId and repoId are required" });
+      }
+
+      if (!hasApiKeyScope(request, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       let memories: Memory[];
@@ -94,6 +111,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
       if (!body) {
         return reply.status(400).send({ error: "Request body is required" });
+      }
+
+      if (!hasApiKeyScope(request, body.orgId, body.repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const memory: Memory = {
@@ -145,6 +166,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(400).send({ error: "orgId and repoId are required" });
       }
 
+      if (!hasApiKeyScope(request, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const tombstones = since
         ? await store.getTombstones(orgId, repoId, new Date(since))
         : await store.getUnsyncedTombstones(orgId, repoId);
@@ -168,6 +193,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
       if (!body) {
         return reply.status(400).send({ error: "Request body is required" });
+      }
+
+      if (!hasApiKeyScope(request, body.orgId, body.repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const tombstone: Tombstone = {
@@ -200,14 +229,7 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(404).send({ error: "Memory not found" });
       }
 
-      const apiKey = request.apiKey;
-      const orgMatches =
-        apiKey?.orgId.toLowerCase() === memory.orgId.toLowerCase();
-      const repoMatches =
-        apiKey?.repoId === null ||
-        apiKey?.repoId.toLowerCase() === memory.repoId.toLowerCase();
-
-      if (!orgMatches || !repoMatches) {
+      if (!hasApiKeyScope(request, memory.orgId, memory.repoId)) {
         return reply.status(403).send({ error: "Forbidden" });
       }
 
@@ -233,6 +255,15 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { id } = request.params;
 
+      const memory = await store.getById(id);
+      if (!memory) {
+        return reply.status(404).send({ error: "Memory not found or not deleted" });
+      }
+
+      if (!hasApiKeyScope(request, memory.orgId, memory.repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const success = await store.restore(id);
       if (success) {
         return reply.send({ success: true });
@@ -249,6 +280,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
       if (!orgId || !repoId) {
         return reply.status(400).send({ error: "orgId and repoId are required" });
+      }
+
+      if (!hasApiKeyScope(request, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const links = await store.getAllLinks(orgId, repoId);
