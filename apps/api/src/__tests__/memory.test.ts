@@ -9,6 +9,7 @@ function buildStore() {
     list: vi.fn(),
     count: vi.fn(),
     getById: vi.fn(),
+    store: vi.fn(),
     validateApiKey: vi.fn().mockResolvedValue({
       id: "key-id",
       orgId: "org",
@@ -19,6 +20,7 @@ function buildStore() {
     list: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
+    store: ReturnType<typeof vi.fn>;
     validateApiKey: ReturnType<typeof vi.fn>;
   };
 }
@@ -103,6 +105,35 @@ describe("memory routes", () => {
     expect(response.json()).toEqual({ error: "Forbidden" });
     expect(store.list).not.toHaveBeenCalled();
     expect(store.count).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("does not let a repository-scoped API key create a memory in another repository", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    const app = await buildMemoryApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/memory",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        orgId: "org-a",
+        repoId: "repo-b",
+        text: "unauthorized memory",
+        memoryType: "semantic",
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.store).not.toHaveBeenCalled();
 
     await app.close();
   });
