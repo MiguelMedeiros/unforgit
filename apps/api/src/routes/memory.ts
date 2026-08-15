@@ -100,6 +100,17 @@ export async function memoryRoutes(
       return reply.status(400).send({ error: parsed.error.issues });
     }
 
+    const apiKey = request.apiKey;
+    const orgMatches =
+      apiKey?.orgId.toLowerCase() === parsed.data.orgId.toLowerCase();
+    const repoMatches =
+      apiKey?.repoId === null ||
+      apiKey?.repoId.toLowerCase() === parsed.data.repoId.toLowerCase();
+
+    if (!orgMatches || !repoMatches) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
     const memory = await store.store(applyLifecycleDefaults(parsed.data));
     scheduleLifecycle?.(parsed.data.orgId, parsed.data.repoId);
 
