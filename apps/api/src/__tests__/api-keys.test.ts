@@ -7,9 +7,13 @@ import { apiKeyRoutes } from "../routes/api-keys.js";
 function buildStore() {
   return {
     createApiKey: vi.fn(),
+    listApiKeys: vi.fn().mockResolvedValue([]),
+    revokeApiKey: vi.fn(),
     validateApiKey: vi.fn(),
   } as unknown as RemoteStore & {
     createApiKey: ReturnType<typeof vi.fn>;
+    listApiKeys: ReturnType<typeof vi.fn>;
+    revokeApiKey: ReturnType<typeof vi.fn>;
     validateApiKey: ReturnType<typeof vi.fn>;
   };
 }
@@ -93,6 +97,59 @@ describe("API key routes", () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({ error: "Forbidden" });
     expect(store.createApiKey).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("does not let an organization key list another organization's keys", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "org-key-id",
+      orgId: "org-a",
+      repoId: null,
+      name: "organization-key",
+    });
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await apiKeyRoutes(app, { store });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/api-keys?orgId=org-b",
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.listApiKeys).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("does not let an organization key revoke another organization's key", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "org-key-id",
+      orgId: "org-a",
+      repoId: null,
+      name: "organization-key",
+    });
+    store.listApiKeys.mockResolvedValue([
+      { id: "org-a-key-id", orgId: "org-a" },
+    ]);
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await apiKeyRoutes(app, { store });
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/api-keys/org-b-key-id",
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(store.listApiKeys).toHaveBeenCalledWith("org-a");
+    expect(store.revokeApiKey).not.toHaveBeenCalled();
 
     await app.close();
   });
