@@ -1,7 +1,16 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { RemoteStore } from "unforgit-db";
 import { createLinkSchema, linkTypeSchema } from "unforgit-shared";
-import type { LinkType } from "unforgit-shared";
+import type { LinkType, Memory } from "unforgit-shared";
+
+function hasApiKeyScope(request: FastifyRequest, memory: Memory): boolean {
+  const apiKey = request.apiKey;
+  return Boolean(
+    apiKey?.orgId.toLowerCase() === memory.orgId.toLowerCase() &&
+    (apiKey.repoId === null ||
+      apiKey.repoId.toLowerCase() === memory.repoId.toLowerCase()),
+  );
+}
 
 export async function linkRoutes(
   app: FastifyInstance,
@@ -14,6 +23,16 @@ export async function linkRoutes(
 
       if (!orgId || !repoId) {
         return reply.status(400).send({ error: "orgId and repoId are required" });
+      }
+
+      const apiKey = request.apiKey;
+      const orgMatches = apiKey?.orgId.toLowerCase() === orgId.toLowerCase();
+      const repoMatches =
+        apiKey?.repoId === null ||
+        apiKey?.repoId.toLowerCase() === repoId.toLowerCase();
+
+      if (!orgMatches || !repoMatches) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const links = await store.getAllLinks(orgId, repoId);
@@ -36,6 +55,17 @@ export async function linkRoutes(
 
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.issues });
+      }
+
+      const [source, target] = await Promise.all([
+        store.getById(parsed.data.sourceId),
+        store.getById(parsed.data.targetId),
+      ]);
+      if (!source || !target) {
+        return reply.status(404).send({ error: "Memory not found" });
+      }
+      if (!hasApiKeyScope(request, source) || !hasApiKeyScope(request, target)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       try {
@@ -71,6 +101,17 @@ export async function linkRoutes(
         return reply.status(400).send({ error: typeCheck.error.issues });
       }
 
+      const [source, target] = await Promise.all([
+        store.getById(id),
+        store.getById(targetId),
+      ]);
+      if (!source || !target) {
+        return reply.status(404).send({ error: "Memory not found" });
+      }
+      if (!hasApiKeyScope(request, source) || !hasApiKeyScope(request, target)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const ok = await store.unlink(id, targetId, linkType);
       if (!ok) return reply.status(404).send({ error: "Link not found" });
       return reply.send({ ok: true });
@@ -88,6 +129,14 @@ export async function linkRoutes(
         if (!typeCheck.success) {
           return reply.status(400).send({ error: typeCheck.error.issues });
         }
+      }
+
+      const memory = await store.getById(id);
+      if (!memory) {
+        return reply.status(404).send({ error: "Memory not found" });
+      }
+      if (!hasApiKeyScope(request, memory)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const links = await store.getLinks({
