@@ -14,6 +14,16 @@ interface ListApiKeysQuery {
   orgId?: string;
 }
 
+function canManageOrgKeys(
+  apiKey: { orgId: string; repoId: string | null } | undefined,
+  orgId: string,
+): boolean {
+  return Boolean(
+    apiKey?.repoId === null &&
+      apiKey.orgId.toLowerCase() === orgId.toLowerCase(),
+  );
+}
+
 export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
@@ -30,12 +40,7 @@ export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
       }
 
-      const callerKey = request.apiKey;
-      const canManageOrgKeys =
-        callerKey?.repoId === null &&
-        callerKey.orgId.toLowerCase() === orgId.toLowerCase();
-
-      if (!canManageOrgKeys) {
+      if (!canManageOrgKeys(request.apiKey, orgId)) {
         return reply.status(403).send({ error: "Forbidden" });
       }
 
@@ -56,7 +61,18 @@ export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { orgId } = request.query;
 
-      const keys = await store.listApiKeys(orgId);
+      const callerKey = request.apiKey;
+      const callerOrgId = callerKey?.orgId;
+      const requestedOrgId = orgId ?? callerOrgId;
+      if (
+        !callerOrgId ||
+        !requestedOrgId ||
+        !canManageOrgKeys(callerKey, requestedOrgId)
+      ) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
+      const keys = await store.listApiKeys(callerOrgId);
 
       return reply.send({
         keys: keys.map((k) => ({
@@ -75,6 +91,19 @@ export const apiKeyRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/api-keys/:id",
     async (request, reply) => {
       const { id } = request.params;
+
+      const callerKey = request.apiKey;
+      if (!callerKey || !canManageOrgKeys(callerKey, callerKey.orgId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
+      const organizationKeys = await store.listApiKeys(callerKey.orgId);
+      if (!organizationKeys.some((key) => key.id === id)) {
+        return reply.status(404).send({
+          error: "Not Found",
+          message: "API key not found",
+        });
+      }
 
       const success = await store.revokeApiKey(id);
 
