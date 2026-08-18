@@ -70,7 +70,8 @@
       "@hono/node-server@<2.0.10": "2.0.10",
       "esbuild@>=0.17.0 <0.28.1": "0.28.1",
       "@babel/core@<=7.29.0": "7.29.7",
-      "nanoid@<3.3.18": "3.3.18"
+      "nanoid@<3.3.18": "3.3.18",
+      "deepmerge-ts@<8.0.0": "8.0.1"
     },
     "patchedDependencies": {
       "minimatch@3.1.5": "patches/minimatch@3.1.5.patch"
