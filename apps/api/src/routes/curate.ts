@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { runRemoteLifecycleMaintenance } from "unforgit-core";
 import { deprecateSchema, supersedeSchema } from "unforgit-shared";
@@ -17,6 +17,19 @@ const resetSchema = z.object({
   repoId: z.string().min(1),
 });
 
+function hasMemoryAccess(
+  apiKey: FastifyRequest["apiKey"],
+  memory: { orgId: string; repoId: string },
+): boolean {
+  const orgMatches =
+    apiKey?.orgId.toLowerCase() === memory.orgId.toLowerCase();
+  const repoMatches =
+    apiKey?.repoId === null ||
+    apiKey?.repoId.toLowerCase() === memory.repoId.toLowerCase();
+
+  return orgMatches && repoMatches;
+}
+
 export async function curateRoutes(
   app: FastifyInstance,
   store: RemoteStore,
@@ -28,6 +41,12 @@ export async function curateRoutes(
       const parsed = deprecateSchema.safeParse(request.body ?? {});
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.issues });
+      }
+
+      const memory = await store.getById(id);
+      if (!memory) return reply.status(404).send({ error: "Memory not found" });
+      if (!hasMemoryAccess(request.apiKey, memory)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const ok = await store.deprecate(id, parsed.data.reason);
@@ -45,6 +64,20 @@ export async function curateRoutes(
         return reply.status(400).send({ error: parsed.error.issues });
       }
 
+      const [oldMemory, newMemory] = await Promise.all([
+        store.getById(id),
+        store.getById(parsed.data.newId),
+      ]);
+      if (!oldMemory || !newMemory) {
+        return reply.status(404).send({ error: "Memory not found" });
+      }
+      if (
+        !hasMemoryAccess(request.apiKey, oldMemory) ||
+        !hasMemoryAccess(request.apiKey, newMemory)
+      ) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const ok = await store.supersede(id, parsed.data.newId);
       if (!ok) return reply.status(404).send({ error: "Memory not found" });
       return reply.send({ ok: true });
@@ -55,6 +88,12 @@ export async function curateRoutes(
     "/v1/memory/:id/pin",
     async (request, reply) => {
       const { id } = request.params;
+      const memory = await store.getById(id);
+      if (!memory) return reply.status(404).send({ error: "Memory not found" });
+      if (!hasMemoryAccess(request.apiKey, memory)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const ok = await store.pin(id);
       if (!ok) return reply.status(404).send({ error: "Memory not found" });
       return reply.send({ ok: true });
