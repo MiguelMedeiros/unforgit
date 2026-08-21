@@ -199,6 +199,11 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(403).send({ error: "Forbidden" });
       }
 
+      const memory = await store.getById(body.memoryId);
+      if (memory && !hasApiKeyScope(request, memory.orgId, memory.repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const tombstone: Tombstone = {
         id: crypto.randomUUID(),
         memoryId: body.memoryId,
