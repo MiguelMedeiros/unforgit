@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { RemoteStore } from "unforgit-db";
 import { findConsolidationCandidatesRemote } from "unforgit-core";
+import { hasRepositoryAccess } from "./authorization.js";
 
 interface Suggestion {
   type:
@@ -37,6 +38,10 @@ export async function suggestionsRoutes(
     }
 
     const { orgId, repoId, limit } = parsed.data;
+
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
 
     const suggestions: Suggestion[] = [];
 

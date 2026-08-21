@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { RemoteStore } from "unforgit-db";
+import { hasRepositoryAccess } from "./authorization.js";
 
 interface StatsQuery {
   orgId: string;
@@ -70,6 +71,10 @@ export async function statsRoutes(
         });
       }
 
+      if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const stats = await store.stats(orgId, repoId);
 
       return reply.send({
@@ -89,6 +94,10 @@ export async function statsRoutes(
           error: "Bad Request",
           message: "orgId and repoId are required",
         });
+      }
+
+      if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const days = parsePositiveIntegerParam(daysStr, 365);
@@ -126,6 +135,10 @@ export async function statsRoutes(
           error: "Bad Request",
           message: "orgId and repoId are required",
         });
+      }
+
+      if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
       }
 
       const limit = parsePositiveIntegerParam(limitStr, 20);

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { RemoteStore } from "unforgit-db";
 import { isOpenAIConfigured } from "unforgit-core";
+import { hasRepositoryAccess } from "./authorization.js";
 
 const healthQuerySchema = z.object({
   orgId: z.string(),
@@ -47,6 +48,10 @@ export async function healthRoutes(
     }
 
     const { orgId, repoId } = parsed.data;
+
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
 
     const [stats, embeddingStats, usageStats, activeMemories] = await Promise.all([
       store.stats(orgId, repoId),

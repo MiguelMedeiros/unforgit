@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 import type { RemoteStore } from "unforgit-db";
+import { createAuthMiddleware } from "../middleware/auth.js";
 import { statsRoutes } from "../routes/stats.js";
 
 function buildStore() {
@@ -10,6 +11,12 @@ function buildStore() {
     weeklyTrend: vi.fn(),
     topTags: vi.fn(),
     stats: vi.fn(),
+    validateApiKey: vi.fn().mockResolvedValue({
+      id: "key-id",
+      orgId: "org",
+      repoId: "repo",
+      name: "test-key",
+    }),
   } as unknown as RemoteStore & {
     dailyCounts: ReturnType<typeof vi.fn>;
     hourlyCounts: ReturnType<typeof vi.fn>;
@@ -21,6 +28,7 @@ function buildStore() {
 
 async function buildStatsApp(store: RemoteStore) {
   const app = Fastify();
+  app.addHook("onRequest", createAuthMiddleware(store));
   await statsRoutes(app, store);
   return app;
 }
@@ -33,6 +41,7 @@ describe("stats routes", () => {
     const response = await app.inject({
       method: "GET",
       url: "/v1/stats/activity?orgId=org&repoId=repo&days=not-a-number",
+      headers: { authorization: "Bearer valid-token" },
     });
 
     expect(response.statusCode).toBe(400);
@@ -54,6 +63,7 @@ describe("stats routes", () => {
     const response = await app.inject({
       method: "GET",
       url: "/v1/stats/tags?orgId=org&repoId=repo&limit=0",
+      headers: { authorization: "Bearer valid-token" },
     });
 
     expect(response.statusCode).toBe(400);
@@ -61,6 +71,29 @@ describe("stats routes", () => {
       error: "Bad Request",
       message: "limit must be a positive integer",
     });
+    expect(store.topTags).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it.each([
+    ["overview", "/v1/stats?orgId=org&repoId=other"],
+    ["activity", "/v1/stats/activity?orgId=org&repoId=other"],
+    ["tags", "/v1/stats/tags?orgId=org&repoId=other"],
+  ])("does not expose %s for another repository", async (_name, url) => {
+    const store = buildStore();
+    const app = await buildStatsApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url,
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.stats).not.toHaveBeenCalled();
+    expect(store.dailyCounts).not.toHaveBeenCalled();
     expect(store.topTags).not.toHaveBeenCalled();
 
     await app.close();

@@ -2,6 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { RemoteStore } from "unforgit-db";
 import { isOpenAIConfigured } from "unforgit-core";
+import {
+  hasMemoryAccess,
+  hasRepositoryAccess,
+} from "./authorization.js";
 
 const backfillSchema = z.object({
   orgId: z.string(),
@@ -15,18 +19,22 @@ export async function embeddingRoutes(
   store: RemoteStore
 ): Promise<void> {
   app.post("/v1/embeddings/generate/:memoryId", async (request, reply) => {
-    if (!isOpenAIConfigured()) {
-      return reply.status(503).send({
-        error: "OpenAI API key not configured on server",
-        hint: "Set OPENAI_API_KEY environment variable on the server",
-      });
-    }
-
     const { memoryId } = request.params as { memoryId: string };
 
     const memory = await store.getById(memoryId);
     if (!memory) {
       return reply.status(404).send({ error: "Memory not found" });
+    }
+
+    if (!hasMemoryAccess(request.apiKey, memory)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    if (!isOpenAIConfigured()) {
+      return reply.status(503).send({
+        error: "OpenAI API key not configured on server",
+        hint: "Set OPENAI_API_KEY environment variable on the server",
+      });
     }
 
     const hasExisting = await store.hasEmbedding(memoryId);
@@ -54,19 +62,23 @@ export async function embeddingRoutes(
   });
 
   app.post("/v1/embeddings/backfill", async (request, reply) => {
-    if (!isOpenAIConfigured()) {
-      return reply.status(503).send({
-        error: "OpenAI API key not configured on server",
-        hint: "Set OPENAI_API_KEY environment variable on the server",
-      });
-    }
-
     const parsed = backfillSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues });
     }
 
     const { orgId, repoId, batchSize, limit } = parsed.data;
+
+    if (!hasRepositoryAccess(request.apiKey, orgId, repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    if (!isOpenAIConfigured()) {
+      return reply.status(503).send({
+        error: "OpenAI API key not configured on server",
+        hint: "Set OPENAI_API_KEY environment variable on the server",
+      });
+    }
 
     const memories = await store.getMemoriesWithoutEmbeddings(orgId, repoId);
     const toProcess = limit ? memories.slice(0, limit) : memories;
@@ -122,6 +134,10 @@ export async function embeddingRoutes(
       return reply.status(400).send({
         error: "Missing required query parameters: orgId, repoId",
       });
+    }
+
+    if (!hasRepositoryAccess(request.apiKey, query.orgId, query.repoId)) {
+      return reply.status(403).send({ error: "Forbidden" });
     }
 
     const stats = await store.getEmbeddingStats(query.orgId, query.repoId);
