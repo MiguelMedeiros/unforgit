@@ -98,6 +98,43 @@ describe("sync routes", () => {
     await app.close();
   });
 
+  it("does not let a repository-scoped API key tombstone another repository's memory", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-b",
+    });
+
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/sync/tombstones",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        memoryId: "memory-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        deletedAt: new Date().toISOString(),
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.applyTombstone).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
   it.each([
     ["/v1/sync/pull?orgId=org-a&repoId=repo-b", "list"],
     ["/v1/sync/tombstones?orgId=org-a&repoId=repo-b", "getUnsyncedTombstones"],
