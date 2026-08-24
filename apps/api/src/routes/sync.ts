@@ -51,6 +51,23 @@ function hasApiKeyScope(
   );
 }
 
+function parseDate(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function hasRequiredStrings(
+  value: object,
+  fields: readonly string[],
+): boolean {
+  const record = value as Record<string, unknown>;
+  return fields.every(
+    (field) => typeof record[field] === "string" && record[field].length > 0,
+  );
+}
+
 export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
@@ -64,13 +81,18 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(400).send({ error: "orgId and repoId are required" });
       }
 
+      const sinceDate = since ? parseDate(since) : undefined;
+      if (since && !sinceDate) {
+        return reply.status(400).send({ error: "since must be a valid date" });
+      }
+
       if (!hasApiKeyScope(request, orgId, repoId)) {
         return reply.status(403).send({ error: "Forbidden" });
       }
 
       let memories: Memory[];
-      if (since) {
-        memories = await store.getModifiedSince(orgId, repoId, new Date(since));
+      if (sinceDate) {
+        memories = await store.getModifiedSince(orgId, repoId, sinceDate);
       } else {
         memories = await store.list({
           orgId,
@@ -109,12 +131,35 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const body = request.body;
 
-      if (!body) {
-        return reply.status(400).send({ error: "Request body is required" });
+      if (!body || !hasRequiredStrings(body, ["orgId", "repoId"])) {
+        return reply.status(400).send({ error: "Invalid sync push body" });
       }
 
       if (!hasApiKeyScope(request, body.orgId, body.repoId)) {
         return reply.status(403).send({ error: "Forbidden" });
+      }
+
+      if (
+        !hasRequiredStrings(body, [
+          "id",
+          "memoryType",
+          "visibility",
+          "status",
+          "text",
+          "createdAt",
+          "updatedAt",
+        ])
+      ) {
+        return reply.status(400).send({ error: "Invalid sync push body" });
+      }
+
+      const createdAt = parseDate(body.createdAt);
+      const updatedAt = parseDate(body.updatedAt);
+      const deletedAt = body.deletedAt ? parseDate(body.deletedAt) : undefined;
+      if (!createdAt || !updatedAt || (body.deletedAt && !deletedAt)) {
+        return reply.status(400).send({
+          error: "createdAt, updatedAt, and deletedAt must be valid dates",
+        });
       }
 
       const existing = await store.getById(body.id);
@@ -138,10 +183,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         ttlSeconds: body.ttlSeconds,
         supersedesId: body.supersedesId,
         version: body.version ?? 1,
-        deletedAt: body.deletedAt ? new Date(body.deletedAt) : undefined,
+        deletedAt,
         deletedBy: body.deletedBy,
-        createdAt: new Date(body.createdAt),
-        updatedAt: new Date(body.updatedAt),
+        createdAt,
+        updatedAt,
       };
 
       const result = await store.upsertFromLocal(memory);
@@ -171,12 +216,17 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(400).send({ error: "orgId and repoId are required" });
       }
 
+      const sinceDate = since ? parseDate(since) : undefined;
+      if (since && !sinceDate) {
+        return reply.status(400).send({ error: "since must be a valid date" });
+      }
+
       if (!hasApiKeyScope(request, orgId, repoId)) {
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      const tombstones = since
-        ? await store.getTombstones(orgId, repoId, new Date(since))
+      const tombstones = sinceDate
+        ? await store.getTombstones(orgId, repoId, sinceDate)
         : await store.getUnsyncedTombstones(orgId, repoId);
 
       return reply.send(tombstones.map((t) => ({
@@ -196,12 +246,21 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const body = request.body;
 
-      if (!body) {
-        return reply.status(400).send({ error: "Request body is required" });
+      if (!body || !hasRequiredStrings(body, ["orgId", "repoId"])) {
+        return reply.status(400).send({ error: "Invalid tombstone body" });
       }
 
       if (!hasApiKeyScope(request, body.orgId, body.repoId)) {
         return reply.status(403).send({ error: "Forbidden" });
+      }
+
+      if (!hasRequiredStrings(body, ["memoryId", "deletedAt"])) {
+        return reply.status(400).send({ error: "Invalid tombstone body" });
+      }
+
+      const deletedAt = parseDate(body.deletedAt);
+      if (!deletedAt) {
+        return reply.status(400).send({ error: "deletedAt must be a valid date" });
       }
 
       const memory = await store.getById(body.memoryId);
@@ -214,7 +273,7 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         memoryId: body.memoryId,
         orgId: body.orgId,
         repoId: body.repoId,
-        deletedAt: new Date(body.deletedAt),
+        deletedAt,
         deletedBy: body.deletedBy,
       };
 
