@@ -117,6 +117,11 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(403).send({ error: "Forbidden" });
       }
 
+      const existing = await store.getById(body.id);
+      if (existing && !hasApiKeyScope(request, existing.orgId, existing.repoId)) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
       const memory: Memory = {
         id: body.id,
         orgId: body.orgId,
