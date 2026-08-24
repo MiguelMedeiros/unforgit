@@ -9,6 +9,8 @@ function buildStore() {
     applyTombstone: vi.fn(),
     getAllLinks: vi.fn(),
     getById: vi.fn(),
+    getModifiedSince: vi.fn(),
+    getTombstones: vi.fn(),
     getUnsyncedTombstones: vi.fn(),
     hardDelete: vi.fn(),
     list: vi.fn(),
@@ -19,6 +21,8 @@ function buildStore() {
     applyTombstone: ReturnType<typeof vi.fn>;
     getAllLinks: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
+    getModifiedSince: ReturnType<typeof vi.fn>;
+    getTombstones: ReturnType<typeof vi.fn>;
     getUnsyncedTombstones: ReturnType<typeof vi.fn>;
     hardDelete: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
@@ -64,6 +68,100 @@ describe("sync routes", () => {
 
     await app.close();
   });
+
+  it.each([
+    [
+      "/v1/sync/pull?orgId=org-a&repoId=repo-a&since=invalid",
+      "getModifiedSince",
+    ],
+    [
+      "/v1/sync/tombstones?orgId=org-a&repoId=repo-a&since=invalid",
+      "getTombstones",
+    ],
+  ] as const)("rejects an invalid sync date in %s", async (url, storeMethod) => {
+    const store = buildStore();
+    const app = await buildSyncApp(store);
+
+    const response = await app.inject({ method: "GET", url });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: "since must be a valid date" });
+    expect(store[storeMethod]).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it.each([
+    ["/v1/sync/push", "upsertFromLocal", { id: "memory-id" }],
+    ["/v1/sync/tombstones", "applyTombstone", { memoryId: "memory-id" }],
+  ] as const)(
+    "rejects an incomplete body for %s",
+    async (url, storeMethod, payload) => {
+      const store = buildStore();
+      const app = await buildSyncApp(store);
+
+      const response = await app.inject({ method: "POST", url, payload });
+
+      expect(response.statusCode).toBe(400);
+      expect(store[storeMethod]).not.toHaveBeenCalled();
+
+      await app.close();
+    },
+  );
+
+  it.each([
+    [
+      "/v1/sync/push",
+      "upsertFromLocal",
+      {
+        id: "memory-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        memoryType: "semantic",
+        visibility: "private",
+        status: "active",
+        text: "memory",
+        createdAt: "invalid",
+        updatedAt: "2026-08-24T00:00:00.000Z",
+      },
+    ],
+    [
+      "/v1/sync/tombstones",
+      "applyTombstone",
+      {
+        memoryId: "memory-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        deletedAt: "invalid",
+      },
+    ],
+  ] as const)(
+    "rejects an invalid body date for %s",
+    async (url, storeMethod, payload) => {
+      const store = buildStore();
+      store.validateApiKey.mockResolvedValue({
+        id: "key-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        name: "test-key",
+      });
+      const app = Fastify();
+      app.addHook("onRequest", createAuthMiddleware(store));
+      await app.register(syncRoutes, { store });
+
+      const response = await app.inject({
+        method: "POST",
+        url,
+        headers: { authorization: "Bearer valid-token" },
+        payload,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(store[storeMethod]).not.toHaveBeenCalled();
+
+      await app.close();
+    },
+  );
 
   it("does not let a repository-scoped API key hard-delete another repository's memory", async () => {
     const store = buildStore();
