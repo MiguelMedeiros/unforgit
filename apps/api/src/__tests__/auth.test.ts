@@ -204,4 +204,41 @@ describe("auth routes", () => {
 
     await app.close();
   });
+
+  it.each([
+    "/v1/auth/me/logs?until=not-a-date",
+    "/v1/auth/me/logs/repo/allowed-org/allowed-repo?limit=0&offset=-1",
+  ])(
+    "rejects invalid user log filters before querying logs: %s",
+    async (url) => {
+      process.env.JWT_SECRET = "test-secret";
+      const store = {
+        getUserApiKeys: vi.fn().mockResolvedValue([
+          { id: "key-id", orgId: "allowed-org", repoId: "allowed-repo" },
+        ]),
+        getApiKeyLogs: vi.fn(),
+        countApiKeyLogs: vi.fn(),
+      } as unknown as RemoteStore & {
+        getUserApiKeys: ReturnType<typeof vi.fn>;
+        getApiKeyLogs: ReturnType<typeof vi.fn>;
+        countApiKeyLogs: ReturnType<typeof vi.fn>;
+      };
+      const token = await signUserToken();
+      const app = await buildApp(store);
+
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({ error: "Bad Request" });
+      expect(store.getUserApiKeys).not.toHaveBeenCalled();
+      expect(store.getApiKeyLogs).not.toHaveBeenCalled();
+      expect(store.countApiKeyLogs).not.toHaveBeenCalled();
+
+      await app.close();
+    },
+  );
 });

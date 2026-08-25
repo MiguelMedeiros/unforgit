@@ -107,6 +107,47 @@ function parsePositiveInteger(value: string | undefined): number | undefined {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+function parseNonNegativeInteger(value: string | undefined): number | undefined {
+  if (value === undefined || !/^\d+$/.test(value)) return undefined;
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+function parseOptionalDate(value: string | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+interface LogQuery {
+  operation?: string;
+  since?: string;
+  until?: string;
+  limit?: string;
+  offset?: string;
+}
+
+function parseLogQuery(query: LogQuery): {
+  operation?: string;
+  since?: Date;
+  until?: Date;
+  limit: number;
+  offset: number;
+} | null {
+  const since = parseOptionalDate(query.since);
+  const until = parseOptionalDate(query.until);
+  const limit = query.limit ? parsePositiveInteger(query.limit) : 100;
+  const offset = query.offset ? parseNonNegativeInteger(query.offset) : 0;
+
+  if (since === null || until === null || limit === undefined || offset === undefined) {
+    return null;
+  }
+
+  return { operation: query.operation, since, until, limit, offset };
+}
+
 export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
@@ -458,6 +499,18 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query as Record<string, string>;
+      const limit = query.limit ? parsePositiveInteger(query.limit) : 50;
+      const offset = query.offset
+        ? parseNonNegativeInteger(query.offset)
+        : 0;
+
+      if (limit === undefined || offset === undefined) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message:
+            "limit must be a positive integer and offset must be a non-negative integer",
+        });
+      }
 
       const listQuery = {
         orgId,
@@ -466,8 +519,8 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         status: query.status?.split(",").filter(Boolean),
         tags: query.tags?.split(",").filter(Boolean),
         search: query.search,
-        limit: query.limit ? parseInt(query.limit, 10) : 50,
-        offset: query.offset ? parseInt(query.offset, 10) : 0,
+        limit,
+        offset,
         sortBy: query.sortBy ?? "createdAt",
         sortOrder: query.sortOrder ?? "desc",
       };
@@ -751,17 +804,22 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: adminAuthPreHandler },
     async (request, reply) => {
       const query = request.query;
+      const parsedQuery = parseLogQuery(query);
+
+      if (!parsedQuery) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message:
+            "since and until must be valid dates, limit must be a positive integer, and offset must be a non-negative integer",
+        });
+      }
 
       try {
         const filters = {
           apiKeyId: query.apiKeyId,
           orgId: query.orgId,
           repoId: query.repoId,
-          operation: query.operation,
-          since: query.since ? new Date(query.since) : undefined,
-          until: query.until ? new Date(query.until) : undefined,
-          limit: query.limit ? parseInt(query.limit, 10) : 100,
-          offset: query.offset ? parseInt(query.offset, 10) : 0,
+          ...parsedQuery,
         };
 
         const [logs, total] = await Promise.all([
@@ -794,15 +852,20 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { keyId } = request.params;
       const query = request.query;
+      const parsedQuery = parseLogQuery(query);
+
+      if (!parsedQuery) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message:
+            "since and until must be valid dates, limit must be a positive integer, and offset must be a non-negative integer",
+        });
+      }
 
       try {
         const filters = {
           apiKeyId: keyId,
-          operation: query.operation,
-          since: query.since ? new Date(query.since) : undefined,
-          until: query.until ? new Date(query.until) : undefined,
-          limit: query.limit ? parseInt(query.limit, 10) : 100,
-          offset: query.offset ? parseInt(query.offset, 10) : 0,
+          ...parsedQuery,
         };
 
         const [logs, total] = await Promise.all([
@@ -835,16 +898,21 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query;
+      const parsedQuery = parseLogQuery(query);
+
+      if (!parsedQuery) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message:
+            "since and until must be valid dates, limit must be a positive integer, and offset must be a non-negative integer",
+        });
+      }
 
       try {
         const filters = {
           orgId,
           repoId,
-          operation: query.operation,
-          since: query.since ? new Date(query.since) : undefined,
-          until: query.until ? new Date(query.until) : undefined,
-          limit: query.limit ? parseInt(query.limit, 10) : 100,
-          offset: query.offset ? parseInt(query.offset, 10) : 0,
+          ...parsedQuery,
         };
 
         const [logs, total] = await Promise.all([
