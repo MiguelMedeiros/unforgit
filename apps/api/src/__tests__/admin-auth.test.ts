@@ -16,6 +16,10 @@ function buildStore() {
     hourlyCounts: vi.fn(),
     weeklyTrend: vi.fn(),
     topTags: vi.fn(),
+    list: vi.fn(),
+    count: vi.fn(),
+    getApiKeyLogs: vi.fn(),
+    countApiKeyLogs: vi.fn(),
   } as unknown as RemoteStore & {
     listApiKeysWithUsers: ReturnType<typeof vi.fn>;
     createApiKey: ReturnType<typeof vi.fn>;
@@ -27,6 +31,10 @@ function buildStore() {
     hourlyCounts: ReturnType<typeof vi.fn>;
     weeklyTrend: ReturnType<typeof vi.fn>;
     topTags: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+    getApiKeyLogs: ReturnType<typeof vi.fn>;
+    countApiKeyLogs: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -191,6 +199,53 @@ describe("admin auth", () => {
 
     await app.close();
   });
+
+  it("rejects invalid admin memory pagination before querying the store", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/admin/repos/org-id/repo-id/memories?limit=nope&offset=-1",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ error: "Bad Request" });
+    expect(store.list).not.toHaveBeenCalled();
+    expect(store.count).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it.each([
+    "/v1/admin/logs?since=not-a-date",
+    "/v1/admin/logs/key/key-id?limit=0",
+    "/v1/admin/logs/repo/org-id/repo-id?offset=-1",
+  ])(
+    "rejects invalid admin log filters before querying the store: %s",
+    async (url) => {
+      process.env.JWT_SECRET = "test-secret";
+      const store = buildStore();
+      const token = await signAdminToken();
+      const app = await buildAdminApp(store);
+
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({ error: "Bad Request" });
+      expect(store.getApiKeyLogs).not.toHaveBeenCalled();
+      expect(store.countApiKeyLogs).not.toHaveBeenCalled();
+
+      await app.close();
+    },
+  );
 
   it("returns a bad request instead of crashing when manually consolidating without a body", async () => {
     process.env.JWT_SECRET = "test-secret";
