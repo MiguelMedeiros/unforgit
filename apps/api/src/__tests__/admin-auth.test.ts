@@ -8,7 +8,7 @@ function buildStore() {
   return {
     listApiKeysWithUsers: vi.fn(),
     createApiKey: vi.fn(),
-    getUserById: vi.fn(),
+    getUserById: vi.fn().mockResolvedValue({ id: "admin-user", isAdmin: true }),
     upsertRepoAccess: vi.fn(),
     createApiKeyForUser: vi.fn(),
     getById: vi.fn(),
@@ -47,6 +47,7 @@ async function buildAdminApp(store: RemoteStore) {
 async function signAdminToken(): Promise<string> {
   return new SignJWT({ isAdmin: true })
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject("admin-user")
     .setIssuedAt()
     .sign(new TextEncoder().encode(process.env.JWT_SECRET));
 }
@@ -76,6 +77,29 @@ describe("admin auth", () => {
     expect(response.json()).toMatchObject({
       message: "Invalid Authorization header format",
     });
+    expect(store.listApiKeysWithUsers).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it.each([
+    ["demoted", { id: "admin-user", isAdmin: false }],
+    ["deleted", null],
+  ])("rejects a valid admin token when its user was %s", async (_state, user) => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    store.getUserById.mockResolvedValue(user);
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/admin/api-keys",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(store.getUserById).toHaveBeenCalledWith("admin-user");
     expect(store.listApiKeysWithUsers).not.toHaveBeenCalled();
 
     await app.close();
@@ -122,7 +146,8 @@ describe("admin auth", () => {
     expect(response.json()).toMatchObject({
       message: "orgId, repoId, and permission are required",
     });
-    expect(store.getUserById).not.toHaveBeenCalled();
+    expect(store.getUserById).toHaveBeenCalledOnce();
+    expect(store.getUserById).toHaveBeenCalledWith("admin-user");
     expect(store.upsertRepoAccess).not.toHaveBeenCalled();
 
     await app.close();
@@ -146,7 +171,8 @@ describe("admin auth", () => {
     expect(response.json()).toMatchObject({
       message: "name and orgId are required",
     });
-    expect(store.getUserById).not.toHaveBeenCalled();
+    expect(store.getUserById).toHaveBeenCalledOnce();
+    expect(store.getUserById).toHaveBeenCalledWith("admin-user");
     expect(store.createApiKeyForUser).not.toHaveBeenCalled();
 
     await app.close();
