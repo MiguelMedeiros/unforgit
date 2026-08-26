@@ -55,20 +55,23 @@ function getAdminSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-async function verifyAdminToken(token: string): Promise<boolean> {
+async function verifyAdminToken(token: string): Promise<string | null> {
   try {
     const secret = getAdminSecret();
     const { payload } = await jwtVerify(token, secret);
 
-    return payload.isAdmin === true;
+    return payload.isAdmin === true && typeof payload.sub === "string"
+      ? payload.sub
+      : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 async function adminAuthPreHandler(
   request: FastifyRequest,
   reply: FastifyReply,
+  store: RemoteStore,
 ): Promise<void> {
   const authHeader = request.headers.authorization;
 
@@ -89,9 +92,10 @@ async function adminAuthPreHandler(
     return;
   }
 
-  const valid = await verifyAdminToken(tokenMatch[1]);
+  const userId = await verifyAdminToken(tokenMatch[1]);
+  const user = userId ? await store.getUserById(userId) : null;
 
-  if (!valid) {
+  if (!user?.isAdmin) {
     reply
       .status(401)
       .send({ error: "Unauthorized", message: "Invalid or expired admin token" });
@@ -152,9 +156,12 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
   app,
   { store },
 ) => {
+  const requireAdmin = (request: FastifyRequest, reply: FastifyReply) =>
+    adminAuthPreHandler(request, reply, store);
+
   app.get(
     "/v1/admin/api-keys",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (_request, reply) => {
       const keys = await store.listApiKeysWithUsers();
 
@@ -182,7 +189,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post<{ Body: CreateApiKeyBody }>(
     "/v1/admin/api-keys",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { name, orgId, label } = request.body ?? {};
 
@@ -206,7 +213,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.patch<{ Params: ApiKeyParams; Body: { label?: string; toggle?: boolean } }>(
     "/v1/admin/api-keys/:id",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const body = request.body || {};
@@ -235,7 +242,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.delete<{ Params: ApiKeyParams }>(
     "/v1/admin/api-keys/:id",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const success = await store.deleteApiKey(id);
@@ -252,7 +259,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get(
     "/v1/admin/users",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (_request, reply) => {
       const users = await store.listUsers();
 
@@ -274,7 +281,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: UserParams }>(
     "/v1/admin/users/:id",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const user = await store.getUserById(id);
@@ -320,7 +327,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: UserParams }>(
     "/v1/admin/users/:id/repos",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const user = await store.getUserById(id);
@@ -346,7 +353,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post<{ Params: UserParams; Body: GrantRepoAccessBody }>(
     "/v1/admin/users/:id/repos",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const { orgId, repoId, permission } = request.body ?? {};
@@ -383,7 +390,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.delete<{ Params: UserRepoParams }>(
     "/v1/admin/users/:id/repos/:orgId/:repoId",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id, orgId, repoId } = request.params;
 
@@ -401,7 +408,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post<{ Params: UserParams; Body: CreateUserApiKeyBody }>(
     "/v1/admin/users/:id/api-keys",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const { name, orgId, repoId, label } = request.body ?? {};
@@ -443,7 +450,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.patch<{ Params: UserParams }>(
     "/v1/admin/users/:id/admin",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const user = await store.getUserById(id);
@@ -468,7 +475,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.delete<{ Params: UserParams }>(
     "/v1/admin/users/:id",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const success = await store.deleteUser(id);
@@ -485,7 +492,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get(
     "/v1/admin/repos",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (_request, reply) => {
       const repos = await store.getAllRepos();
 
@@ -495,7 +502,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/memories",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query as Record<string, string>;
@@ -534,7 +541,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/stats",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const stats = await store.stats(orgId, repoId);
@@ -545,7 +552,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/stats/activity",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query as Record<string, string>;
@@ -570,7 +577,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/stats/tags",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query as Record<string, string>;
@@ -591,7 +598,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/links",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const links = await store.getAllLinks(orgId, repoId);
@@ -602,7 +609,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/consolidation/candidates",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const body = (request.body ?? {}) as Record<string, unknown>;
@@ -653,7 +660,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.post<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/consolidation/execute",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       if (!isOpenAIConfigured()) {
         return reply.status(503).send({
@@ -726,7 +733,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
 
   app.get<{ Params: { orgId: string; repoId: string } }>(
     "/v1/admin/repos/:orgId/:repoId/consolidation/history",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
 
@@ -801,7 +808,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     };
   }>(
     "/v1/admin/logs",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const query = request.query;
       const parsedQuery = parseLogQuery(query);
@@ -848,7 +855,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     };
   }>(
     "/v1/admin/logs/key/:keyId",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { keyId } = request.params;
       const query = request.query;
@@ -894,7 +901,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     };
   }>(
     "/v1/admin/logs/repo/:orgId/:repoId",
-    { preHandler: adminAuthPreHandler },
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
       const query = request.query;
