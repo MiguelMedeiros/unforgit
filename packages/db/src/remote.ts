@@ -1630,7 +1630,13 @@ export class RemoteStore {
 
   async deleteUser(id: string): Promise<boolean> {
     try {
-      await this.prisma.user.delete({ where: { id } });
+      await this.prisma.$transaction([
+        this.prisma.apiKey.updateMany({
+          where: { userId: id },
+          data: { isActive: false },
+        }),
+        this.prisma.user.delete({ where: { id } }),
+      ]);
       return true;
     } catch {
       return false;
@@ -1725,11 +1731,28 @@ export class RemoteStore {
 
   async revokeRepoAccess(userId: string, orgId: string, repoId: string): Promise<boolean> {
     try {
-      await this.prisma.userRepoAccess.delete({
-        where: {
-          userId_orgId_repoId: { userId, orgId, repoId },
-        },
-      });
+      const normalizedOrgId = orgId.toLowerCase();
+      const normalizedRepoId = repoId.toLowerCase();
+
+      await this.prisma.$transaction([
+        this.prisma.apiKey.updateMany({
+          where: {
+            userId,
+            orgId: normalizedOrgId,
+            OR: [{ repoId: normalizedRepoId }, { repoId: null }],
+          },
+          data: { isActive: false },
+        }),
+        this.prisma.userRepoAccess.delete({
+          where: {
+            userId_orgId_repoId: {
+              userId,
+              orgId: normalizedOrgId,
+              repoId: normalizedRepoId,
+            },
+          },
+        }),
+      ]);
       return true;
     } catch {
       return false;
