@@ -54,6 +54,17 @@ export async function memoryRoutes(
       });
     }
 
+    if (
+      query.sortOrder !== undefined &&
+      query.sortOrder !== "asc" &&
+      query.sortOrder !== "desc"
+    ) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "sortOrder must be either asc or desc",
+      });
+    }
+
     const listQuery: ListQuery = {
       orgId: query.orgId,
       repoId: query.repoId,

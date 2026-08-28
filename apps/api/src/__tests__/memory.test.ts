@@ -36,6 +36,7 @@ describe("memory routes", () => {
   it.each([
     ["limit", "not-a-number", "limit must be a positive integer"],
     ["offset", "-1", "offset must be a non-negative integer"],
+    ["sortOrder", "sideways", "sortOrder must be either asc or desc"],
   ])("rejects an invalid %s before querying the store", async (parameter, value, message) => {
     const store = buildStore();
     const app = await buildMemoryApp(store);
