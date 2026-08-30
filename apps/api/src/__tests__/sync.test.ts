@@ -15,6 +15,7 @@ function buildStore() {
     hardDelete: vi.fn(),
     list: vi.fn(),
     restore: vi.fn(),
+    softDelete: vi.fn(),
     upsertFromLocal: vi.fn(),
     validateApiKey: vi.fn(),
   } as unknown as RemoteStore & {
@@ -27,6 +28,7 @@ function buildStore() {
     hardDelete: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
     restore: ReturnType<typeof vi.fn>;
+    softDelete: ReturnType<typeof vi.fn>;
     upsertFromLocal: ReturnType<typeof vi.fn>;
     validateApiKey: ReturnType<typeof vi.fn>;
   };
@@ -192,6 +194,24 @@ describe("sync routes", () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({ error: "Forbidden" });
     expect(store.hardDelete).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects a non-boolean hard-delete flag before calling the store", async () => {
+    const store = buildStore();
+    const app = await buildSyncApp(store);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/memory/memory-id",
+      payload: { hardDelete: "false" },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(store.getById).not.toHaveBeenCalled();
+    expect(store.hardDelete).not.toHaveBeenCalled();
+    expect(store.softDelete).not.toHaveBeenCalled();
 
     await app.close();
   });
