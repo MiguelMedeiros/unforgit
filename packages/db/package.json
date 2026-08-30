@@ -16,7 +16,7 @@
     "dev": "tsup --watch"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.15.0"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",

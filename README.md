@@ -20,13 +20,13 @@
   <code>npm install -g unforgit</code>
 </p>
 
-<p align="center">Requires Node.js 24 or later.</p>
+<p align="center">Requires Node.js 24.15 or later.</p>
 
 ---
 
 ## Quick Start
 
-The CLI uses Node's built-in SQLite driver, so installation needs Node.js 24+
+The CLI uses Node's built-in SQLite driver, so installation needs Node.js 24.15+
 but no native SQLite addon or install script. Existing local databases remain
 compatible.
 

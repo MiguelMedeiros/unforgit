@@ -4,7 +4,7 @@ Persistent repository memory for Claude Code using Unforgit's MCP server, rules,
 
 ## Prerequisites
 
-Install Unforgit with Node.js 24 or later so the `unforgit-mcp` command is available on your PATH:
+Install Unforgit with Node.js 24.15 or later so the `unforgit-mcp` command is available on your PATH:
 
 ```bash
 npm install -g unforgit

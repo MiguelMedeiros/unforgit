@@ -15,11 +15,11 @@ function readManifest(relativePath: string): PackageManifest {
 }
 
 describe("SQLite packaging contract", () => {
-  it("publishes the CLI for Node 24+ without a native SQLite install dependency", () => {
+  it("publishes the CLI from the warning-free Node 24 line without a native SQLite install dependency", () => {
     const cli = readManifest("apps/cli/package.json");
     const db = readManifest("packages/db/package.json");
 
-    expect(cli.engines?.node).toBe(">=24");
+    expect(cli.engines?.node).toBe(">=24.15.0");
     expect(cli.dependencies).not.toHaveProperty("better-sqlite3");
     expect(db.dependencies).not.toHaveProperty("better-sqlite3");
     expect(db.devDependencies).not.toHaveProperty("@types/better-sqlite3");

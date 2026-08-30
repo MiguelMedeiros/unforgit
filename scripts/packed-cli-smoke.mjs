@@ -6,9 +6,9 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
-const nodeMajor = Number(process.versions.node.split(".")[0]);
-if (nodeMajor < 24) {
-  throw new Error(`Packed CLI smoke requires Node 24+; found ${process.version}`);
+const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+if (nodeMajor < 24 || (nodeMajor === 24 && nodeMinor < 15)) {
+  throw new Error(`Packed CLI smoke requires Node 24.15+; found ${process.version}`);
 }
 
 const repoRoot = path.resolve(import.meta.dirname, "..");

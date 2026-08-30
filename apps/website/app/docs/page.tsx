@@ -139,7 +139,7 @@ export default function DocsPage() {
       <Section id="getting-started" title="Getting Started">
         <Subsection id="init-flow" title="Install And First Flow">
           <p className="text-dracula-foreground/70 mb-4">
-            Node.js 24 or later is required. The CLI uses Node&apos;s built-in
+            Node.js 24.15 or later is required. The CLI uses Node&apos;s built-in
             SQLite driver, so global installation does not need a native SQLite
             addon or install script. The default setup is local-first. <code>unforgit init</code> creates
             the local database, config file, and IDE-specific rules and MCP

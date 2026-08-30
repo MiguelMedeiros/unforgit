@@ -12,7 +12,7 @@ Unforgit is a Git-backed memory system for AI coding agents. The published `unfo
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 24.15+
 - npm or another Node package manager
 - A Git repository or project directory where memory should live
 
