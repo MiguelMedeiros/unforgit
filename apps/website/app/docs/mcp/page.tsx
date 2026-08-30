@@ -196,8 +196,8 @@ export default function McpSetupPage() {
       {/* ── Prerequisites ────────────────────────────── */}
       <Section id="mcp-prerequisites" title="Prerequisites">
         <p className="text-dracula-foreground/70 mb-4">
-          Install <UnforgitBrand /> globally and initialize it in your project before
-          configuring any IDE.
+          Install <UnforgitBrand /> globally with Node.js 24 or later and
+          initialize it in your project before configuring any IDE.
         </p>
         <div className="space-y-4">
           <Terminal

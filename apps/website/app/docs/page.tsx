@@ -139,7 +139,9 @@ export default function DocsPage() {
       <Section id="getting-started" title="Getting Started">
         <Subsection id="init-flow" title="Install And First Flow">
           <p className="text-dracula-foreground/70 mb-4">
-            The default setup is local-first. <code>unforgit init</code> creates
+            Node.js 24 or later is required. The CLI uses Node&apos;s built-in
+            SQLite driver, so global installation does not need a native SQLite
+            addon or install script. The default setup is local-first. <code>unforgit init</code> creates
             the local database, config file, and IDE-specific rules and MCP
             config. It auto-detects which IDEs are present (Cursor, Claude Code,
             VS Code, Windsurf) and configures each one. Org and repo are

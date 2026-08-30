@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.title="unforgit-api"
@@ -39,7 +39,7 @@ RUN pnpm --filter unforgit-core exec tsup --no-dts
 RUN pnpm --filter unforgit-db exec tsup --no-dts
 RUN pnpm --filter @unforgit/api exec tsup --no-dts
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

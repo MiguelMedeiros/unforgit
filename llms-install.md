@@ -12,11 +12,11 @@ Unforgit is a Git-backed memory system for AI coding agents. The published `unfo
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 24+
 - npm or another Node package manager
 - A Git repository or project directory where memory should live
 
-No API key is required for local SQLite-backed memory. Remote sync and hosted embeddings are optional and can be configured later.
+No API key is required for local SQLite-backed memory. The CLI uses Node's built-in SQLite driver, so it does not install a native SQLite addon. Remote sync and hosted embeddings are optional and can be configured later.
 
 ## Install
 
