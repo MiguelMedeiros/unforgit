@@ -59,6 +59,12 @@ describe("SQLite packaging contract", () => {
     );
 
     expect(smoke).toContain('shell: process.platform === "win32"');
+    expect(smoke).toContain(
+      'const cliCommand = process.platform === "win32" ? process.execPath : cli;',
+    );
+    expect(smoke).toContain(
+      "const cliArgs = (args) => process.platform === \"win32\" ? [cliEntry, ...args] : args;",
+    );
   });
 
   it("preserves the node: protocol when bundling the built-in SQLite import", () => {

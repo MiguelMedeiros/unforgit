@@ -72,31 +72,38 @@ try {
   if (!fs.existsSync(cli)) {
     throw new Error(`Global CLI binary was not installed at ${cli}`);
   }
+  const packageRoot = process.platform === "win32"
+    ? path.join(prefix, "node_modules", "unforgit")
+    : path.join(prefix, "lib", "node_modules", "unforgit");
+  const cliEntry = path.join(packageRoot, "dist", "index.js");
+  const cliCommand = process.platform === "win32" ? process.execPath : cli;
+  const cliArgs = (args) => process.platform === "win32" ? [cliEntry, ...args] : args;
+  const runCli = (args) => run(cliCommand, cliArgs(args), { shell: false });
 
   const manifest = JSON.parse(
     fs.readFileSync(path.join(repoRoot, "apps/cli/package.json"), "utf-8"),
   );
   assertIncludes(run(cli, ["--version"]), manifest.version, "unforgit --version");
-  run(cli, ["init", "--org-id", "smoke-org", "--repo-id", "smoke-repo", "--no-ide"]);
-  const doctor = spawnSync(cli, ["doctor"], {
+  runCli(["init", "--org-id", "smoke-org", "--repo-id", "smoke-repo", "--no-ide"]);
+  const doctor = spawnSync(cliCommand, cliArgs(["doctor"]), {
     cwd: repository,
     encoding: "utf-8",
     env: { ...process.env, NO_COLOR: "1" },
-    shell: process.platform === "win32",
+    shell: false,
   });
   const doctorOutput = `${doctor.stdout ?? ""}\n${doctor.stderr ?? ""}`;
   assertIncludes(doctorOutput, "SQLite database is accessible", "unforgit doctor");
   if (doctor.status !== 0 && doctor.status !== 1) {
     throw new Error(`unforgit doctor exited unexpectedly (${doctor.status}):\n${doctorOutput}`);
   }
-  run(cli, ["add", "Packed node sqlite memory", "--type", "semantic", "--tags", "packed"]);
+  runCli(["add", "Packed node sqlite memory", "--type", "semantic", "--tags", "packed"]);
   assertIncludes(
-    run(cli, ["recall", "node sqlite", "--local-only"]),
+    runCli(["recall", "node sqlite", "--local-only"]),
     "Packed node sqlite memory",
     "unforgit recall",
   );
 
-  run(cli, ["reset", "--local", "--force"]);
+  runCli(["reset", "--local", "--force"]);
   const backupRoot = path.join(repository, ".unforgit", "backups");
   const backupName = fs
     .readdirSync(backupRoot)
@@ -104,10 +111,10 @@ try {
   if (!backupName) {
     throw new Error("unforgit reset did not create a local database backup");
   }
-  assertIncludes(run(cli, ["backups", "list"]), backupName, "unforgit backups list");
-  run(cli, ["backups", "restore", backupName, "--force"]);
+  assertIncludes(runCli(["backups", "list"]), backupName, "unforgit backups list");
+  runCli(["backups", "restore", backupName, "--force"]);
   assertIncludes(
-    run(cli, ["recall", "node sqlite", "--local-only"]),
+    runCli(["recall", "node sqlite", "--local-only"]),
     "Packed node sqlite memory",
     "restored unforgit recall",
   );
@@ -119,9 +126,6 @@ try {
   const transportModule = await import(
     pathToFileURL(requireFromCli.resolve("@modelcontextprotocol/sdk/client/stdio.js")).href
   );
-  const packageRoot = process.platform === "win32"
-    ? path.join(prefix, "node_modules", "unforgit")
-    : path.join(prefix, "lib", "node_modules", "unforgit");
   const mcpEntry = path.join(packageRoot, "dist", "mcp.js");
   const transport = new transportModule.StdioClientTransport({
     command: process.execPath,
