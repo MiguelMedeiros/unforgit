@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { RemoteStore } from "unforgit-db";
-import type { Memory, Tombstone } from "unforgit-shared";
+import { deleteMemorySchema, type Memory, type Tombstone } from "unforgit-shared";
 
 interface SyncQueryParams {
   orgId: string;
@@ -291,7 +291,12 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/memory/:id",
     async (request, reply) => {
       const { id } = request.params;
-      const { deletedBy, hardDelete } = request.body ?? {};
+      const parsed = deleteMemorySchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.issues });
+      }
+
+      const { deletedBy, hardDelete } = parsed.data;
       const memory = await store.getById(id);
 
       if (!memory) {
