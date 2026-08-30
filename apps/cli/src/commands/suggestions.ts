@@ -24,13 +24,21 @@ function openStore() {
 
 function formatSuggestionLine(suggestion: CurationSuggestion): string {
   const memoryIds = suggestion.memoryIds.map((id) => id.slice(0, 8)).join(", ");
-  return [
+  const lines = [
     `${suggestion.id.slice(0, 8)} [${suggestion.priority}] ${suggestion.type}`,
     `  status: ${suggestion.status}`,
     `  confidence: ${Math.round(suggestion.confidence * 100)}%`,
     `  memories: ${memoryIds || "none"}`,
     `  reason: ${suggestion.reason}`,
-  ].join("\n");
+  ];
+  const sourceSuggestionId = suggestion.payload?.sourceSuggestionId;
+  if (suggestion.createdBy) lines.push(`  created by: ${suggestion.createdBy}`);
+  if (typeof sourceSuggestionId === "string") {
+    lines.push(`  generated from: ${sourceSuggestionId}`);
+  }
+  if (suggestion.reviewedBy) lines.push(`  reviewed by: ${suggestion.reviewedBy}`);
+  if (suggestion.reviewNote) lines.push(`  review note: ${suggestion.reviewNote}`);
+  return lines.join("\n");
 }
 
 function parseStatus(value: string | undefined): CurationSuggestionStatus[] | undefined {

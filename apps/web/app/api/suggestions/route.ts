@@ -7,6 +7,19 @@ import { getDbPath } from "@/lib/config";
 
 const allowedStatuses = new Set(["pending", "approved", "rejected", "applied"]);
 
+function reviewErrorStatus(error: unknown): number {
+  const message = error instanceof Error ? error.message : "";
+  if (message.startsWith("Curation suggestion not found:")) return 404;
+  if (
+    message.startsWith("Cannot transition curation suggestion") ||
+    message.startsWith("Curation suggestion is stale:") ||
+    message.startsWith("Curation suggestion changed while reviewing:")
+  ) {
+    return 409;
+  }
+  return 500;
+}
+
 function parseStatuses(value: string | null): CurationSuggestionStatus[] {
   if (!value) return ["pending"];
   const statuses = value.split(",").map((status) => status.trim()).filter(Boolean);
@@ -129,10 +142,11 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ suggestion });
   } catch (error) {
-    console.error("Failed to review suggestion:", error);
+    const status = reviewErrorStatus(error);
+    if (status === 500) console.error("Failed to review suggestion:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to review suggestion" },
-      { status: 500 },
+      { status },
     );
   } finally {
     store.close();

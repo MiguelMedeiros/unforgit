@@ -2153,32 +2153,65 @@ export class LocalStore {
   }
 
   reviewCurationSuggestion(input: ReviewCurationSuggestionInput): CurationSuggestion {
-    const existing = this.getCurationSuggestionById(input.id);
-    if (!existing) {
-      throw new Error(`Curation suggestion not found: ${input.id}`);
-    }
+    const transition = this.db.transaction(() => {
+      const existing = this.getCurationSuggestionById(input.id);
+      if (!existing) {
+        throw new Error(`Curation suggestion not found: ${input.id}`);
+      }
 
-    const now = new Date().toISOString();
-    this.db
-      .prepare(
-        `UPDATE curation_suggestions
-         SET status = ?, reviewed_by = ?, review_note = ?, reviewed_at = ?,
-             applied_at = CASE WHEN ? = 'applied' THEN ? ELSE applied_at END,
-             updated_at = ?
-         WHERE id = ?`,
-      )
-      .run(
-        input.status,
-        input.reviewedBy ?? null,
-        input.reviewNote ?? null,
-        now,
-        input.status,
-        now,
-        now,
-        input.id,
-      );
+      const transitionAllowed =
+        (existing.status === "pending" &&
+          (input.status === "approved" || input.status === "rejected")) ||
+        (existing.status === "approved" && input.status === "applied");
+      if (!transitionAllowed) {
+        throw new Error(
+          `Cannot transition curation suggestion from ${existing.status} to ${input.status}`,
+        );
+      }
 
-    return this.getCurationSuggestionById(input.id)!;
+      if (input.status === "approved") {
+        for (const memoryId of existing.memoryIds) {
+          const memory = this.getById(memoryId);
+          if (
+            !memory ||
+            memory.orgId !== existing.orgId ||
+            memory.repoId !== existing.repoId ||
+            memory.status !== "active"
+          ) {
+            throw new Error(`Curation suggestion is stale: ${memoryId}`);
+          }
+        }
+      }
+
+      const now = new Date().toISOString();
+      const result = this.db
+        .prepare(
+          `UPDATE curation_suggestions
+           SET status = ?, reviewed_by = ?, review_note = ?, reviewed_at = ?,
+               applied_at = CASE WHEN ? = 'applied' THEN ? ELSE applied_at END,
+               updated_at = ?
+           WHERE id = ? AND status = ?`,
+        )
+        .run(
+          input.status,
+          input.reviewedBy ?? null,
+          input.reviewNote ?? null,
+          now,
+          input.status,
+          now,
+          now,
+          input.id,
+          existing.status,
+        );
+
+      if (result.changes !== 1) {
+        throw new Error(`Curation suggestion changed while reviewing: ${input.id}`);
+      }
+
+      return this.getCurationSuggestionById(input.id)!;
+    });
+
+    return transition.immediate();
   }
 
   private getCurationSuggestionById(id: string): CurationSuggestion | undefined {

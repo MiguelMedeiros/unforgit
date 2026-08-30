@@ -424,8 +424,10 @@ $ unforgit suggestions review <suggestion-id> --applied --reviewer hermes`}
               operation is applied. Duplicate pending suggestions for the same
               operation are skipped, so agents can propose curation without
               spamming repeated review items. The local dashboard's Memory
-              Curation page can generate the same inbox and approve or reject
-              proposals before any broad merge is applied.
+              Curation page shows generator provenance and suggested commands,
+              accepts optional review notes, and can approve or reject proposals
+              before any broad merge is applied. Only approved suggestions can be
+              marked applied, after the underlying command succeeds.
             </p>
             <Terminal
               title="Server and local consolidation flows"

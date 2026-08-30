@@ -149,7 +149,9 @@ unforgit suggestions review <suggestion-id> --applied --reviewer hermes
 
 Duplicate pending suggestions for the same type and memory IDs are skipped, keeping the inbox from filling with repeated agent proposals.
 
-The local dashboard exposes the same review inbox from the **Memory Curation** page: generate pending review items, inspect confidence/reason/source memory IDs, then approve or reject each proposal before any broad memory operation is applied.
+The status flow is intentionally one-way: `pending` suggestions can be approved or rejected, and only approved suggestions can be marked `applied`. Marking a suggestion applied records completion after the underlying command succeeds; it does not execute the command. Approval fails safely if any referenced memory is missing, inactive, or belongs to another repository, while rejection remains available to clear stale proposals. Human-readable lists include generator/reviewer provenance and review notes; `--json` exposes the full persisted record.
+
+The local dashboard exposes the same review inbox from the **Memory Curation** page: generate pending review items, inspect confidence, reason, source memory IDs, generator provenance, and the suggested command, add an optional review note, then approve or reject each proposal before any broad memory operation is applied.
 
 ## Embeddings
 
