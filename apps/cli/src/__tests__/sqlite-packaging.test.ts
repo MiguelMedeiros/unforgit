@@ -39,6 +39,28 @@ describe("SQLite packaging contract", () => {
     expect(workflow).toContain("pnpm smoke:packed-cli");
   });
 
+  it("isolates packed CLI installation from unrelated native workspace packages", () => {
+    const workflow = fs.readFileSync(
+      path.resolve(".github/workflows/ci.yml"),
+      "utf-8",
+    );
+    const packedCliJob = workflow.slice(workflow.indexOf("  packed-cli:"));
+
+    expect(packedCliJob).toContain(
+      'pnpm install --filter "unforgit..." --filter "@unforgit/mcp..." --frozen-lockfile --ignore-scripts',
+    );
+    expect(packedCliJob).not.toContain("run: pnpm install --frozen-lockfile");
+  });
+
+  it("executes Windows command shims through their required shell", () => {
+    const smoke = fs.readFileSync(
+      path.resolve("scripts/packed-cli-smoke.mjs"),
+      "utf-8",
+    );
+
+    expect(smoke).toContain('shell: process.platform === "win32"');
+  });
+
   it("preserves the node: protocol when bundling the built-in SQLite import", () => {
     for (const configPath of [
       "packages/db/tsup.config.ts",

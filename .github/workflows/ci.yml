@@ -90,7 +90,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --filter "unforgit..." --filter "@unforgit/mcp..." --frozen-lockfile --ignore-scripts
 
       - name: Generate Prisma client
         run: pnpm db:generate

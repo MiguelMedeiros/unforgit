@@ -23,6 +23,7 @@ function run(command, args, options = {}) {
     cwd: repository,
     encoding: "utf-8",
     env: { ...process.env, NO_COLOR: "1" },
+    shell: process.platform === "win32",
     ...options,
   });
 }
@@ -40,14 +41,23 @@ try {
   const tarballName = execFileSync(
     npm,
     ["pack", "./apps/cli", "--pack-destination", packDir, "--silent"],
-    { cwd: repoRoot, encoding: "utf-8" },
+    {
+      cwd: repoRoot,
+      encoding: "utf-8",
+      shell: process.platform === "win32",
+    },
   ).trim();
   const tarball = path.join(packDir, tarballName);
 
   const install = spawnSync(
     npm,
     ["install", "--global", "--prefix", prefix, tarball, "--loglevel", "warn"],
-    { cwd: repository, encoding: "utf-8", env: { ...process.env, NO_COLOR: "1" } },
+    {
+      cwd: repository,
+      encoding: "utf-8",
+      env: { ...process.env, NO_COLOR: "1" },
+      shell: process.platform === "win32",
+    },
   );
   const installOutput = `${install.stdout ?? ""}\n${install.stderr ?? ""}`;
   if (install.status !== 0) {
@@ -72,6 +82,7 @@ try {
     cwd: repository,
     encoding: "utf-8",
     env: { ...process.env, NO_COLOR: "1" },
+    shell: process.platform === "win32",
   });
   const doctorOutput = `${doctor.stdout ?? ""}\n${doctor.stderr ?? ""}`;
   assertIncludes(doctorOutput, "SQLite database is accessible", "unforgit doctor");
