@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/out/**",
       "**/build/**",
       "**/coverage/**",
+      "**/.awp-worktrees/**",
+      "**/.awp-evidence/**",
       "packages/db/src/generated/**",
       "**/next-env.d.ts",
     ],
