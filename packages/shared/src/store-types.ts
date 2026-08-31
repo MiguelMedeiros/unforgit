@@ -70,6 +70,7 @@ export interface ILocalStore {
   setSyncState(state: { memoryId: string; localVersion: number; remoteVersion?: number; syncStatus: SyncStatus }): void;
   getTombstones(orgId: string, repoId: string): Tombstone[];
   createCurationSuggestion(input: CreateCurationSuggestionInput): CurationSuggestion;
+  createCurationSuggestionIfAbsent(input: CreateCurationSuggestionInput): CurationSuggestion | undefined;
   listCurationSuggestions(query: ListCurationSuggestionsQuery): CurationSuggestion[];
   reviewCurationSuggestion(input: ReviewCurationSuggestionInput): CurationSuggestion;
   softDelete(input: { id: string; deletedBy?: string }): boolean;

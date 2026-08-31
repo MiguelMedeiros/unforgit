@@ -66,6 +66,22 @@ describe("NodeSqliteDatabase", () => {
     expect(db.prepare("SELECT value FROM items").all()).toEqual([]);
   });
 
+  it("supports deferred, immediate, and exclusive transaction modes", () => {
+    db.exec("CREATE TABLE items (value TEXT NOT NULL)");
+    const insert = db.prepare("INSERT INTO items (value) VALUES (?)");
+    const write = db.transaction((value: string) => insert.run(value));
+
+    write.deferred("deferred");
+    write.immediate("immediate");
+    write.exclusive("exclusive");
+
+    expect(db.prepare("SELECT value FROM items ORDER BY rowid").all()).toEqual([
+      { value: "deferred" },
+      { value: "immediate" },
+      { value: "exclusive" },
+    ]);
+  });
+
   it("uses savepoints for nested transactions", () => {
     db.exec("CREATE TABLE items (value TEXT NOT NULL)");
     const insert = db.prepare("INSERT INTO items (value) VALUES (?)");

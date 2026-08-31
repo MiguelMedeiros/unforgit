@@ -11,6 +11,14 @@ export type SqliteStatement = {
   all(...params: unknown[]): Array<Record<string, unknown>>;
 };
 
+export type SqliteTransaction<Args extends unknown[], Result> = ((
+  ...args: Args
+) => Result) & {
+  deferred(...args: Args): Result;
+  immediate(...args: Args): Result;
+  exclusive(...args: Args): Result;
+};
+
 function asSqlInputValues(params: unknown[]): SQLInputValue[] {
   return params as SQLInputValue[];
 }
@@ -81,12 +89,17 @@ export class NodeSqliteDatabase {
 
   transaction<Args extends unknown[], Result>(
     callback: (...args: Args) => Result,
-  ): (...args: Args) => Result {
-    return (...args: Args): Result => {
+  ): SqliteTransaction<Args, Result> {
+    const execute = (
+      mode: "DEFERRED" | "IMMEDIATE" | "EXCLUSIVE",
+      args: Args,
+    ): Result => {
       const isOuterTransaction = this.transactionDepth === 0;
       const savepoint = `unforgit_${this.nextSavepointId++}`;
 
-      this.exec(isOuterTransaction ? "BEGIN" : `SAVEPOINT ${savepoint}`);
+      this.exec(
+        isOuterTransaction ? `BEGIN ${mode}` : `SAVEPOINT ${savepoint}`,
+      );
       this.transactionDepth += 1;
 
       try {
@@ -105,6 +118,13 @@ export class NodeSqliteDatabase {
         this.transactionDepth -= 1;
       }
     };
+
+    const transaction = ((...args: Args): Result =>
+      execute("DEFERRED", args)) as SqliteTransaction<Args, Result>;
+    transaction.deferred = (...args: Args): Result => execute("DEFERRED", args);
+    transaction.immediate = (...args: Args): Result => execute("IMMEDIATE", args);
+    transaction.exclusive = (...args: Args): Result => execute("EXCLUSIVE", args);
+    return transaction;
   }
 
   close(): void {

@@ -34,6 +34,16 @@ export interface SuggestionResult {
   };
 }
 
+export function buildConsolidateSuggestionAction(
+  firstId: string,
+  secondId: string,
+): NonNullable<Suggestion["action"]> {
+  return {
+    command: `unforgit merge ${firstId} ${secondId} --text "<consolidated memory text>"`,
+    description: "Merge these memories into one after writing the consolidated text",
+  };
+}
+
 export function generateSuggestions(
   store: ILocalStore,
   orgId: string,
@@ -95,10 +105,7 @@ export function generateSuggestions(
       memoryIds: [pair.id1, pair.id2],
       reason: `These memories are ${Math.round(pair.similarity * 100)}% similar and could be merged`,
       confidence: pair.similarity,
-      action: {
-        command: `unforgit merge ${pair.id1} ${pair.id2}`,
-        description: "Merge these memories into one",
-      },
+      action: buildConsolidateSuggestionAction(pair.id1, pair.id2),
     });
   }
 
@@ -271,7 +278,7 @@ export function persistReviewableSuggestions(
   const existingPending = store.listCurationSuggestions({
     orgId,
     repoId,
-    status: ["pending"],
+    status: ["pending", "approved"],
     limit: 500,
   });
 
@@ -291,7 +298,7 @@ export function persistReviewableSuggestions(
       continue;
     }
 
-    store.createCurationSuggestion({
+    const persisted = store.createCurationSuggestionIfAbsent({
       orgId,
       repoId,
       type: suggestion.type,
@@ -305,6 +312,11 @@ export function persistReviewableSuggestions(
         ...(suggestion.action ? { action: suggestion.action } : {}),
       },
     });
+    if (!persisted) {
+      existingKeys.add(key);
+      skippedExisting++;
+      continue;
+    }
     existingKeys.add(key);
     created++;
   }

@@ -19,10 +19,10 @@ describe("doctor command", () => {
 
   it("returns machine-readable errors and suggested fixes for uninitialized repositories", async () => {
     tmp = createTempDataDir();
-    tmp.cleanup();
-    process.chdir(originalCwd);
+    fs.rmSync(tmp.dataDir, { recursive: true, force: true });
+    process.chdir(tmp.dir);
 
-    const result = await runCommand(["doctor", "--json"]);
+    const result = await runCommand(["doctor", "--json"], { cwd: tmp.dir });
 
     expect(result.exitCode).toBe(2);
     const payload = JSON.parse(result.stdout);
