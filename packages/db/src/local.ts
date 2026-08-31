@@ -2122,6 +2122,38 @@ export class LocalStore {
     return this.getCurationSuggestionById(id)!;
   }
 
+  createCurationSuggestionIfAbsent(
+    input: CreateCurationSuggestionInput,
+  ): CurationSuggestion | undefined {
+    const create = this.db.transaction(() => {
+      const normalizedMemoryIds = [...input.memoryIds].sort();
+      const candidates = this.db
+        .prepare(
+          `SELECT memory_ids FROM curation_suggestions
+           WHERE org_id = ? AND repo_id = ? AND type = ?
+             AND status IN ('pending', 'approved')`,
+        )
+        .all(
+          input.orgId.toLowerCase(),
+          input.repoId.toLowerCase(),
+          input.type,
+        ) as Array<{ memory_ids: string }>;
+      const existing = candidates.some(
+        (candidate) =>
+          JSON.stringify([...(JSON.parse(candidate.memory_ids) as string[])].sort()) ===
+          JSON.stringify(normalizedMemoryIds),
+      );
+      if (existing) return undefined;
+
+      return this.createCurationSuggestion({
+        ...input,
+        memoryIds: normalizedMemoryIds,
+      });
+    });
+
+    return create.immediate();
+  }
+
   listCurationSuggestions(query: ListCurationSuggestionsQuery): CurationSuggestion[] {
     const clauses = ["org_id = ?", "repo_id = ?"];
     const params: unknown[] = [query.orgId.toLowerCase(), query.repoId.toLowerCase()];
@@ -2154,7 +2186,11 @@ export class LocalStore {
 
   reviewCurationSuggestion(input: ReviewCurationSuggestionInput): CurationSuggestion {
     const transition = this.db.transaction(() => {
-      const existing = this.getCurationSuggestionById(input.id);
+      const existing = this.getCurationSuggestionById(
+        input.id,
+        input.orgId,
+        input.repoId,
+      );
       if (!existing) {
         throw new Error(`Curation suggestion not found: ${input.id}`);
       }
@@ -2176,7 +2212,9 @@ export class LocalStore {
             !memory ||
             memory.orgId !== existing.orgId ||
             memory.repoId !== existing.repoId ||
-            memory.status !== "active"
+            memory.status !== "active" ||
+            (memory.ttlSeconds !== undefined &&
+              memory.createdAt.getTime() + memory.ttlSeconds * 1000 <= Date.now())
           ) {
             throw new Error(`Curation suggestion is stale: ${memoryId}`);
           }
@@ -2184,6 +2222,12 @@ export class LocalStore {
       }
 
       const now = new Date().toISOString();
+      const reviewedBy =
+        input.status === "applied" ? existing.reviewedBy : input.reviewedBy;
+      const reviewNote =
+        input.status === "applied" ? existing.reviewNote : input.reviewNote;
+      const reviewedAt =
+        input.status === "applied" ? existing.reviewedAt?.toISOString() : now;
       const result = this.db
         .prepare(
           `UPDATE curation_suggestions
@@ -2194,9 +2238,9 @@ export class LocalStore {
         )
         .run(
           input.status,
-          input.reviewedBy ?? null,
-          input.reviewNote ?? null,
-          now,
+          reviewedBy ?? null,
+          reviewNote ?? null,
+          reviewedAt ?? null,
           input.status,
           now,
           now,
@@ -2208,16 +2252,30 @@ export class LocalStore {
         throw new Error(`Curation suggestion changed while reviewing: ${input.id}`);
       }
 
-      return this.getCurationSuggestionById(input.id)!;
+      return this.getCurationSuggestionById(
+        input.id,
+        input.orgId,
+        input.repoId,
+      )!;
     });
 
     return transition.immediate();
   }
 
-  private getCurationSuggestionById(id: string): CurationSuggestion | undefined {
+  private getCurationSuggestionById(
+    id: string,
+    orgId?: string,
+    repoId?: string,
+  ): CurationSuggestion | undefined {
+    const clauses = ["id = ?"];
+    const params: string[] = [id];
+    if (orgId !== undefined && repoId !== undefined) {
+      clauses.push("org_id = ?", "repo_id = ?");
+      params.push(orgId.toLowerCase(), repoId.toLowerCase());
+    }
     const row = this.db
-      .prepare("SELECT * FROM curation_suggestions WHERE id = ?")
-      .get(id) as Record<string, unknown> | undefined;
+      .prepare(`SELECT * FROM curation_suggestions WHERE ${clauses.join(" AND ")}`)
+      .get(...params) as Record<string, unknown> | undefined;
     return row ? rowToCurationSuggestion(row) : undefined;
   }
 

@@ -24,9 +24,11 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   buildReviewPayload,
+  embeddingCoveragePercent,
   getSuggestionAction,
   getSuggestionProvenance,
   removeReviewedSuggestion,
+  type DashboardEmbeddingStats,
   type DashboardSuggestion,
 } from "@/lib/curation-review";
 
@@ -48,11 +50,6 @@ interface HealthResponse {
   }>;
 }
 
-interface EmbeddingStats {
-  total: number;
-  withEmbedding: number;
-  withoutEmbedding: number;
-}
 
 const priorityColors = {
   high: "bg-foreground/15 text-foreground border-foreground/20",
@@ -99,7 +96,7 @@ function SuggestionDetails({ suggestion }: { suggestion: Suggestion }) {
 export default function CurationPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [embeddingStats, setEmbeddingStats] = useState<EmbeddingStats | null>(null);
+  const [embeddingStats, setEmbeddingStats] = useState<DashboardEmbeddingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -138,7 +135,11 @@ export default function CurationPage() {
   const handleGenerateSuggestions = async () => {
     setGenerating(true);
     try {
-      const res = await fetch("/api/suggestions?generate=true");
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate" }),
+      });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to generate suggestions");
@@ -220,9 +221,7 @@ export default function CurationPage() {
         ? "text-muted-foreground"
         : "text-muted-foreground/60";
 
-  const embeddingCoverage = embeddingStats
-    ? (embeddingStats.withEmbedding / Math.max(1, embeddingStats.total)) * 100
-    : 0;
+  const embeddingCoverage = embeddingCoveragePercent(embeddingStats);
 
   return (
     <div className="space-y-6">
@@ -323,11 +322,11 @@ export default function CurationPage() {
               <div className="flex-1">
                 <Progress value={embeddingCoverage} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {embeddingStats?.withEmbedding ?? 0} / {embeddingStats?.total ?? 0} memories
+                  {embeddingStats?.withEmbeddings ?? 0} / {embeddingStats?.total ?? 0} memories
                 </p>
               </div>
             </div>
-            {embeddingStats && embeddingStats.withoutEmbedding > 0 && (
+            {embeddingStats && embeddingStats.withoutEmbeddings > 0 && (
               <Button
                 size="sm"
                 variant="outline"

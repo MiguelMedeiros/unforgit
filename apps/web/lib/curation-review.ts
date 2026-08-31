@@ -28,6 +28,19 @@ export interface SuggestionReviewPayload {
   reviewNote?: string;
 }
 
+export interface DashboardEmbeddingStats {
+  total: number;
+  withEmbeddings: number;
+  withoutEmbeddings: number;
+  coverage: number;
+}
+
+export function embeddingCoveragePercent(
+  stats: DashboardEmbeddingStats | null,
+): number {
+  return stats && Number.isFinite(stats.coverage) ? stats.coverage * 100 : 0;
+}
+
 export function buildReviewPayload(
   id: string,
   status: Exclude<ReviewableSuggestionStatus, "pending">,

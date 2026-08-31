@@ -9,9 +9,14 @@ let store: LocalStore;
 
 function seedMemory(
   id: string,
-  options: { repoId?: string; status?: "active" | "deprecated" } = {},
+  options: {
+    repoId?: string;
+    status?: "active" | "deprecated";
+    ttlSeconds?: number;
+    createdAt?: Date;
+  } = {},
 ): void {
-  const now = new Date();
+  const now = options.createdAt ?? new Date();
   store.upsertFromRemote({
     id,
     orgId: "test-org",
@@ -22,6 +27,7 @@ function seedMemory(
     status: options.status ?? "active",
     text: `Memory ${id}`,
     tags: ["test"],
+    ttlSeconds: options.ttlSeconds,
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -76,6 +82,8 @@ describe("curation suggestions", () => {
 
     const approved = store.reviewCurationSuggestion({
       id: suggestion.id,
+      orgId: "test-org",
+      repoId: "test-repo",
       status: "approved",
       reviewedBy: "miguel",
       reviewNote: "Looks safe to apply",
@@ -116,7 +124,12 @@ describe("curation suggestions", () => {
     });
 
     expect(() =>
-      store.reviewCurationSuggestion({ id: suggestion.id, status: "applied" }),
+      store.reviewCurationSuggestion({
+        id: suggestion.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        status: "applied",
+      }),
     ).toThrow("Cannot transition curation suggestion from pending to applied");
     expect(
       store.listCurationSuggestions({
@@ -128,12 +141,16 @@ describe("curation suggestions", () => {
 
     store.reviewCurationSuggestion({
       id: suggestion.id,
+      orgId: "test-org",
+      repoId: "test-repo",
       status: "approved",
       reviewedBy: "miguel",
       reviewNote: "Proceed after backup",
     });
     const applied = store.reviewCurationSuggestion({
       id: suggestion.id,
+      orgId: "test-org",
+      repoId: "test-repo",
       status: "applied",
       reviewedBy: "hermes",
       reviewNote: "Operation completed",
@@ -141,8 +158,15 @@ describe("curation suggestions", () => {
 
     expect(applied.status).toBe("applied");
     expect(applied.appliedAt).toBeInstanceOf(Date);
+    expect(applied.reviewedBy).toBe("miguel");
+    expect(applied.reviewNote).toBe("Proceed after backup");
     expect(() =>
-      store.reviewCurationSuggestion({ id: suggestion.id, status: "rejected" }),
+      store.reviewCurationSuggestion({
+        id: suggestion.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        status: "rejected",
+      }),
     ).toThrow("Cannot transition curation suggestion from applied to rejected");
   });
 
@@ -162,11 +186,18 @@ describe("curation suggestions", () => {
       });
 
       expect(() =>
-        store.reviewCurationSuggestion({ id: suggestion.id, status: "approved" }),
+        store.reviewCurationSuggestion({
+          id: suggestion.id,
+          orgId: "test-org",
+          repoId: "test-repo",
+          status: "approved",
+        }),
       ).toThrow(`Curation suggestion is stale: ${memoryId}`);
 
       const rejected = store.reviewCurationSuggestion({
         id: suggestion.id,
+        orgId: "test-org",
+        repoId: "test-repo",
         status: "rejected",
         reviewedBy: "miguel",
         reviewNote: "Stale suggestion",
@@ -177,7 +208,12 @@ describe("curation suggestions", () => {
 
   it("does not mutate the inbox when the suggestion id is invalid", () => {
     expect(() =>
-      store.reviewCurationSuggestion({ id: "missing", status: "approved" }),
+      store.reviewCurationSuggestion({
+        id: "missing",
+        orgId: "test-org",
+        repoId: "test-repo",
+        status: "approved",
+      }),
     ).toThrow("Curation suggestion not found: missing");
     expect(
       store.listCurationSuggestions({ orgId: "test-org", repoId: "test-repo" }),
@@ -196,6 +232,8 @@ describe("curation suggestions", () => {
     });
     store.reviewCurationSuggestion({
       id: pending.id,
+      orgId: "test-org",
+      repoId: "test-repo",
       status: "rejected",
       reviewedBy: "first-reviewer",
     });
@@ -216,6 +254,8 @@ describe("curation suggestions", () => {
     expect(() =>
       store.reviewCurationSuggestion({
         id: pending.id,
+        orgId: "test-org",
+        repoId: "test-repo",
         status: "approved",
         reviewedBy: "stale-reviewer",
       }),
@@ -227,5 +267,91 @@ describe("curation suggestions", () => {
         status: ["rejected"],
       }),
     ).toHaveLength(1);
+  });
+
+  it("does not review a suggestion through another repository scope", () => {
+    const suggestion = store.createCurationSuggestion({
+      orgId: "test-org",
+      repoId: "other-repo",
+      type: "review",
+      priority: "medium",
+      memoryIds: [],
+      reason: "Other repository review",
+      confidence: 0.5,
+    });
+
+    expect(() =>
+      store.reviewCurationSuggestion({
+        id: suggestion.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        status: "rejected",
+      }),
+    ).toThrow(`Curation suggestion not found: ${suggestion.id}`);
+  });
+
+  it("treats TTL-expired memories as stale during approval", () => {
+    seedMemory("expired-memory", {
+      ttlSeconds: 1,
+      createdAt: new Date(Date.now() - 5_000),
+    });
+    const suggestion = store.createCurationSuggestion({
+      orgId: "test-org",
+      repoId: "test-repo",
+      type: "deprecate",
+      priority: "medium",
+      memoryIds: ["expired-memory"],
+      reason: "Expired memory review",
+      confidence: 0.8,
+    });
+
+    expect(() =>
+      store.reviewCurationSuggestion({
+        id: suggestion.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        status: "approved",
+      }),
+    ).toThrow("Curation suggestion is stale: expired-memory");
+  });
+
+  it("atomically suppresses duplicate pending and approved suggestions", () => {
+    seedMemory("mem-a");
+    seedMemory("mem-b");
+    const atomicStore = store as unknown as {
+      createCurationSuggestionIfAbsent: (
+        input: Parameters<LocalStore["createCurationSuggestion"]>[0],
+      ) => ReturnType<LocalStore["createCurationSuggestion"]> | undefined;
+    };
+    expect(typeof atomicStore.createCurationSuggestionIfAbsent).toBe("function");
+
+    const first = atomicStore.createCurationSuggestionIfAbsent({
+      orgId: "test-org",
+      repoId: "test-repo",
+      type: "add_links",
+      priority: "medium",
+      memoryIds: ["mem-a", "mem-b"],
+      reason: "Link related memories",
+      confidence: 0.8,
+    });
+    expect(first).toBeDefined();
+    store.reviewCurationSuggestion({
+      id: first!.id,
+      orgId: "test-org",
+      repoId: "test-repo",
+      status: "approved",
+    });
+
+    expect(
+      atomicStore.createCurationSuggestionIfAbsent({
+        orgId: "test-org",
+        repoId: "test-repo",
+        type: "add_links",
+        priority: "medium",
+        memoryIds: ["mem-b", "mem-a"],
+        reason: "Duplicate link review",
+        confidence: 0.8,
+      }),
+    ).toBeUndefined();
   });
 });

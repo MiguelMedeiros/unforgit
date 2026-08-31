@@ -25,7 +25,7 @@ function openStore() {
 function formatSuggestionLine(suggestion: CurationSuggestion): string {
   const memoryIds = suggestion.memoryIds.map((id) => id.slice(0, 8)).join(", ");
   const lines = [
-    `${suggestion.id.slice(0, 8)} [${suggestion.priority}] ${suggestion.type}`,
+    `${suggestion.id} [${suggestion.priority}] ${suggestion.type}`,
     `  status: ${suggestion.status}`,
     `  confidence: ${Math.round(suggestion.confidence * 100)}%`,
     `  memories: ${memoryIds || "none"}`,
@@ -146,10 +146,12 @@ export const suggestionsCommand = new Command("suggestions")
             ? "rejected"
             : "applied";
 
-        const { store } = openStore();
+        const { store, orgId, repoId } = openStore();
         try {
           const suggestion = store.reviewCurationSuggestion({
             id,
+            orgId,
+            repoId,
             status,
             reviewedBy: opts.reviewer,
             reviewNote: opts.note,

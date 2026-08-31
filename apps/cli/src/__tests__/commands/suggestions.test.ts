@@ -57,7 +57,7 @@ describe("suggestions command", () => {
 
     expect(list.exitCode).toBe(0);
     expect(list.stdout).toContain("Pending curation suggestions");
-    expect(list.stdout).toContain(suggestionId!.slice(0, 8));
+    expect(list.stdout).toContain(suggestionId!);
     expect(list.stdout).toContain("Both memories describe release automation");
 
     const review = await runCommand([
@@ -185,8 +185,8 @@ describe("suggestions command", () => {
       "--status",
       "applied",
     ]);
-    expect(appliedList.stdout).toContain("reviewed by: hermes");
-    expect(appliedList.stdout).toContain("review note: Underlying command completed");
+    expect(appliedList.stdout).toContain("reviewed by: miguel");
+    expect(appliedList.stdout).toContain("review note: Safe after backup");
   });
 
   it("reports stale review attempts without changing the suggestion status", async () => {

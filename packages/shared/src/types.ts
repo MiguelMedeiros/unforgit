@@ -173,6 +173,8 @@ export interface ListCurationSuggestionsQuery {
 
 export interface ReviewCurationSuggestionInput {
   id: string;
+  orgId: string;
+  repoId: string;
   status: Exclude<CurationSuggestionStatus, "pending">;
   reviewedBy?: string;
   reviewNote?: string;

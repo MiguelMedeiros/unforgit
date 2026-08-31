@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildReviewPayload,
+  embeddingCoveragePercent,
   getSuggestionAction,
   getSuggestionProvenance,
   removeReviewedSuggestion,
@@ -53,6 +54,18 @@ describe("curation review helpers", () => {
       createdBy: "dashboard",
       sourceSuggestionId: "add-links-batch",
     });
+  });
+
+  it("uses the embedding stats API contract without rendering NaN", () => {
+    expect(
+      embeddingCoveragePercent({
+        total: 1,
+        withEmbeddings: 0,
+        withoutEmbeddings: 1,
+        coverage: 0,
+      }),
+    ).toBe(0);
+    expect(embeddingCoveragePercent(null)).toBe(0);
   });
 
   it("removes reviewed pending suggestions from the dashboard list", () => {

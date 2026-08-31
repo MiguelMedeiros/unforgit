@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const maxSuggestions = Number.parseInt(params.get("max") ?? "20", 10);
-  const generate = params.get("generate") === "true";
 
   let statuses: CurationSuggestionStatus[];
   try {
@@ -57,27 +56,6 @@ export async function GET(request: NextRequest) {
   try {
     const orgId = config.remote.orgId;
     const repoId = config.remote.repoId;
-    let generatedStats:
-      | ReturnType<typeof generateSuggestions>["stats"]
-      | undefined;
-    let persisted:
-      | ReturnType<typeof persistReviewableSuggestions>
-      | undefined;
-
-    if (generate) {
-      const generated = generateSuggestions(store, orgId, repoId, {
-        maxSuggestions,
-      });
-      generatedStats = generated.stats;
-      persisted = persistReviewableSuggestions(
-        store,
-        orgId,
-        repoId,
-        generated.suggestions,
-        { createdBy: "dashboard" },
-      );
-    }
-
     const suggestions = store.listCurationSuggestions({
       orgId,
       repoId,
@@ -90,8 +68,6 @@ export async function GET(request: NextRequest) {
       stats: {
         returned: suggestions.length,
         status: statuses,
-        ...(generatedStats ?? {}),
-        ...(persisted ?? {}),
       },
     });
   } catch (error) {
@@ -115,11 +91,63 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null) as {
+    action?: "generate";
+    maxSuggestions?: number;
     id?: string;
     status?: CurationSuggestionStatus;
     reviewedBy?: string;
     reviewNote?: string;
   } | null;
+
+  if (body?.action === "generate") {
+    const maxSuggestions = body.maxSuggestions ?? 20;
+    if (!Number.isInteger(maxSuggestions) || maxSuggestions < 1 || maxSuggestions > 500) {
+      return NextResponse.json(
+        { error: "maxSuggestions must be an integer from 1 to 500" },
+        { status: 400 },
+      );
+    }
+
+    const store = new LocalStore(getDbPath());
+    try {
+      const orgId = config.remote.orgId;
+      const repoId = config.remote.repoId;
+      const generated = generateSuggestions(store, orgId, repoId, {
+        maxSuggestions,
+      });
+      const persisted = persistReviewableSuggestions(
+        store,
+        orgId,
+        repoId,
+        generated.suggestions,
+        { createdBy: "dashboard" },
+      );
+      const suggestions = store.listCurationSuggestions({
+        orgId,
+        repoId,
+        status: ["pending"],
+        limit: maxSuggestions,
+      });
+
+      return NextResponse.json({
+        suggestions,
+        stats: {
+          returned: suggestions.length,
+          status: ["pending"],
+          ...generated.stats,
+          ...persisted,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to generate suggestions:", error);
+      return NextResponse.json(
+        { error: "Failed to generate suggestions" },
+        { status: 500 },
+      );
+    } finally {
+      store.close();
+    }
+  }
 
   if (!body?.id) {
     return NextResponse.json({ error: "Missing suggestion id" }, { status: 400 });
@@ -136,6 +164,8 @@ export async function POST(request: NextRequest) {
   try {
     const suggestion = store.reviewCurationSuggestion({
       id: body.id,
+      orgId: config.remote.orgId,
+      repoId: config.remote.repoId,
       status: body.status,
       reviewedBy: body.reviewedBy,
       reviewNote: body.reviewNote,

@@ -1,12 +1,30 @@
 import { describe, expect, it } from "vitest";
 import type { CurationSuggestion, ILocalStore } from "unforgit-shared";
-import { persistReviewableSuggestions, type Suggestion } from "../suggestions.js";
+import {
+  buildConsolidateSuggestionAction,
+  persistReviewableSuggestions,
+  type Suggestion,
+} from "../suggestions.js";
 
 function makeStore(existing: CurationSuggestion[] = []) {
   const created: CurationSuggestion[] = [];
   const store = {
-    listCurationSuggestions: () => existing,
+    listCurationSuggestions: (query) =>
+      existing.filter(
+        (suggestion) => !query.status || query.status.includes(suggestion.status),
+      ),
     createCurationSuggestion: (input) => {
+      const suggestion: CurationSuggestion = {
+        id: `suggestion-${created.length + 1}`,
+        status: "pending",
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+        updatedAt: new Date("2026-01-01T00:00:00Z"),
+        ...input,
+      };
+      created.push(suggestion);
+      return suggestion;
+    },
+    createCurationSuggestionIfAbsent: (input) => {
       const suggestion: CurationSuggestion = {
         id: `suggestion-${created.length + 1}`,
         status: "pending",
@@ -86,5 +104,35 @@ describe("persistReviewableSuggestions", () => {
     expect(result.created).toBe(0);
     expect(result.skippedExisting).toBe(1);
     expect(created).toHaveLength(0);
+  });
+
+  it("keeps approved suggestions suppressed until they are applied", () => {
+    const approved: CurationSuggestion = {
+      id: "approved",
+      orgId: "Org",
+      repoId: "Repo",
+      type: "add_links",
+      priority: "low",
+      status: "approved",
+      memoryIds: ["mem-b", "mem-a"],
+      reason: "Approved review item",
+      confidence: 0.8,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-01T00:00:00Z"),
+    };
+    const { store, created } = makeStore([approved]);
+
+    const result = persistReviewableSuggestions(store, "Org", "Repo", [suggestion]);
+
+    expect(result).toEqual({ created: 0, skippedExisting: 1 });
+    expect(created).toHaveLength(0);
+  });
+});
+
+describe("buildConsolidateSuggestionAction", () => {
+  it("includes the required consolidated text option", () => {
+    expect(buildConsolidateSuggestionAction("mem-a", "mem-b").command).toBe(
+      'unforgit merge mem-a mem-b --text "<consolidated memory text>"',
+    );
   });
 });
