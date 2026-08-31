@@ -21,6 +21,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveDocsHash } from "@/lib/docs-navigation";
 import Link from "next/link";
 
 const mainSections = [
@@ -193,11 +194,18 @@ export function DocsSidebar() {
   }, [sections, defaultSection]);
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
+    const sectionIds = sections.flatMap((section) => [
+      section.id,
+      ...("subsections" in section && section.subsections
+        ? section.subsections.map((subsection) => subsection.id)
+        : []),
+    ]);
+    const hash = resolveDocsHash(window.location.hash, sectionIds);
+    let activeSectionFrame: number | null = null;
     if (hash) {
       const el = document.getElementById(hash);
       if (el) {
-        setActiveSection(hash);
+        activeSectionFrame = window.requestAnimationFrame(() => setActiveSection(hash));
         isUserClickRef.current = true;
         const offset = 100;
         const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
@@ -209,9 +217,15 @@ export function DocsSidebar() {
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+    const initialScrollFrame = window.requestAnimationFrame(handleScroll);
+    return () => {
+      window.cancelAnimationFrame(initialScrollFrame);
+      if (activeSectionFrame !== null) {
+        window.cancelAnimationFrame(activeSectionFrame);
+      }
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [handleScroll, sections]);
 
   const scrollToSection = useCallback((id: string) => {
     const element = document.getElementById(id);

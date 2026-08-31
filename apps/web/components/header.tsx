@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Cloud, CloudUpload, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isMobileMenuOpen, toggleMobileMenuPath } from "@unforgit/ui/utils";
 import { useSyncContext } from "./sync-provider";
 
 const navItems = [
@@ -61,11 +62,8 @@ function SyncIndicator() {
 
 export function Header() {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
+  const mobileOpen = isMobileMenuOpen(mobileOpenPath, pathname);
 
   return (
     <>
@@ -110,7 +108,9 @@ export function Header() {
         <div className="flex md:hidden items-center gap-3">
           <SyncIndicator />
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={() =>
+              setMobileOpenPath((openPath) => toggleMobileMenuPath(openPath, pathname))
+            }
             className="text-foreground/70 hover:text-foreground transition-colors p-1"
             aria-label="Toggle menu"
           >

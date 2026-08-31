@@ -143,44 +143,52 @@ export function McpIntegrations() {
             const isExternal =
               ide.href.startsWith("cursor://") ||
               ide.href.startsWith("https://");
-            const Wrapper = isExternal ? "a" : Link;
-            const wrapperProps = isExternal
-              ? { href: ide.href, target: "_blank", rel: "noopener noreferrer" }
-              : { href: ide.href };
-
-            return (
-              <Wrapper key={ide.name} {...(wrapperProps as any)}>
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
-                  whileHover={{ y: -4, scale: 1.03 }}
-                  className="rounded-xl border border-dracula-current/40 bg-dracula-current/20 p-5 flex flex-col items-center gap-3 group hover:border-dracula-comment/60 hover:bg-dracula-current/30 hover:shadow-2xl hover:shadow-white/6 transition-all duration-300 cursor-pointer h-full relative"
-                >
-                  {ide.installLink && (
-                    <span className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-dracula-foreground/10 text-[10px] font-medium text-dracula-foreground/70">
-                      <Download className="w-2.5 h-2.5" />
-                      Install
-                    </span>
+            const card = (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
+                whileHover={{ y: -4, scale: 1.03 }}
+                className="rounded-xl border border-dracula-current/40 bg-dracula-current/20 p-5 flex flex-col items-center gap-3 group hover:border-dracula-comment/60 hover:bg-dracula-current/30 hover:shadow-2xl hover:shadow-white/6 transition-all duration-300 cursor-pointer h-full relative"
+              >
+                {ide.installLink && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-dracula-foreground/10 text-[10px] font-medium text-dracula-foreground/70">
+                    <Download className="w-2.5 h-2.5" />
+                    Install
+                  </span>
+                )}
+                <div className="w-10 h-10 flex items-center justify-center text-dracula-foreground/60 group-hover:text-dracula-foreground transition-colors">
+                  {Icon ? (
+                    <Icon className="w-8 h-8" />
+                  ) : (
+                    <Plug className="w-7 h-7" />
                   )}
-                  <div className="w-10 h-10 flex items-center justify-center text-dracula-foreground/60 group-hover:text-dracula-foreground transition-colors">
-                    {Icon ? (
-                      <Icon className="w-8 h-8" />
-                    ) : (
-                      <Plug className="w-7 h-7" />
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-sm text-dracula-foreground">
-                      {ide.name}
-                    </p>
-                    <p className="text-xs text-dracula-comment mt-0.5">
-                      {ide.note}
-                    </p>
-                  </div>
-                </motion.div>
-              </Wrapper>
+                </div>
+                <div className="text-center">
+                  <p className="font-medium text-sm text-dracula-foreground">
+                    {ide.name}
+                  </p>
+                  <p className="text-xs text-dracula-comment mt-0.5">
+                    {ide.note}
+                  </p>
+                </div>
+              </motion.div>
+            );
+
+            return isExternal ? (
+              <a
+                key={ide.name}
+                href={ide.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {card}
+              </a>
+            ) : (
+              <Link key={ide.name} href={ide.href}>
+                {card}
+              </Link>
             );
           })}
         </motion.div>

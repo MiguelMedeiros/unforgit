@@ -69,4 +69,22 @@ export default tseslint.config(
       "react-hooks/refs": "warn",
     },
   },
+  {
+    files: ["apps/{admin,web,website}/app/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true, allowExportNames: ["metadata"] },
+      ],
+    },
+  },
+  {
+    files: ["apps/web/components/sync-provider.tsx"],
+    rules: {
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true, allowExportNames: ["useSyncContext"] },
+      ],
+    },
+  },
 );

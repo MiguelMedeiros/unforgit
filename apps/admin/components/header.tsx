@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getToken, clearToken, getUser, type User } from "@/lib/api";
+import { clearToken } from "@/lib/api";
+import { useAdminAuthState } from "@/lib/auth-store";
+import { isMobileMenuOpen, toggleMobileMenuPath } from "@unforgit/ui/utils";
 
 const adminNavItems = [
   { href: "/repos", label: "repos" },
@@ -23,22 +25,14 @@ const userNavItems = [
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
+  const mobileOpen = isMobileMenuOpen(mobileOpenPath, pathname);
+  const { isAuthenticated, user } = useAdminAuthState();
 
   const navItems = useMemo(() => {
     return user?.isAdmin ? adminNavItems : userNavItems;
   }, [user?.isAdmin]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    setIsAuthenticated(!!getToken());
-    setUser(getUser());
-  }, [pathname]);
 
   const handleLogout = () => {
     clearToken();
@@ -109,7 +103,9 @@ export function Header() {
             {/* Mobile: hamburger */}
             <div className="flex md:hidden items-center gap-3">
               <button
-                onClick={() => setMobileOpen(!mobileOpen)}
+                onClick={() =>
+                  setMobileOpenPath((openPath) => toggleMobileMenuPath(openPath, pathname))
+                }
                 className="text-foreground/70 hover:text-foreground transition-colors p-1"
                 aria-label="Toggle menu"
               >
