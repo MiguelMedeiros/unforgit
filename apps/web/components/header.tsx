@@ -5,7 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Cloud, CloudUpload, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isMobileMenuOpen, toggleMobileMenuPath } from "@unforgit/ui/utils";
+import {
+  createMobileMenuState,
+  syncMobileMenuState,
+  toggleMobileMenuState,
+} from "@unforgit/ui/utils";
 import { useSyncContext } from "./sync-provider";
 
 const navItems = [
@@ -62,8 +66,14 @@ function SyncIndicator() {
 
 export function Header() {
   const pathname = usePathname();
-  const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
-  const mobileOpen = isMobileMenuOpen(mobileOpenPath, pathname);
+  const [mobileMenuState, setMobileMenuState] = useState(() =>
+    createMobileMenuState(pathname),
+  );
+  const currentMobileMenuState = syncMobileMenuState(mobileMenuState, pathname);
+  if (currentMobileMenuState !== mobileMenuState) {
+    setMobileMenuState(currentMobileMenuState);
+  }
+  const mobileOpen = currentMobileMenuState.isOpen;
 
   return (
     <>
@@ -109,7 +119,7 @@ export function Header() {
           <SyncIndicator />
           <button
             onClick={() =>
-              setMobileOpenPath((openPath) => toggleMobileMenuPath(openPath, pathname))
+              setMobileMenuState((state) => toggleMobileMenuState(state, pathname))
             }
             className="text-foreground/70 hover:text-foreground transition-colors p-1"
             aria-label="Toggle menu"

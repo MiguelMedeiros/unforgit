@@ -8,7 +8,11 @@ import { LogOut, Menu, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
 import { useAdminAuthState } from "@/lib/auth-store";
-import { isMobileMenuOpen, toggleMobileMenuPath } from "@unforgit/ui/utils";
+import {
+  createMobileMenuState,
+  syncMobileMenuState,
+  toggleMobileMenuState,
+} from "@unforgit/ui/utils";
 
 const adminNavItems = [
   { href: "/repos", label: "repos" },
@@ -25,8 +29,14 @@ const userNavItems = [
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
-  const mobileOpen = isMobileMenuOpen(mobileOpenPath, pathname);
+  const [mobileMenuState, setMobileMenuState] = useState(() =>
+    createMobileMenuState(pathname),
+  );
+  const currentMobileMenuState = syncMobileMenuState(mobileMenuState, pathname);
+  if (currentMobileMenuState !== mobileMenuState) {
+    setMobileMenuState(currentMobileMenuState);
+  }
+  const mobileOpen = currentMobileMenuState.isOpen;
   const { isAuthenticated, user } = useAdminAuthState();
 
   const navItems = useMemo(() => {
@@ -104,7 +114,7 @@ export function Header() {
             <div className="flex md:hidden items-center gap-3">
               <button
                 onClick={() =>
-                  setMobileOpenPath((openPath) => toggleMobileMenuPath(openPath, pathname))
+                  setMobileMenuState((state) => toggleMobileMenuState(state, pathname))
                 }
                 className="text-foreground/70 hover:text-foreground transition-colors p-1"
                 aria-label="Toggle menu"

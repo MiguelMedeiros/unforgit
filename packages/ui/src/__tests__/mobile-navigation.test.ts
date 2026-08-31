@@ -1,20 +1,28 @@
 import { describe, expect, it } from "vitest";
 import {
-  isMobileMenuOpen,
-  toggleMobileMenuPath,
+  createMobileMenuState,
+  syncMobileMenuState,
+  toggleMobileMenuState,
 } from "../utils/mobile-navigation";
 
 describe("mobile navigation state", () => {
-  it("closes an open menu when navigation changes the pathname", () => {
-    expect(isMobileMenuOpen("/memories", "/settings")).toBe(false);
-  });
-
-  it("keeps an open menu visible while the pathname is unchanged", () => {
-    expect(isMobileMenuOpen("/memories", "/memories")).toBe(true);
-  });
-
   it("toggles the menu for the current pathname", () => {
-    expect(toggleMobileMenuPath(null, "/memories")).toBe("/memories");
-    expect(toggleMobileMenuPath("/memories", "/memories")).toBeNull();
+    const closed = createMobileMenuState("/memories");
+    const open = toggleMobileMenuState(closed, "/memories");
+
+    expect(open).toEqual({ pathname: "/memories", isOpen: true });
+    expect(toggleMobileMenuState(open, "/memories")).toEqual(closed);
+  });
+
+  it("stays closed after navigating away and returning", () => {
+    let state = toggleMobileMenuState(
+      createMobileMenuState("/memories"),
+      "/memories",
+    );
+
+    state = syncMobileMenuState(state, "/settings");
+    state = syncMobileMenuState(state, "/memories");
+
+    expect(state).toEqual({ pathname: "/memories", isOpen: false });
   });
 });
