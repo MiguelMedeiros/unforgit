@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/out/**",
       "**/build/**",
       "**/coverage/**",
+      "**/.awp-worktrees/**",
+      "**/.awp-evidence/**",
       "packages/db/src/generated/**",
       "**/next-env.d.ts",
     ],
@@ -65,6 +67,24 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/refs": "warn",
+    },
+  },
+  {
+    files: ["apps/{admin,web,website}/app/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true, allowExportNames: ["metadata"] },
+      ],
+    },
+  },
+  {
+    files: ["apps/web/components/sync-provider.tsx"],
+    rules: {
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true, allowExportNames: ["useSyncContext"] },
+      ],
     },
   },
 );

@@ -1,1 +1,1 @@
-export { Button, buttonVariants, type ButtonProps } from "@unforgit/ui/primitives";
+export { Button } from "@unforgit/ui/primitives";

@@ -1,6 +1,6 @@
 {
   "name": "unforgit",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "mcpName": "io.github.miguelmedeiros/unforgit",
   "type": "module",
   "bin": {
