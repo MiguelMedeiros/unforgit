@@ -6,7 +6,8 @@ import { Brain, ArrowRight, Sparkles, GitMerge, Network } from "lucide-react";
 import { StatsCards } from "@/components/stats-cards";
 import { ActivityHeatmap } from "@/components/activity-heatmap";
 import { MemoryTypeChart, DailyMemoriesChart, TopTagsChart, MemoryLifecycleChart } from "@/components/dashboard-charts";
-import { TimeframeSelector, type Timeframe, getTimeframeDays } from "@/components/timeframe-selector";
+import { TimeframeSelector } from "@/components/timeframe-selector";
+import { getTimeframeDays, type Timeframe } from "@/lib/timeframe";
 
 interface StoreStats {
   total: number;

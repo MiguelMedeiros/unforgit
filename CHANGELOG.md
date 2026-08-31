@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+* **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
+
+## [0.10.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.10.0...v0.10.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **api:** validate delete request body ([#107](https://github.com/MiguelMedeiros/unforgit/issues/107)) ([2a2f5fe](https://github.com/MiguelMedeiros/unforgit/commit/2a2f5fe907ac7ffb5c9e2a0ecc8bba23a9e81995))
+* **lint:** ignore generated agent worktrees ([#110](https://github.com/MiguelMedeiros/unforgit/issues/110)) ([d9cf19e](https://github.com/MiguelMedeiros/unforgit/commit/d9cf19e764e615bf7f3cabbed0406d435372f4f2))
+* **lint:** remove recurring React warnings ([#112](https://github.com/MiguelMedeiros/unforgit/issues/112)) ([cca0bb6](https://github.com/MiguelMedeiros/unforgit/commit/cca0bb66a8bf48597d19666e5f8f8021acd9c65d))
+
 ## [0.10.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.9.3...v0.10.0) (2026-08-29)
 
 

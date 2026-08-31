@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 import { Terminal } from "./terminal";
 
 interface CommandOption {
@@ -28,11 +28,7 @@ export function CommandReference({
   options,
   example,
 }: CommandReferenceProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useHydrated();
 
   const Wrapper = isMounted ? motion.div : "div";
   const wrapperProps = isMounted

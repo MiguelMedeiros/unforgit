@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface TerminalProps {
   code: string;
@@ -250,11 +251,7 @@ export function Terminal({
   language = "bash",
 }: TerminalProps) {
   const [copied, setCopied] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useHydrated();
 
   const handleCopy = async () => {
     const cleanCode = code

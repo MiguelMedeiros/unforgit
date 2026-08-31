@@ -43,6 +43,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  createMemoryDetailState,
+  type MemoryDetailInitialState,
+} from "@/lib/memory-detail-state";
 
 interface MemoryDetail {
   id: string;
@@ -87,6 +91,11 @@ interface MemoryDetailSheetProps {
   onClose: () => void;
   onAction: () => void;
   onNavigate?: (id: string) => void;
+}
+
+interface MemoryDetailContentProps extends Omit<MemoryDetailSheetProps, "memoryId"> {
+  memoryId: string;
+  initialState: MemoryDetailInitialState;
 }
 
 const typeConfig: Record<string, { bg: string; text: string }> = {
@@ -241,26 +250,36 @@ function SourceRefItem({
   );
 }
 
-export function MemoryDetailSheet({
+export function MemoryDetailSheet(props: MemoryDetailSheetProps) {
+  const initialState = createMemoryDetailState(props.memoryId);
+  if (!initialState || !props.memoryId) return null;
+
+  return (
+    <MemoryDetailContent
+      key={initialState.key}
+      {...props}
+      memoryId={props.memoryId}
+      initialState={initialState}
+    />
+  );
+}
+
+function MemoryDetailContent({
   memoryId,
   onClose,
   onAction,
   onNavigate,
-}: MemoryDetailSheetProps) {
-  const [memory, setMemory] = useState<MemoryDetail | null>(null);
+  initialState,
+}: MemoryDetailContentProps) {
+  const [memory, setMemory] = useState<MemoryDetail | null>(initialState.memory);
   const [source, setSource] = useState<"local" | "remote">("local");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialState.loading);
   const [copied, setCopied] = useState(false);
-  const [linkedMemories, setLinkedMemories] = useState<LinkedMemoryItem[]>([]);
+  const [linkedMemories, setLinkedMemories] = useState<LinkedMemoryItem[]>(
+    initialState.linkedMemories,
+  );
 
   useEffect(() => {
-    if (!memoryId) {
-      setMemory(null);
-      setLinkedMemories([]);
-      return;
-    }
-
-    setLoading(true);
     fetch(`/api/memories/${memoryId}`)
       .then((r) => {
         if (!r.ok) throw new Error("Not found");

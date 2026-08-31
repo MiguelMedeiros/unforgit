@@ -13,7 +13,7 @@ Claude Code users can install the official Unforgit plugin from the Unforgit mar
 /plugin install unforgit
 ```
 
-Install the CLI first so the plugin's MCP config can launch `unforgit-mcp`:
+Install the CLI with Node.js 24.15 or later so the plugin's MCP config can launch `unforgit-mcp`:
 
 ```bash
 npm install -g unforgit

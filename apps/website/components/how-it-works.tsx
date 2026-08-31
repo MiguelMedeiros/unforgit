@@ -11,7 +11,7 @@ const steps: Step[] = [
     number: "01",
     command: "npm install -g unforgit",
     title: "Install",
-    description: "Install the CLI globally on your system.",
+    description: "Install the CLI globally with Node.js 24.15 or later.",
   },
   {
     number: "02",
