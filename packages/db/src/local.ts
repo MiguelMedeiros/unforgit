@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { NodeSqliteDatabase } from "./sqlite.js";
 import { v4 as uuid } from "uuid";
 import path from "node:path";
 import fs from "node:fs";
@@ -251,14 +251,14 @@ function nonExpiredMemoryClause(alias?: string): string {
 }
 
 export class LocalStore {
-  private db: Database.Database;
+  private db: NodeSqliteDatabase;
 
   constructor(dbPath: string) {
     const dir = path.dirname(dbPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    this.db = new Database(dbPath);
+    this.db = new NodeSqliteDatabase(dbPath);
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     this.db.exec(SCHEMA_SQL);
