@@ -3,22 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Github, Loader2 } from "lucide-react";
-import { getToken, getApiBaseUrl } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api";
+import { useAdminAuthState } from "@/lib/auth-store";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { hydrated, isAuthenticated } = useAdminAuthState();
 
   useEffect(() => {
-    if (getToken()) {
+    if (hydrated && isAuthenticated) {
       router.replace("/keys");
     }
-
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("error")) {
-      setLoading(false);
-    }
-  }, [router]);
+  }, [hydrated, isAuthenticated, router]);
 
   const handleGitHubLogin = () => {
     setLoading(true);

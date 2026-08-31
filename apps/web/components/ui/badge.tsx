@@ -1,1 +1,1 @@
-export { Badge, badgeVariants, type BadgeProps } from "@unforgit/ui/primitives";
+export { Badge } from "@unforgit/ui/primitives";
