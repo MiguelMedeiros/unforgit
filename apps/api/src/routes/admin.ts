@@ -12,6 +12,12 @@ import {
   type ConsolidationCandidate,
 } from "unforgit-core";
 
+declare module "fastify" {
+  interface FastifyRequest {
+    adminUserId?: string;
+  }
+}
+
 interface CreateApiKeyBody {
   name: string;
   orgId: string;
@@ -38,6 +44,10 @@ interface GrantRepoAccessBody {
   orgId: string;
   repoId: string;
   permission: string;
+}
+
+function isRepoPermission(value: string): value is "read" | "write" | "admin" {
+  return ["read", "write", "admin"].includes(value);
 }
 
 interface CreateUserApiKeyBody {
@@ -101,6 +111,8 @@ async function adminAuthPreHandler(
       .send({ error: "Unauthorized", message: "Invalid or expired admin token" });
     return;
   }
+
+  request.adminUserId = user.id;
 }
 
 function parsePositiveInteger(value: string | undefined): number | undefined {
@@ -364,6 +376,13 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           .send({ error: "Bad Request", message: "orgId, repoId, and permission are required" });
       }
 
+      if (!isRepoPermission(permission)) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "permission must be read, write, or admin",
+        });
+      }
+
       const user = await store.getUserById(id);
 
       if (!user) {
@@ -377,6 +396,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         orgId,
         repoId,
         permission,
+        grantedBy: request.adminUserId,
       });
 
       return reply.status(201).send({

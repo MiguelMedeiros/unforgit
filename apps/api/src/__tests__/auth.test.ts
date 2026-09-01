@@ -77,8 +77,24 @@ describe("auth routes", () => {
       }),
       upsertRepoAccess: vi.fn(),
       getUserRepoAccess: vi.fn().mockResolvedValue([
-        { orgId: "allowed-org", repoId: "current-repo", permission: "write" },
-        { orgId: "stale-org", repoId: "stale-repo", permission: "write" },
+        {
+          orgId: "allowed-org",
+          repoId: "current-repo",
+          permission: "write",
+          grantedBy: null,
+        },
+        {
+          orgId: "stale-org",
+          repoId: "stale-repo",
+          permission: "write",
+          grantedBy: null,
+        },
+        {
+          orgId: "admin-org",
+          repoId: "admin-repo",
+          permission: "write",
+          grantedBy: "admin-user-id",
+        },
       ]),
       revokeRepoAccess: vi.fn().mockResolvedValue(true),
     } as unknown as RemoteStore & {
@@ -161,6 +177,20 @@ describe("auth routes", () => {
             email: "octocat@example.com",
             avatar_url: "https://example.com/avatar.png",
           }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(
+            Array.from({ length: 100 }, (_, index) => ({
+              id: index + 1,
+              full_name: `allowed-org/repo-${index + 1}`,
+              owner: { login: "allowed-org" },
+              name: `repo-${index + 1}`,
+              permissions: { admin: false, push: true, pull: true },
+            })),
+          ),
           { status: 200 },
         ),
       )
@@ -316,7 +346,7 @@ describe("auth routes", () => {
       getUserRepoAccess: vi.fn().mockResolvedValue([
         { orgId: "allowed-org", repoId: "allowed-repo", permission: "write" },
       ]),
-      createApiKeyForUser: vi.fn().mockResolvedValue({
+      createApiKeyForUserWithWriteAccess: vi.fn().mockResolvedValue({
         id: "key-id",
         key: "hk_secret",
         name: "authorized-key",
@@ -326,7 +356,7 @@ describe("auth routes", () => {
       }),
     } as unknown as RemoteStore & {
       getUserRepoAccess: ReturnType<typeof vi.fn>;
-      createApiKeyForUser: ReturnType<typeof vi.fn>;
+      createApiKeyForUserWithWriteAccess: ReturnType<typeof vi.fn>;
     };
     const token = await signUserToken();
     const app = await buildApp(store);
@@ -345,7 +375,7 @@ describe("auth routes", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(store.createApiKeyForUser).toHaveBeenCalledWith(
+    expect(store.createApiKeyForUserWithWriteAccess).toHaveBeenCalledWith(
       "authorized-key",
       "Allowed-Org",
       "Allowed-Repo",

@@ -1682,7 +1682,7 @@ export class RemoteStore {
       },
     });
 
-    if (input.permission.toLowerCase() !== "read") {
+    if (["write", "admin"].includes(input.permission.toLowerCase())) {
       return upsertAccess;
     }
 
@@ -1752,14 +1752,6 @@ export class RemoteStore {
       const normalizedRepoId = repoId.toLowerCase();
 
       await this.prisma.$transaction([
-        this.prisma.apiKey.updateMany({
-          where: {
-            userId,
-            orgId: normalizedOrgId,
-            OR: [{ repoId: normalizedRepoId }, { repoId: null }],
-          },
-          data: { isActive: false },
-        }),
         this.prisma.userRepoAccess.delete({
           where: {
             userId_orgId_repoId: {
@@ -1768,6 +1760,14 @@ export class RemoteStore {
               repoId: normalizedRepoId,
             },
           },
+        }),
+        this.prisma.apiKey.updateMany({
+          where: {
+            userId,
+            orgId: normalizedOrgId,
+            OR: [{ repoId: normalizedRepoId }, { repoId: null }],
+          },
+          data: { isActive: false },
         }),
       ]);
       return true;
@@ -1856,6 +1856,68 @@ export class RemoteStore {
       repoId: apiKey.repoId,
       userId: apiKey.userId!,
     };
+  }
+
+  async createApiKeyForUserWithWriteAccess(
+    name: string,
+    orgId: string,
+    repoId: string,
+    userId: string,
+    createdBy: string,
+    label?: string,
+  ): Promise<{
+    id: string;
+    key: string;
+    name: string;
+    label: string | null;
+    orgId: string;
+    repoId: string;
+    userId: string;
+  } | null> {
+    const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
+    const normalizedOrgId = orgId.toLowerCase();
+    const normalizedRepoId = repoId.toLowerCase();
+
+    const apiKey = await this.prisma.$transaction(async (transaction) => {
+      const access = await transaction.$queryRaw<Array<{ permission: string }>>`
+        SELECT permission
+        FROM user_repo_access
+        WHERE user_id = ${userId}::uuid
+          AND org_id = ${normalizedOrgId}
+          AND repo_id = ${normalizedRepoId}
+        FOR UPDATE
+      `;
+      if (
+        !access[0] ||
+        !["write", "admin"].includes(access[0].permission.toLowerCase())
+      ) {
+        return null;
+      }
+
+      return transaction.apiKey.create({
+        data: {
+          key,
+          name,
+          orgId: normalizedOrgId,
+          repoId: normalizedRepoId,
+          userId,
+          createdBy,
+          label: label ?? null,
+        },
+      });
+    });
+
+    return apiKey
+      ? {
+          id: apiKey.id,
+          key: apiKey.key,
+          name: apiKey.name,
+          label: apiKey.label,
+          orgId: apiKey.orgId,
+          repoId: apiKey.repoId!,
+          userId: apiKey.userId!,
+        }
+      : null;
   }
 
   async getUserApiKeys(userId: string): Promise<Array<{
