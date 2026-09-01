@@ -12,6 +12,15 @@ function buildStore() {
     },
     userRepoAccess: {
       delete: vi.fn().mockResolvedValue({ id: "access-id" }),
+      upsert: vi.fn().mockResolvedValue({
+        id: "access-id",
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "read",
+        grantedAt: new Date("2026-09-01T00:00:00.000Z"),
+        grantedBy: null,
+      }),
     },
   };
   const store = new RemoteStore("postgresql://localhost/unforgit");
@@ -57,6 +66,27 @@ describe("RemoteStore user credential revocation", () => {
     });
     expect(prisma.userRepoAccess.delete).toHaveBeenCalledWith({
       where: { userId_orgId_repoId: accessScope },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+  });
+
+  it("deactivates write-capable API keys when repository access becomes read-only", async () => {
+    const { prisma, store } = buildStore();
+
+    await store.upsertRepoAccess({
+      userId: "user-id",
+      orgId: "Allowed-Org",
+      repoId: "Allowed-Repo",
+      permission: "read",
+    });
+
+    expect(prisma.apiKey.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-id",
+        orgId: "allowed-org",
+        OR: [{ repoId: "allowed-repo" }, { repoId: null }],
+      },
+      data: { isActive: false },
     });
     expect(prisma.$transaction).toHaveBeenCalledOnce();
   });

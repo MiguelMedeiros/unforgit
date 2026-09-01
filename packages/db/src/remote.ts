@@ -1661,7 +1661,7 @@ export class RemoteStore {
     const normalizedOrgId = input.orgId.toLowerCase();
     const normalizedRepoId = input.repoId.toLowerCase();
 
-    return this.prisma.userRepoAccess.upsert({
+    const upsertAccess = this.prisma.userRepoAccess.upsert({
       where: {
         userId_orgId_repoId: {
           userId: input.userId,
@@ -1681,6 +1681,23 @@ export class RemoteStore {
         grantedBy: input.grantedBy ?? null,
       },
     });
+
+    if (input.permission.toLowerCase() !== "read") {
+      return upsertAccess;
+    }
+
+    const [access] = await this.prisma.$transaction([
+      upsertAccess,
+      this.prisma.apiKey.updateMany({
+        where: {
+          userId: input.userId,
+          orgId: normalizedOrgId,
+          OR: [{ repoId: normalizedRepoId }, { repoId: null }],
+        },
+        data: { isActive: false },
+      }),
+    ]);
+    return access;
   }
 
   async getUserRepoAccess(userId: string): Promise<Array<{
