@@ -683,7 +683,11 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       const memories = [];
       for (const id of sourceIds) {
         const memory = await store.getById(id);
-        if (!memory) {
+        if (
+          !memory ||
+          memory.orgId.toLowerCase() !== orgId.toLowerCase() ||
+          memory.repoId.toLowerCase() !== repoId.toLowerCase()
+        ) {
           return reply.status(404).send({ error: `Memory not found: ${id}` });
         }
         memories.push(memory);

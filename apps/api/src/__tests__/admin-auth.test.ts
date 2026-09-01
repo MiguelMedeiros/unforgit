@@ -297,4 +297,36 @@ describe("admin auth", () => {
     await app.close();
     delete process.env.OPENAI_API_KEY;
   });
+
+  it("rejects cross-repository sources before manual consolidation", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    process.env.OPENAI_API_KEY = "sk-test";
+    const store = buildStore();
+    store.getById
+      .mockResolvedValueOnce({
+        id: "foreign-memory",
+        orgId: "other-org",
+        repoId: "other-repo",
+        tags: [],
+      })
+      .mockResolvedValueOnce(null);
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/repos/org-id/repo-id/consolidation/execute",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { sourceIds: ["foreign-memory", "own-memory"] },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: "Memory not found: foreign-memory",
+    });
+    expect(store.getById).toHaveBeenCalledOnce();
+    expect(store.getById).toHaveBeenCalledWith("foreign-memory");
+
+    await app.close();
+  });
 });
