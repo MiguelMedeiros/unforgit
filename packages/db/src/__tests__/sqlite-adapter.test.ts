@@ -35,6 +35,10 @@ describe("NodeSqliteDatabase", () => {
     ]);
   });
 
+  it("waits briefly for concurrent writers instead of failing immediately", () => {
+    expect(db.pragma("busy_timeout")).toEqual([{ timeout: 5000 }]);
+  });
+
   it("returns SQLite blobs as Node buffers", () => {
     db.exec("CREATE TABLE blobs (value BLOB NOT NULL)");
     db.prepare("INSERT INTO blobs (value) VALUES (?)").run(
