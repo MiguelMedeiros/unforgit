@@ -301,20 +301,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           avatarUrl: githubUser.avatar_url,
         });
 
-        const storedRepositoryAccess = await store.getUserRepoAccess(user.id);
-        const storedAccessByScope = new Map(
-          storedRepositoryAccess.map((access) => [
-            `${access.orgId.toLowerCase()}/${access.repoId.toLowerCase()}`,
-            access,
-          ]),
-        );
-
         for (const repo of githubRepos) {
-          const scope = `${repo.owner.login.toLowerCase()}/${repo.name.toLowerCase()}`;
-          if (storedAccessByScope.get(scope)?.grantedBy != null) {
-            continue;
-          }
-
           const permission = getPermissionLevel(repo.permissions);
           await store.upsertRepoAccess({
             userId: user.id,
@@ -322,25 +309,6 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
             repoId: repo.name,
             permission,
           });
-        }
-
-        const currentRepositoryScopes = new Set(
-          githubRepos.map(
-            (repo) => `${repo.owner.login.toLowerCase()}/${repo.name.toLowerCase()}`,
-          ),
-        );
-        for (const access of storedRepositoryAccess) {
-          const scope = `${access.orgId.toLowerCase()}/${access.repoId.toLowerCase()}`;
-          if (access.grantedBy == null && !currentRepositoryScopes.has(scope)) {
-            const revoked = await store.revokeRepoAccess(
-              user.id,
-              access.orgId,
-              access.repoId,
-            );
-            if (!revoked) {
-              throw new Error("Failed to revoke stale repository access");
-            }
-          }
         }
 
         const token = await createUserToken({

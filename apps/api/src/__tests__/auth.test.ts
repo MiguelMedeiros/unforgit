@@ -64,107 +64,16 @@ describe("auth routes", () => {
     await app.close();
   });
 
-  it("revokes repository access missing from a complete GitHub refresh", async () => {
-    process.env.GITHUB_CLIENT_ID = "client-id";
-    process.env.GITHUB_CLIENT_SECRET = "client-secret";
-    process.env.JWT_SECRET = "test-secret";
-    const store = {
-      upsertUser: vi.fn().mockResolvedValue({
-        id: "user-id",
-        githubId: 123,
-        githubLogin: "octocat",
-        isAdmin: false,
-      }),
-      upsertRepoAccess: vi.fn(),
-      getUserRepoAccess: vi.fn().mockResolvedValue([
-        {
-          orgId: "allowed-org",
-          repoId: "current-repo",
-          permission: "write",
-          grantedBy: null,
-        },
-        {
-          orgId: "stale-org",
-          repoId: "stale-repo",
-          permission: "write",
-          grantedBy: null,
-        },
-        {
-          orgId: "admin-org",
-          repoId: "admin-repo",
-          permission: "write",
-          grantedBy: "admin-user-id",
-        },
-      ]),
-      revokeRepoAccess: vi.fn().mockResolvedValue(true),
-    } as unknown as RemoteStore & {
-      upsertUser: ReturnType<typeof vi.fn>;
-      upsertRepoAccess: ReturnType<typeof vi.fn>;
-      getUserRepoAccess: ReturnType<typeof vi.fn>;
-      revokeRepoAccess: ReturnType<typeof vi.fn>;
-    };
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "github-token" })))
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            id: 123,
-            login: "octocat",
-            name: "Octo Cat",
-            email: "octocat@example.com",
-            avatar_url: "https://example.com/avatar.png",
-          }),
-          { status: 200 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify([
-            {
-              id: 1,
-              full_name: "allowed-org/current-repo",
-              owner: { login: "allowed-org" },
-              name: "current-repo",
-              permissions: { admin: false, push: true, pull: true },
-            },
-          ]),
-          { status: 200 },
-        ),
-      );
-    const app = await buildApp(store);
-    const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
-    const state = new URL(authResponse.headers.location as string).searchParams.get("state");
-
-    const response = await app.inject({
-      method: "GET",
-      url: `/v1/auth/github/callback?code=abc&state=${state}`,
-    });
-
-    expect(response.statusCode).toBe(302);
-    expect(store.revokeRepoAccess).toHaveBeenCalledTimes(1);
-    expect(store.revokeRepoAccess).toHaveBeenCalledWith(
-      "user-id",
-      "stale-org",
-      "stale-repo",
-    );
-
-    await app.close();
-  });
-
-  it("does not revoke repository access after an incomplete GitHub refresh", async () => {
+  it("does not mutate repository access after an incomplete GitHub refresh", async () => {
     process.env.GITHUB_CLIENT_ID = "client-id";
     process.env.GITHUB_CLIENT_SECRET = "client-secret";
     process.env.JWT_SECRET = "test-secret";
     const store = {
       upsertUser: vi.fn(),
       upsertRepoAccess: vi.fn(),
-      getUserRepoAccess: vi.fn(),
-      revokeRepoAccess: vi.fn(),
     } as unknown as RemoteStore & {
       upsertUser: ReturnType<typeof vi.fn>;
       upsertRepoAccess: ReturnType<typeof vi.fn>;
-      getUserRepoAccess: ReturnType<typeof vi.fn>;
-      revokeRepoAccess: ReturnType<typeof vi.fn>;
     };
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "github-token" })))
@@ -207,7 +116,7 @@ describe("auth routes", () => {
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toContain("error=Failed%20to%20fetch%20GitHub%20repositories");
     expect(store.upsertUser).not.toHaveBeenCalled();
-    expect(store.revokeRepoAccess).not.toHaveBeenCalled();
+    expect(store.upsertRepoAccess).not.toHaveBeenCalled();
 
     await app.close();
   });

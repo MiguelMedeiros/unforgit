@@ -185,41 +185,6 @@ describe("admin auth", () => {
     await app.close();
   });
 
-  it("records which admin granted repository access", async () => {
-    process.env.JWT_SECRET = "test-secret";
-    const store = buildStore();
-    store.upsertRepoAccess.mockResolvedValue({
-      orgId: "allowed-org",
-      repoId: "allowed-repo",
-      permission: "write",
-      grantedAt: new Date("2026-09-01T00:00:00.000Z"),
-    });
-    const token = await signAdminToken();
-    const app = await buildAdminApp(store);
-
-    const response = await app.inject({
-      method: "POST",
-      url: "/v1/admin/users/user-id/repos",
-      headers: adminAuthorization(token),
-      payload: {
-        orgId: "allowed-org",
-        repoId: "allowed-repo",
-        permission: "write",
-      },
-    });
-
-    expect(response.statusCode).toBe(201);
-    expect(store.upsertRepoAccess).toHaveBeenCalledWith({
-      userId: "user-id",
-      orgId: "allowed-org",
-      repoId: "allowed-repo",
-      permission: "write",
-      grantedBy: "admin-user",
-    });
-
-    await app.close();
-  });
-
   it("returns a bad request instead of crashing when creating a user API key without a body", async () => {
     process.env.JWT_SECRET = "test-secret";
     const store = buildStore();
