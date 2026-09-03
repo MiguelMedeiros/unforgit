@@ -210,7 +210,7 @@ async function getGitHubUserRepos(accessToken: string): Promise<GitHubRepo[]> {
     );
 
     if (!response.ok) {
-      break;
+      throw new Error("Failed to fetch GitHub repositories");
     }
 
     const pageRepos: GitHubRepo[] = await response.json();
@@ -498,20 +498,27 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     const repoAccess = await store.getUserRepoAccess(payload.id);
     const normalizedOrgId = orgId.toLowerCase();
     const normalizedRepoId = repoId.toLowerCase();
-    const hasRepoAccess = repoAccess.some(
+    const matchingRepoAccess = repoAccess.find(
       (access) =>
         access.orgId.toLowerCase() === normalizedOrgId &&
         access.repoId.toLowerCase() === normalizedRepoId
     );
 
-    if (!hasRepoAccess) {
+    if (!matchingRepoAccess) {
       return reply.status(403).send({
         error: "Forbidden",
         message: "Repository access required",
       });
     }
 
-    const apiKey = await store.createApiKeyForUser(
+    if (!["write", "admin"].includes(matchingRepoAccess.permission.toLowerCase())) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "Repository write access required",
+      });
+    }
+
+    const apiKey = await store.createApiKeyForUserWithWriteAccess(
       name,
       orgId,
       repoId,
@@ -519,6 +526,13 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       payload.id,
       label
     );
+
+    if (!apiKey) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "Repository write access required",
+      });
+    }
 
     return reply.status(201).send({
       id: apiKey.id,

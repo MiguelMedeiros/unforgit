@@ -40,6 +40,10 @@ interface GrantRepoAccessBody {
   permission: string;
 }
 
+function isRepoPermission(value: string): value is "read" | "write" | "admin" {
+  return ["read", "write", "admin"].includes(value);
+}
+
 interface CreateUserApiKeyBody {
   name: string;
   orgId: string;
@@ -362,6 +366,13 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply
           .status(400)
           .send({ error: "Bad Request", message: "orgId, repoId, and permission are required" });
+      }
+
+      if (!isRepoPermission(permission)) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "permission must be read, write, or admin",
+        });
       }
 
       const user = await store.getUserById(id);

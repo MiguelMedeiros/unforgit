@@ -72,7 +72,7 @@ export class NodeSqliteDatabase {
   private nextSavepointId = 0;
 
   constructor(path: string) {
-    this.database = new DatabaseSync(path);
+    this.database = new DatabaseSync(path, { timeout: 5000 });
   }
 
   exec(sql: string): void {

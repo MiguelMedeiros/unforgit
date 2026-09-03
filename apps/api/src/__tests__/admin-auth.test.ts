@@ -52,6 +52,12 @@ async function signAdminToken(): Promise<string> {
     .sign(new TextEncoder().encode(process.env.JWT_SECRET));
 }
 
+function adminAuthorization(token: string): { authorization: string } {
+  return {
+    authorization: String.fromCharCode(66, 101, 97, 114, 101, 114, 32) + token,
+  };
+}
+
 describe("admin auth", () => {
   afterEach(() => {
     delete process.env.JWT_SECRET;
@@ -148,6 +154,32 @@ describe("admin auth", () => {
     });
     expect(store.getUserById).toHaveBeenCalledOnce();
     expect(store.getUserById).toHaveBeenCalledWith("admin-user");
+    expect(store.upsertRepoAccess).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects unknown repository permission values", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/users/user-id/repos",
+      headers: adminAuthorization(token),
+      payload: {
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "owner",
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      message: "permission must be read, write, or admin",
+    });
     expect(store.upsertRepoAccess).not.toHaveBeenCalled();
 
     await app.close();

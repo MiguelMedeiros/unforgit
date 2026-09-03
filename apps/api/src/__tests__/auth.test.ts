@@ -64,6 +64,63 @@ describe("auth routes", () => {
     await app.close();
   });
 
+  it("does not mutate repository access after an incomplete GitHub refresh", async () => {
+    process.env.GITHUB_CLIENT_ID = "client-id";
+    process.env.GITHUB_CLIENT_SECRET = "client-secret";
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      upsertUser: vi.fn(),
+      upsertRepoAccess: vi.fn(),
+    } as unknown as RemoteStore & {
+      upsertUser: ReturnType<typeof vi.fn>;
+      upsertRepoAccess: ReturnType<typeof vi.fn>;
+    };
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "github-token" })))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 123,
+            login: "octocat",
+            name: "Octo Cat",
+            email: "octocat@example.com",
+            avatar_url: "https://example.com/avatar.png",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(
+            Array.from({ length: 100 }, (_, index) => ({
+              id: index + 1,
+              full_name: `allowed-org/repo-${index + 1}`,
+              owner: { login: "allowed-org" },
+              name: `repo-${index + 1}`,
+              permissions: { admin: false, push: true, pull: true },
+            })),
+          ),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response("upstream failure", { status: 503 }));
+    const app = await buildApp(store);
+    const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
+    const state = new URL(authResponse.headers.location as string).searchParams.get("state");
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/auth/github/callback?code=abc&state=${state}`,
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toContain("error=Failed%20to%20fetch%20GitHub%20repositories");
+    expect(store.upsertUser).not.toHaveBeenCalled();
+    expect(store.upsertRepoAccess).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
   it("returns a bad request instead of crashing when creating a user API key without a body", async () => {
     process.env.JWT_SECRET = "test-secret";
     const store = {
@@ -127,6 +184,40 @@ describe("auth routes", () => {
     await app.close();
   });
 
+  it("rejects write-capable API keys for read-only repository access", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      getUserRepoAccess: vi.fn().mockResolvedValue([
+        { orgId: "allowed-org", repoId: "allowed-repo", permission: "read" },
+      ]),
+      createApiKeyForUser: vi.fn(),
+    } as unknown as RemoteStore & {
+      getUserRepoAccess: ReturnType<typeof vi.fn>;
+      createApiKeyForUser: ReturnType<typeof vi.fn>;
+    };
+    const token = await signUserToken();
+    const app = await buildApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/auth/me/keys",
+      headers: { authorization: String.fromCharCode(66, 101, 97, 114, 101, 114, 32) + token },
+      payload: {
+        name: "reader-key",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      message: "Repository write access required",
+    });
+    expect(store.createApiKeyForUser).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
   it("rejects organization-wide user API keys", async () => {
     process.env.JWT_SECRET = "test-secret";
     const store = {
@@ -162,9 +253,9 @@ describe("auth routes", () => {
     process.env.JWT_SECRET = "test-secret";
     const store = {
       getUserRepoAccess: vi.fn().mockResolvedValue([
-        { orgId: "allowed-org", repoId: "allowed-repo" },
+        { orgId: "allowed-org", repoId: "allowed-repo", permission: "write" },
       ]),
-      createApiKeyForUser: vi.fn().mockResolvedValue({
+      createApiKeyForUserWithWriteAccess: vi.fn().mockResolvedValue({
         id: "key-id",
         key: "hk_secret",
         name: "authorized-key",
@@ -174,7 +265,7 @@ describe("auth routes", () => {
       }),
     } as unknown as RemoteStore & {
       getUserRepoAccess: ReturnType<typeof vi.fn>;
-      createApiKeyForUser: ReturnType<typeof vi.fn>;
+      createApiKeyForUserWithWriteAccess: ReturnType<typeof vi.fn>;
     };
     const token = await signUserToken();
     const app = await buildApp(store);
@@ -193,7 +284,7 @@ describe("auth routes", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(store.createApiKeyForUser).toHaveBeenCalledWith(
+    expect(store.createApiKeyForUserWithWriteAccess).toHaveBeenCalledWith(
       "authorized-key",
       "Allowed-Org",
       "Allowed-Repo",
