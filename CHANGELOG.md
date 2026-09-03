@@ -6,6 +6,20 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.0...v0.11.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* close access revocation races ([c97815d](https://github.com/MiguelMedeiros/unforgit/commit/c97815d172f6fe3aef22ee09dfc12f5efdc64fbd))
+* **deps:** patch browserslist and mysql2 advisories ([37d5c72](https://github.com/MiguelMedeiros/unforgit/commit/37d5c7285aedd8cde892b0b55bbaae4797297f2c))
+* **deps:** patch fast-uri advisories ([3714a2e](https://github.com/MiguelMedeiros/unforgit/commit/3714a2e73a47f13d7ad4cfc170464f3e7490a3d7))
+* **deps:** patch newly disclosed advisories ([#117](https://github.com/MiguelMedeiros/unforgit/issues/117)) ([a9b5757](https://github.com/MiguelMedeiros/unforgit/commit/a9b575739a07791fc4848fa7fd2b64695465fc61))
+* harden access refresh and SQLite writes ([921d1f3](https://github.com/MiguelMedeiros/unforgit/commit/921d1f3c1355d2814571543978d4ddbca9d1e766))
+* harden user credentials and SQLite writes ([a95acd3](https://github.com/MiguelMedeiros/unforgit/commit/a95acd3217420c7a60a82ad88b75e9737c3022f9))
+* **security:** avoid unsafe OAuth access revocation ([5b4ce0b](https://github.com/MiguelMedeiros/unforgit/commit/5b4ce0ba9818008af9e81c65811fa8da9aa0ce08))
+* **security:** enforce admin consolidation scope ([#114](https://github.com/MiguelMedeiros/unforgit/issues/114)) ([c491987](https://github.com/MiguelMedeiros/unforgit/commit/c4919879d812fe5bafdc938a23eca6d065abfbea))
+
 ## [0.11.0](https://github.com/MiguelMedeiros/unforgit/compare/v0.10.1...v0.11.0) (2026-08-31)
 
 
