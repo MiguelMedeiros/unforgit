@@ -55,7 +55,7 @@
       "flatted": "3.4.2",
       "micromatch>picomatch": "2.3.2",
       "tinyglobby>picomatch": "4.0.4",
-      "fast-uri": "3.1.5",
+      "fast-uri": "3.1.6",
       "ip-address": "10.4.0",
       "hono@<4.12.34": "4.13.0",
       "sharp@<0.35.0": "0.35.3",
