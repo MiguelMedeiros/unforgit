@@ -134,6 +134,81 @@ describe("admin auth", () => {
     await app.close();
   });
 
+  it("preserves repository scope when creating an API key", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    store.createApiKey.mockResolvedValue({
+      id: "created-key-id",
+      key: "hk_created",
+      name: "Allowed-Org/Allowed-Repo",
+      label: "automation",
+      orgId: "allowed-org",
+      repoId: "allowed-repo",
+    });
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/api-keys",
+      headers: adminAuthorization(token),
+      payload: {
+        name: "Allowed-Org/Allowed-Repo",
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        label: "automation",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(store.createApiKey).toHaveBeenCalledWith(
+      "Allowed-Org/Allowed-Repo",
+      "Allowed-Org",
+      { label: "automation", repoId: "Allowed-Repo" },
+    );
+    expect(response.json()).toMatchObject({
+      orgId: "allowed-org",
+      repoId: "allowed-repo",
+    });
+
+    await app.close();
+  });
+
+  it("returns repository scope when listing API keys", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    store.listApiKeysWithUsers.mockResolvedValue([
+      {
+        id: "key-id",
+        key: "hk_repository_key",
+        name: "allowed-org/allowed-repo",
+        label: null,
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        userId: null,
+        isActive: true,
+        createdAt: new Date("2026-09-04T12:00:00.000Z"),
+        lastUsedAt: null,
+        user: null,
+      },
+    ]);
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/admin/api-keys",
+      headers: adminAuthorization(token),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      keys: [{ id: "key-id", repoId: "allowed-repo" }],
+    });
+
+    await app.close();
+  });
+
   it("returns a bad request instead of crashing when granting repo access without a body", async () => {
     process.env.JWT_SECRET = "test-secret";
     const store = buildStore();
