@@ -943,15 +943,30 @@ export class RemoteStore {
     };
   }
 
-  async createApiKey(name: string, orgId: string, label?: string): Promise<{ id: string; key: string; name: string; orgId: string; label: string | null }> {
+  async createApiKey(
+    name: string,
+    orgId: string,
+    options: string | { label?: string; repoId?: string } = {},
+  ): Promise<{
+    id: string;
+    key: string;
+    name: string;
+    orgId: string;
+    repoId: string | null;
+    label: string | null;
+  }> {
     const key = `hk_${crypto.randomUUID().replace(/-/g, "")}`;
     const normalizedOrgId = orgId.toLowerCase();
+    const label = typeof options === "string" ? options : options.label;
+    const normalizedRepoId =
+      typeof options === "string" ? null : options.repoId?.toLowerCase() ?? null;
 
     const apiKey = await this.prisma.apiKey.create({
       data: {
         key,
         name,
         orgId: normalizedOrgId,
+        repoId: normalizedRepoId,
         label: label ?? null,
       },
     });
@@ -961,6 +976,7 @@ export class RemoteStore {
       key: apiKey.key,
       name: apiKey.name,
       orgId: apiKey.orgId,
+      repoId: apiKey.repoId,
       label: apiKey.label,
     };
   }

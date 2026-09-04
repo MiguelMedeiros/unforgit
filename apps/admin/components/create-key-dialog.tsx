@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Check, Loader2, Plus, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { buildRepositoryApiKeyPayload } from "@/lib/api-key-scope";
 import { toast } from "sonner";
 
 interface CreatedKey {
@@ -11,6 +12,7 @@ interface CreatedKey {
   name: string;
   label?: string | null;
   orgId: string;
+  repoId: string;
 }
 
 interface RepoOption {
@@ -60,7 +62,9 @@ export function CreateKeyDialog({ open, onClose, onCreated, repo, userId, userRe
       } else if (parsed) {
         data = await apiFetch<CreatedKey>("/api/keys", {
           method: "POST",
-          body: JSON.stringify({ name: parsed.name, orgId: parsed.orgId, label: keyLabel }),
+          body: JSON.stringify(
+            buildRepositoryApiKeyPayload(parsed.orgId, parsed.repoId, keyLabel),
+          ),
         });
       } else {
         throw new Error("No repository selected");

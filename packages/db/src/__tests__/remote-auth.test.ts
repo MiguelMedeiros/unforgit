@@ -83,6 +83,36 @@ describe("RemoteStore user credential revocation", () => {
     });
   });
 
+  it("preserves the legacy label argument for organization-wide API keys", async () => {
+    const { prisma, store } = buildStore();
+    prisma.apiKey.create.mockResolvedValueOnce({
+      id: "key-id",
+      key: "hk_generated",
+      name: "organization-key",
+      label: "automation",
+      orgId: "allowed-org",
+      repoId: null,
+    });
+
+    await expect(
+      store.createApiKey("organization-key", "Allowed-Org", "automation"),
+    ).resolves.toMatchObject({
+      orgId: "allowed-org",
+      repoId: null,
+      label: "automation",
+    });
+
+    expect(prisma.apiKey.create).toHaveBeenCalledWith({
+      data: {
+        key: expect.stringMatching(/^hk_[a-f0-9]{32}$/),
+        name: "organization-key",
+        orgId: "allowed-org",
+        repoId: null,
+        label: "automation",
+      },
+    });
+  });
+
   it("deactivates a user's API keys when deleting the user", async () => {
     const { prisma, store } = buildStore();
 

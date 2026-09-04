@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { filterRepositoryApiKeys } from "@/lib/api-key-scope";
 
 const API_URL = process.env.API_URL || process.env.UNFORGIT_API_URL || "http://localhost:3737";
 
@@ -6,7 +7,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ org: string; repo: string }> }
 ) {
-  const { org } = await params;
+  const { org, repo } = await params;
   const authHeader = request.headers.get("Authorization");
 
   if (!authHeader) {
@@ -30,9 +31,7 @@ export async function GET(
 
     const data = await res.json();
     
-    const filteredKeys = (data.keys || []).filter((key: { orgId: string }) => 
-      key.orgId === org
-    );
+    const filteredKeys = filterRepositoryApiKeys(data.keys || [], org, repo);
 
     return NextResponse.json({ keys: filteredKeys });
   } catch (error) {

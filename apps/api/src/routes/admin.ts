@@ -176,6 +176,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           name: k.name,
           label: k.label,
           orgId: k.orgId,
+          repoId: k.repoId,
           isActive: k.isActive,
           createdAt: k.createdAt.toISOString(),
           lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
@@ -195,7 +196,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     "/v1/admin/api-keys",
     { preHandler: requireAdmin },
     async (request, reply) => {
-      const { name, orgId, label } = request.body ?? {};
+      const { name, orgId, repoId, label } = request.body ?? {};
 
       if (!name || !orgId) {
         return reply
@@ -203,7 +204,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           .send({ error: "Bad Request", message: "name and orgId are required" });
       }
 
-      const apiKey = await store.createApiKey(name, orgId, label);
+      const apiKey = await store.createApiKey(name, orgId, { label, repoId });
 
       return reply.status(201).send({
         id: apiKey.id,
@@ -211,6 +212,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         name: apiKey.name,
         label: apiKey.label,
         orgId: apiKey.orgId,
+        repoId: apiKey.repoId,
       });
     },
   );
