@@ -25,6 +25,14 @@ function buildStore() {
         : Promise.all(operation as Promise<unknown>[]),
     ),
     apiKey: {
+      create: vi.fn().mockResolvedValue({
+        id: "key-id",
+        key: "hk_generated",
+        name: "repo-key",
+        label: "automation",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+      }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     user: {
@@ -51,6 +59,30 @@ function buildStore() {
 }
 
 describe("RemoteStore user credential revocation", () => {
+  it("persists normalized repository scope when creating an API key", async () => {
+    const { prisma, store } = buildStore();
+
+    await expect(
+      store.createApiKey("repo-key", "Allowed-Org", {
+        label: "automation",
+        repoId: "Allowed-Repo",
+      }),
+    ).resolves.toMatchObject({
+      orgId: "allowed-org",
+      repoId: "allowed-repo",
+    });
+
+    expect(prisma.apiKey.create).toHaveBeenCalledWith({
+      data: {
+        key: expect.stringMatching(/^hk_[a-f0-9]{32}$/),
+        name: "repo-key",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        label: "automation",
+      },
+    });
+  });
+
   it("deactivates a user's API keys when deleting the user", async () => {
     const { prisma, store } = buildStore();
 
