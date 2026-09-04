@@ -11,8 +11,8 @@
 
 ### Bug Fixes
 
-* **security:** preserve repository API key scope ([4f19331](https://github.com/MiguelMedeiros/unforgit/commit/4f19331c37e67024a7668536da554a087b393236))
-* **security:** preserve repository API key scope ([706360a](https://github.com/MiguelMedeiros/unforgit/commit/706360acca09a7673f6e61bee6c79fb6ba69e69a))
+* **security:** prevent repository-scoped API keys from gaining organization-wide access ([#118](https://github.com/MiguelMedeiros/unforgit/issues/118)) ([706360a](https://github.com/MiguelMedeiros/unforgit/commit/706360acca09a7673f6e61bee6c79fb6ba69e69a))
+* **deps:** patch the `fflate` ZIP64 denial-of-service advisory ([#118](https://github.com/MiguelMedeiros/unforgit/issues/118)) ([706360a](https://github.com/MiguelMedeiros/unforgit/commit/706360acca09a7673f6e61bee6c79fb6ba69e69a))
 
 ## [0.11.1](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.0...v0.11.1) (2026-09-03)
 
