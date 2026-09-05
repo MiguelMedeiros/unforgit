@@ -332,4 +332,31 @@ describe("auth routes", () => {
       await app.close();
     },
   );
+
+  it("does not report success when account deletion fails", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = {
+      getUserById: vi.fn().mockResolvedValue({ id: "user-id" }),
+      deleteUser: vi.fn().mockResolvedValue(false),
+    } as unknown as RemoteStore & {
+      getUserById: ReturnType<typeof vi.fn>;
+      deleteUser: ReturnType<typeof vi.fn>;
+    };
+    const token = await signUserToken();
+    const app = await buildApp(store);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/auth/delete-account",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toMatchObject({
+      success: false,
+      message: "Failed to delete account",
+    });
+
+    await app.close();
+  });
 });
