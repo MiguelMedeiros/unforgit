@@ -744,7 +744,15 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       });
     }
 
-    await store.deleteUser(user.id);
+    const deleted = await store.deleteUser(user.id);
+
+    if (!deleted) {
+      return reply.status(500).send({
+        success: false,
+        error: "Internal Server Error",
+        message: "Failed to delete account",
+      });
+    }
 
     return reply.send({ success: true, message: "Account deleted successfully" });
   });
