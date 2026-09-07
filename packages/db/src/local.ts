@@ -806,13 +806,34 @@ export class LocalStore {
   }
 
   supersede(oldId: string, newId: string): boolean {
-    const now = new Date().toISOString();
-    const result = this.db
-      .prepare(
-        "UPDATE memories SET status = 'superseded', supersedes_id = ?, updated_at = ? WHERE id = ?",
-      )
-      .run(newId, now, oldId);
-    return result.changes > 0;
+    const transaction = this.db.transaction(() => {
+      const memory = this.getById(oldId);
+      if (!memory) return false;
+
+      const now = new Date().toISOString();
+      const result = this.db
+        .prepare(`
+          UPDATE memories
+          SET status = 'superseded', supersedes_id = ?, version = version + 1, updated_at = ?
+          WHERE id = ?
+        `)
+        .run(newId, now, oldId);
+
+      if (result.changes > 0) {
+        this.db
+          .prepare(`
+            UPDATE sync_state
+            SET local_version = (SELECT version FROM memories WHERE id = ?),
+                sync_status = 'pending_push'
+            WHERE memory_id = ?
+          `)
+          .run(oldId, oldId);
+      }
+
+      return result.changes > 0;
+    });
+
+    return transaction.immediate();
   }
 
   updateVisibility(id: string, visibility: "private" | "repo"): boolean {
@@ -1536,15 +1557,45 @@ export class LocalStore {
       );
   }
 
-  markAsPushed(memoryId: string, remoteVersion: number): void {
-    const now = new Date().toISOString();
-    this.db
-      .prepare(`
-        UPDATE sync_state 
-        SET sync_status = 'synced', remote_version = ?, last_pushed_at = ?
-        WHERE memory_id = ?
-      `)
-      .run(remoteVersion, now, memoryId);
+  markAsPushed(memoryId: string, remoteVersion: number, expectedVersion?: number): boolean {
+    const transaction = this.db.transaction(() => {
+      const now = new Date().toISOString();
+      if (expectedVersion === undefined) {
+        const result = this.db
+          .prepare(`
+            UPDATE sync_state
+            SET sync_status = 'synced', remote_version = ?, last_pushed_at = ?
+            WHERE memory_id = ?
+          `)
+          .run(remoteVersion, now, memoryId);
+        return result.changes > 0;
+      }
+
+      const result = this.db
+        .prepare(`
+          UPDATE sync_state
+          SET remote_version = MAX(COALESCE(remote_version, 0), ?),
+              last_pushed_at = ?,
+              sync_status = CASE
+                WHEN local_version = ?
+                  AND sync_status = 'pending_push'
+                  AND EXISTS (
+                    SELECT 1 FROM memories WHERE id = ? AND version = ?
+                  )
+                  THEN 'synced'
+                WHEN sync_status IN ('conflict', 'pending_pull') THEN sync_status
+                ELSE 'pending_push'
+              END
+          WHERE memory_id = ?
+        `)
+        .run(remoteVersion, now, expectedVersion, memoryId, expectedVersion, memoryId);
+      if (result.changes === 0) return false;
+
+      const state = this.getSyncState(memoryId);
+      return state?.syncStatus === "synced" && state.localVersion === expectedVersion;
+    });
+
+    return transaction.immediate();
   }
 
   markAsPulled(memoryId: string, localVersion: number): void {
@@ -1715,11 +1766,13 @@ export class LocalStore {
             local_version = ?,
             sync_status = 'synced'
         WHERE memory_id = ?
+          AND local_version = ?
+          AND sync_status IN ('pending_push', 'synced')
           AND EXISTS (
             SELECT 1 FROM memories WHERE id = ? AND version = ?
           )
       `)
-      .run(now, expectedVersion, memoryId, memoryId, expectedVersion);
+      .run(now, expectedVersion, memoryId, expectedVersion, memoryId, expectedVersion);
     return result.changes > 0;
   }
 

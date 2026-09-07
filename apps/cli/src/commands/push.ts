@@ -44,9 +44,20 @@ export const pushCommand = new Command("push")
       const allToPush = (opts.all
         ? [...pendingPush, ...untrackedToPush.map((memory) => ({ memory, syncState: store.getSyncState(memory.id)! }))]
         : pendingPush
-      ).filter(({ memory }) => memory.status !== "deprecated");
+      ).filter(({ memory, syncState }) => {
+        if (memory.status === "deprecated") return false;
+        if (
+          memory.status === "superseded" &&
+          (syncState.remoteVersion !== undefined || syncState.lastPushedAt || syncState.lastPulledAt)
+        ) {
+          return false;
+        }
+        return true;
+      });
 
-      const supersededToSync = store.getSupersededMemoriesToSync(orgId, repoId);
+      const supersededToSync = store
+        .getSupersededMemoriesToSync(orgId, repoId)
+        .filter(({ memory }) => memory.visibility === "repo" || opts.force);
       const deprecatedToSync = store
         .getDeprecatedMemoriesToSync(orgId, repoId)
         .filter((memory) => memory.visibility === "repo" || opts.force);
@@ -96,6 +107,14 @@ export const pushCommand = new Command("push")
           const fullMemory = store.getById(memory.id);
           if (!fullMemory) continue;
 
+          if (
+            fullMemory.version !== memory.version ||
+            fullMemory.status !== memory.status
+          ) {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally before push; update remains pending`);
+            continue;
+          }
+
           if (fullMemory.visibility !== "repo" && !opts.force) {
             logger.info(`  Skipping ${memory.id.slice(0, 8)}... (private memory, use --force to push anyway)`);
             continue;
@@ -117,10 +136,13 @@ export const pushCommand = new Command("push")
             authorName: fullMemory.authorName,
           });
 
-          store.markAsPushed(memory.id, fullMemory.version);
-          pushed++;
-          logger.progress(pushed + errors, allToPush.length, "memories");
-          logger.debug(`pushed ${memory.id.slice(0, 8)}...`);
+          if (store.markAsPushed(memory.id, fullMemory.version, fullMemory.version)) {
+            pushed++;
+            logger.progress(pushed + errors, allToPush.length, "memories");
+            logger.debug(`pushed ${memory.id.slice(0, 8)}...`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
         } catch (err) {
           errors++;
           const errorMsg = err instanceof Error ? err.message : String(err);

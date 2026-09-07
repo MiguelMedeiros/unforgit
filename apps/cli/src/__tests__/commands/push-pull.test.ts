@@ -265,6 +265,229 @@ describe("push/pull logic", () => {
       }
     });
 
+    it("keeps a local deprecation pending when an ordinary memory push is in flight", async () => {
+      let releaseResponse: () => void;
+      const responseGate = new Promise<void>((resolve) => {
+        releaseResponse = resolve;
+      });
+      const remote = await startRecordingServer({ beforeResponse: () => responseGate });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "deprecate during initial push",
+          visibility: "repo",
+        });
+        store.close();
+
+        const pushResult = runCommand(["push"], { cwd: tmp.dir });
+        await remote.firstRequest;
+        const concurrentStore = new LocalStore(tmp.dbPath);
+        concurrentStore.deprecate(memory.id, "cancelled while create was in flight");
+        concurrentStore.close();
+        releaseResponse!();
+
+        expect((await pushResult).exitCode).toBe(0);
+        store = new LocalStore(tmp.dbPath);
+        expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([
+          expect.objectContaining({
+            id: memory.id,
+            version: memory.version + 1,
+            status: "deprecated",
+          }),
+        ]);
+        expect(store.getSyncState(memory.id)?.syncStatus).toBe("pending_push");
+        expect(remote.requests).toHaveLength(1);
+        expect(remote.requests[0]).toMatchObject({
+          method: "POST",
+          url: "/v1/memory",
+        });
+      } finally {
+        releaseResponse!();
+        await remote.close();
+      }
+    });
+
+    it("does not create a stale remote memory after lifecycle queues are captured", async () => {
+      let releaseResponse: () => void;
+      const responseGate = new Promise<void>((resolve) => {
+        releaseResponse = resolve;
+      });
+      const remote = await startRecordingServer({ beforeResponse: () => responseGate });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const first = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "first queued memory",
+          visibility: "repo",
+        });
+        const second = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "second queued memory",
+          visibility: "repo",
+        });
+        const db = (store as unknown as { db: { prepare: (sql: string) => { run: (...args: unknown[]) => void } } }).db;
+        db.prepare("UPDATE memories SET updated_at = ? WHERE id = ?").run("2000-01-01T00:00:00.000Z", first.id);
+        db.prepare("UPDATE memories SET updated_at = ? WHERE id = ?").run("2001-01-01T00:00:00.000Z", second.id);
+        store.close();
+
+        const pushResult = runCommand(["push"], { cwd: tmp.dir });
+        await remote.firstRequest;
+        const concurrentStore = new LocalStore(tmp.dbPath);
+        concurrentStore.deprecate(second.id, "changed after queue capture");
+        concurrentStore.close();
+        releaseResponse!();
+
+        expect((await pushResult).exitCode).toBe(0);
+        store = new LocalStore(tmp.dbPath);
+        expect(remote.requests).toHaveLength(1);
+        expect(JSON.parse(remote.requests[0].body)).toMatchObject({ id: first.id });
+        expect(store.getById(second.id)).toMatchObject({
+          id: second.id,
+          status: "deprecated",
+          version: second.version + 1,
+        });
+        expect(store.getSyncState(second.id)).toMatchObject({
+          syncStatus: "synced",
+          lastPushedAt: undefined,
+        });
+        expect(store.getSyncState(second.id)?.remoteVersion).toBeNull();
+      } finally {
+        releaseResponse!();
+        await remote.close();
+      }
+    });
+
+    it("keeps a newer supersede target pending while an older target is in flight", async () => {
+      let releaseResponse: () => void;
+      const responseGate = new Promise<void>((resolve) => {
+        releaseResponse = resolve;
+      });
+      const remote = await startRecordingServer({ beforeResponse: () => responseGate });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "supersede concurrently",
+          visibility: "repo",
+        });
+        const replacementA = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "replacement A",
+          visibility: "repo",
+        });
+        const replacementB = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "replacement B",
+          visibility: "repo",
+        });
+        for (const item of [memory, replacementA, replacementB]) {
+          store.markAsPushed(item.id, item.version);
+        }
+        store.setSyncState({
+          memoryId: memory.id,
+          localVersion: memory.version,
+          remoteVersion: memory.version,
+          lastPushedAt: new Date("2000-01-01T00:00:00.000Z"),
+          syncStatus: "synced",
+        });
+        store.supersede(memory.id, replacementA.id);
+        store.close();
+
+        const pushResult = runCommand(["push"], { cwd: tmp.dir });
+        await remote.firstRequest;
+        const concurrentStore = new LocalStore(tmp.dbPath);
+        concurrentStore.supersede(memory.id, replacementB.id);
+        concurrentStore.close();
+        releaseResponse!();
+
+        expect((await pushResult).exitCode).toBe(0);
+        store = new LocalStore(tmp.dbPath);
+        expect(store.getSupersededMemoriesToSync("test-org", "test-repo")).toEqual([
+          expect.objectContaining({
+            memory: expect.objectContaining({
+              id: memory.id,
+              version: memory.version + 2,
+            }),
+            newId: replacementB.id,
+          }),
+        ]);
+        expect(store.getSyncState(memory.id)?.syncStatus).toBe("pending_push");
+        expect(remote.requests).toEqual([
+          {
+            method: "POST",
+            url: `/v1/memory/${memory.id}/supersede`,
+            body: JSON.stringify({ newId: replacementA.id }),
+          },
+        ]);
+      } finally {
+        releaseResponse!();
+        await remote.close();
+      }
+    });
+
+    it("does not acknowledge a status push after sync state becomes conflicted", () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "conflicted status update",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      store.deprecate(memory.id, "outdated");
+      const deprecated = store.getById(memory.id)!;
+      store.markAsConflict(memory.id, memory.version + 1);
+
+      expect(store.markStatusSynced(memory.id, deprecated.version)).toBe(false);
+      expect(store.getSyncState(memory.id)).toMatchObject({
+        syncStatus: "conflict",
+        remoteVersion: memory.version + 1,
+      });
+    });
+
     it("does not push a private deprecation without force", async () => {
       const remote = await startRecordingServer();
 
@@ -296,6 +519,50 @@ describe("push/pull logic", () => {
         expect(result.exitCode).toBe(0);
         expect(remote.requests).toEqual([]);
         expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("does not push a private supersede status without force", async () => {
+      const remote = await startRecordingServer();
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "previously force-pushed private memory",
+          visibility: "private",
+        });
+        const replacement = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "private replacement",
+          visibility: "private",
+        });
+        store.markAsPushed(memory.id, memory.version);
+        store.markAsPushed(replacement.id, replacement.version);
+        store.supersede(memory.id, replacement.id);
+        store.close();
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toEqual([]);
+        expect(store.getSupersededMemoriesToSync("test-org", "test-repo")).toHaveLength(1);
       } finally {
         await remote.close();
       }
