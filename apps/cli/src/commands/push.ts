@@ -35,19 +35,35 @@ export const pushCommand = new Command("push")
 
       const pendingPush = store.getPendingPush();
       const untracked = opts.all ? store.getUntrackedMemories(orgId, repoId) : [];
-      
-      for (const memory of untracked) {
+      const untrackedToPush = untracked.filter((memory) => memory.status !== "deprecated");
+
+      for (const memory of untrackedToPush) {
         store.initSyncStateForMemory(memory.id);
       }
-      
-      const allToPush = opts.all 
-        ? [...pendingPush, ...untracked.map(m => ({ memory: m, syncState: store.getSyncState(m.id)! }))]
-        : pendingPush;
 
-      const supersededToSync = store.getSupersededMemoriesToSync(orgId, repoId);
+      const allToPush = (opts.all
+        ? [...pendingPush, ...untrackedToPush.map((memory) => ({ memory, syncState: store.getSyncState(memory.id)! }))]
+        : pendingPush
+      ).filter(({ memory, syncState }) => {
+        if (memory.status === "deprecated") return false;
+        if (
+          memory.status === "superseded" &&
+          (syncState.remoteVersion !== undefined || syncState.lastPushedAt || syncState.lastPulledAt)
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      const supersededToSync = store
+        .getSupersededMemoriesToSync(orgId, repoId)
+        .filter(({ memory }) => memory.visibility === "repo" || opts.force);
+      const deprecatedToSync = store
+        .getDeprecatedMemoriesToSync(orgId, repoId)
+        .filter((memory) => memory.visibility === "repo" || opts.force);
       const linksToSync = store.getLinksToSync(orgId, repoId);
 
-      if (allToPush.length === 0 && supersededToSync.length === 0 && linksToSync.length === 0) {
+      if (allToPush.length === 0 && supersededToSync.length === 0 && deprecatedToSync.length === 0 && linksToSync.length === 0) {
         logger.info("Everything up-to-date");
         return;
       }
@@ -67,13 +83,19 @@ export const pushCommand = new Command("push")
             logger.info(`  ${memory.id.slice(0, 8)}... -> superseded by ${newId.slice(0, 8)}...`);
           }
         }
+        if (deprecatedToSync.length > 0) {
+          logger.info("\nWould sync deprecated status:");
+          for (const memory of deprecatedToSync) {
+            logger.info(`  ${memory.id.slice(0, 8)}... -> deprecated`);
+          }
+        }
         if (linksToSync.length > 0) {
           logger.info("\nWould sync links:");
           for (const { link } of linksToSync) {
             logger.info(`  ${link.sourceId.slice(0, 8)}... -> ${link.targetId.slice(0, 8)}... (${link.linkType})`);
           }
         }
-        logger.info(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length} status updates, ${linksToSync.length} links`);
+        logger.info(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length + deprecatedToSync.length} status updates, ${linksToSync.length} links`);
         return;
       }
 
@@ -84,6 +106,14 @@ export const pushCommand = new Command("push")
         try {
           const fullMemory = store.getById(memory.id);
           if (!fullMemory) continue;
+
+          if (
+            fullMemory.version !== memory.version ||
+            fullMemory.status !== memory.status
+          ) {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally before push; update remains pending`);
+            continue;
+          }
 
           if (fullMemory.visibility !== "repo" && !opts.force) {
             logger.info(`  Skipping ${memory.id.slice(0, 8)}... (private memory, use --force to push anyway)`);
@@ -106,10 +136,13 @@ export const pushCommand = new Command("push")
             authorName: fullMemory.authorName,
           });
 
-          store.markAsPushed(memory.id, fullMemory.version);
-          pushed++;
-          logger.progress(pushed + errors, allToPush.length, "memories");
-          logger.debug(`pushed ${memory.id.slice(0, 8)}...`);
+          if (store.markAsPushed(memory.id, fullMemory.version, fullMemory.version)) {
+            pushed++;
+            logger.progress(pushed + errors, allToPush.length, "memories");
+            logger.debug(`pushed ${memory.id.slice(0, 8)}...`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
         } catch (err) {
           errors++;
           const errorMsg = err instanceof Error ? err.message : String(err);
@@ -131,14 +164,40 @@ export const pushCommand = new Command("push")
       for (const { memory, newId } of supersededToSync) {
         try {
           await client.supersede(memory.id, newId);
-          store.markStatusSynced(memory.id);
-          supersededSynced++;
-          logger.info(`  ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          if (store.markStatusSynced(memory.id, memory.version)) {
+            supersededSynced++;
+            logger.info(`  ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
             errors++;
             logger.error(`  ${memory.id.slice(0, 8)}... failed to sync superseded status: ${errorMsg}`);
+          }
+        }
+      }
+
+      let deprecatedSynced = 0;
+
+      for (const memory of deprecatedToSync) {
+        try {
+          const reason = typeof memory.sourceRefs?.deprecation_reason === "string"
+            ? memory.sourceRefs.deprecation_reason
+            : undefined;
+          await client.deprecate(memory.id, reason);
+          if (store.markStatusSynced(memory.id, memory.version)) {
+            deprecatedSynced++;
+            logger.info(`  ${memory.id.slice(0, 8)}... marked as deprecated on remote`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          if (!errorMsg.includes("404")) {
+            errors++;
+            logger.error(`  ${memory.id.slice(0, 8)}... failed to sync deprecated status: ${errorMsg}`);
           }
         }
       }
@@ -166,6 +225,9 @@ export const pushCommand = new Command("push")
       }
       if (supersededSynced > 0) {
         logger.info(`${supersededSynced} memory(s) marked as superseded on remote`);
+      }
+      if (deprecatedSynced > 0) {
+        logger.info(`${deprecatedSynced} memory(s) marked as deprecated on remote`);
       }
       if (linksSynced > 0) {
         logger.info(`${linksSynced} link(s) synced`);
