@@ -35,13 +35,14 @@ export const pushCommand = new Command("push")
 
       const pendingPush = store.getPendingPush();
       const untracked = opts.all ? store.getUntrackedMemories(orgId, repoId) : [];
+      const untrackedToPush = untracked.filter((memory) => memory.status !== "deprecated");
 
-      for (const memory of untracked) {
+      for (const memory of untrackedToPush) {
         store.initSyncStateForMemory(memory.id);
       }
 
       const allToPush = (opts.all
-        ? [...pendingPush, ...untracked.map((memory) => ({ memory, syncState: store.getSyncState(memory.id)! }))]
+        ? [...pendingPush, ...untrackedToPush.map((memory) => ({ memory, syncState: store.getSyncState(memory.id)! }))]
         : pendingPush
       ).filter(({ memory }) => memory.status !== "deprecated");
 
@@ -141,9 +142,12 @@ export const pushCommand = new Command("push")
       for (const { memory, newId } of supersededToSync) {
         try {
           await client.supersede(memory.id, newId);
-          store.markStatusSynced(memory.id);
-          supersededSynced++;
-          logger.info(`  ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          if (store.markStatusSynced(memory.id, memory.version)) {
+            supersededSynced++;
+            logger.info(`  ${memory.id.slice(0, 8)}... marked as superseded on remote`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
@@ -161,9 +165,12 @@ export const pushCommand = new Command("push")
             ? memory.sourceRefs.deprecation_reason
             : undefined;
           await client.deprecate(memory.id, reason);
-          store.markStatusSynced(memory.id);
-          deprecatedSynced++;
-          logger.info(`  ${memory.id.slice(0, 8)}... marked as deprecated on remote`);
+          if (store.markStatusSynced(memory.id, memory.version)) {
+            deprecatedSynced++;
+            logger.info(`  ${memory.id.slice(0, 8)}... marked as deprecated on remote`);
+          } else {
+            logger.info(`  ${memory.id.slice(0, 8)}... changed locally during push; update remains pending`);
+          }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           if (!errorMsg.includes("404")) {
