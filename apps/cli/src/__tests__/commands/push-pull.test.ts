@@ -1,6 +1,39 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { createTempDataDir, mockFetch, restoreFetch } from "../helpers.js";
+import { createServer } from "node:http";
+import { once } from "node:events";
+import { createTempDataDir, mockFetch, restoreFetch, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
+
+async function startRecordingServer(): Promise<{
+  url: string;
+  requests: Array<{ method?: string; url?: string; body: string }>;
+  close: () => Promise<void>;
+}> {
+  const requests: Array<{ method?: string; url?: string; body: string }> = [];
+  const server = createServer(async (request, response) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    requests.push({
+      method: request.method,
+      url: request.url,
+      body: Buffer.concat(chunks).toString("utf8"),
+    });
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ ok: true }));
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Test server did not bind to TCP");
+
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    requests,
+    close: () => new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    }),
+  };
+}
 
 describe("push/pull logic", () => {
   let tmp: ReturnType<typeof createTempDataDir>;
@@ -74,11 +107,108 @@ describe("push/pull logic", () => {
       expect(deprecated[0].status).toBe("deprecated");
       expect(deprecated[0].version).toBe(memory.version + 1);
       expect(deprecated[0].sourceRefs).toMatchObject({ deprecation_reason: "outdated" });
+      expect(store.getSyncState(memory.id)?.syncStatus).toBe("pending_push");
 
       store.markStatusSynced(memory.id);
 
       expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
       expect(store.getSyncState(memory.id)?.localVersion).toBe(memory.version + 1);
+    });
+
+    it("keeps never-synced deprecation local", () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "private memory deprecated before first push",
+        visibility: "private",
+      });
+
+      store.deprecate(memory.id, "local-only reason");
+
+      expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
+      expect(store.getSyncState(memory.id)).toMatchObject({
+        localVersion: memory.version + 1,
+        syncStatus: "synced",
+      });
+    });
+
+    it("pushes local deprecation to the remote API", async () => {
+      const remote = await startRecordingServer();
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "sync this deprecation",
+          visibility: "repo",
+        });
+        store.markAsPushed(memory.id, memory.version);
+        store.deprecate(memory.id, "replaced by current guidance");
+        store.close();
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toEqual([
+          {
+            method: "POST",
+            url: `/v1/memory/${memory.id}/deprecate`,
+            body: JSON.stringify({ reason: "replaced by current guidance" }),
+          },
+        ]);
+        expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("does not push a private deprecation without force", async () => {
+      const remote = await startRecordingServer();
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "previously force-pushed private memory",
+          visibility: "private",
+        });
+        store.markAsPushed(memory.id, memory.version);
+        store.deprecate(memory.id, "sensitive local reason");
+        store.close();
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toEqual([]);
+        expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
     });
 
     it("marks as conflict on version mismatch", () => {

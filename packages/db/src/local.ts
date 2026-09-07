@@ -787,6 +787,21 @@ export class LocalStore {
       }
     }
 
+    if (result.changes > 0) {
+      this.db
+        .prepare(`
+          UPDATE sync_state
+          SET local_version = (SELECT version FROM memories WHERE id = ?),
+              sync_status = CASE
+                WHEN remote_version IS NULL AND last_pushed_at IS NULL AND last_pulled_at IS NULL
+                  THEN 'synced'
+                ELSE 'pending_push'
+              END
+          WHERE memory_id = ?
+        `)
+        .run(id, id);
+    }
+
     return result.changes > 0;
   }
 
@@ -1650,9 +1665,9 @@ export class LocalStore {
         WHERE m.org_id = ?
           AND m.repo_id = ?
           AND m.status = 'deprecated'
+          AND (s.remote_version IS NOT NULL OR s.last_pushed_at IS NOT NULL OR s.last_pulled_at IS NOT NULL)
           AND (
-            s.memory_id IS NULL
-            OR s.sync_status = 'pending_push'
+            s.sync_status = 'pending_push'
             OR (s.sync_status = 'synced' AND (s.last_pushed_at IS NULL OR s.last_pushed_at < m.updated_at))
           )
       `)
