@@ -54,6 +54,33 @@ describe("push/pull logic", () => {
       expect(syncState?.remoteVersion).toBe(1);
     });
 
+    it("tracks local deprecation until its status is synced", () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "deprecated after initial sync",
+        visibility: "repo",
+      });
+
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
+
+      store.deprecate(memory.id, "outdated");
+
+      const deprecated = store.getDeprecatedMemoriesToSync("test-org", "test-repo");
+      expect(deprecated).toHaveLength(1);
+      expect(deprecated[0].id).toBe(memory.id);
+      expect(deprecated[0].status).toBe("deprecated");
+      expect(deprecated[0].version).toBe(memory.version + 1);
+      expect(deprecated[0].sourceRefs).toMatchObject({ deprecation_reason: "outdated" });
+
+      store.markStatusSynced(memory.id);
+
+      expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
+      expect(store.getSyncState(memory.id)?.localVersion).toBe(memory.version + 1);
+    });
+
     it("marks as conflict on version mismatch", () => {
       const memory = store.store({
         orgId: "test-org",

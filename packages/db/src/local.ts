@@ -772,7 +772,7 @@ export class LocalStore {
     const now = new Date().toISOString();
     const result = this.db
       .prepare(
-        "UPDATE memories SET status = 'deprecated', updated_at = ? WHERE id = ?",
+        "UPDATE memories SET status = 'deprecated', version = version + 1, updated_at = ? WHERE id = ?",
       )
       .run(now, id);
 
@@ -1641,6 +1641,26 @@ export class LocalStore {
     }));
   }
 
+  getDeprecatedMemoriesToSync(orgId: string, repoId: string): Memory[] {
+    const rows = this.db
+      .prepare(`
+        SELECT m.*
+        FROM memories m
+        LEFT JOIN sync_state s ON s.memory_id = m.id
+        WHERE m.org_id = ?
+          AND m.repo_id = ?
+          AND m.status = 'deprecated'
+          AND (
+            s.memory_id IS NULL
+            OR s.sync_status = 'pending_push'
+            OR (s.sync_status = 'synced' AND (s.last_pushed_at IS NULL OR s.last_pushed_at < m.updated_at))
+          )
+      `)
+      .all(orgId, repoId) as Array<Record<string, unknown>>;
+
+    return rows.map(rowToMemory);
+  }
+
   getLinksToSync(orgId: string, repoId: string): Array<{ link: MemoryLink; sourceMemoryId: string; targetMemoryId: string }> {
     const rows = this.db
       .prepare(`
@@ -1671,8 +1691,14 @@ export class LocalStore {
   markStatusSynced(memoryId: string): void {
     const now = new Date().toISOString();
     this.db
-      .prepare(`UPDATE sync_state SET last_pushed_at = ? WHERE memory_id = ?`)
-      .run(now, memoryId);
+      .prepare(`
+        UPDATE sync_state
+        SET last_pushed_at = ?,
+            local_version = (SELECT version FROM memories WHERE id = ?),
+            sync_status = 'synced'
+        WHERE memory_id = ?
+      `)
+      .run(now, memoryId, memoryId);
   }
 
   unconsolidate(consolidationId: string): {
