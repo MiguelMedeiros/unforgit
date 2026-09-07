@@ -12,7 +12,6 @@
 ### Bug Fixes
 
 * **api:** report failed account deletion ([545717e](https://github.com/MiguelMedeiros/unforgit/commit/545717e4174724bf1fbef89913d135957983227f))
-* **api:** report failed account deletion ([3167f3e](https://github.com/MiguelMedeiros/unforgit/commit/3167f3e82900484ab9fb3c77e5c4708c76ec8e73))
 * **sync:** preserve lifecycle updates during push ([124cfd8](https://github.com/MiguelMedeiros/unforgit/commit/124cfd8b70b6e68972de09b284f347b7952d28ad))
 
 ## [0.11.2](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.1...v0.11.2) (2026-09-04)
