@@ -57,8 +57,8 @@
       "tinyglobby>picomatch": "4.0.4",
       "fast-uri": "3.1.6",
       "ip-address": "10.4.0",
-      "hono@<4.12.34": "4.13.0",
-      "sharp@<0.35.0": "0.35.3",
+      "hono@<4.13.5": "4.13.7",
+      "sharp@<0.35.4": "0.35.4",
       "lodash-es": "4.18.1",
       "vite@>=7.0.0 <=7.3.1": "7.3.5",
       "picomatch@>=4.0.0 <4.0.4": "4.0.4",
@@ -66,7 +66,7 @@
       "qs@<6.16.0": "6.16.0",
       "brace-expansion@<5.0.9": "5.0.9",
       "valibot@<=1.4.1": "1.4.2",
-      "js-yaml@>=4.0.0 <=4.3.0": "4.3.1",
+      "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "body-parser@>=2.0.0 <2.3.0": "2.3.0",
       "@hono/node-server@<2.0.10": "2.0.10",
       "esbuild@>=0.17.0 <0.28.1": "0.28.1",
@@ -76,7 +76,8 @@
       "browserslist@<=4.28.6": "4.28.8",
       "mysql2@<3.22.0": "3.24.3",
       "@humanfs/node@<0.16.8": "0.16.8",
-      "fflate@<0.8.3": "0.8.3"
+      "fflate@<0.8.3": "0.8.3",
+      "baseline-browser-mapping@<2.11.0": "2.11.21"
     },
     "patchedDependencies": {
       "minimatch@3.1.5": "patches/minimatch@3.1.5.patch"
@@ -99,6 +100,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "7.3.5",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   }
 }
