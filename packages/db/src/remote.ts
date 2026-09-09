@@ -1,4 +1,4 @@
-import { PrismaClient } from "./generated/prisma/client.js";
+import { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type {
   Memory,
@@ -103,6 +103,11 @@ export interface RemoteStoreOptions {
   autoEmbeddingEnabled?: boolean;
 }
 
+export interface StoreAuthorizationScope {
+  orgId: string;
+  repoId: string | null;
+}
+
 export class RemoteStore {
   private prisma: PrismaClient;
   private autoEmbeddingEnabled: boolean;
@@ -169,6 +174,105 @@ export class RemoteStore {
       memory = prismaRowToMemory(row as unknown as Record<string, unknown>);
     }
 
+    if (this.autoEmbeddingEnabled && isOpenAIConfigured()) {
+      this.generateAndStoreEmbedding(memory.id, memory.text).catch((err) => {
+        console.error(`Auto-embedding failed for ${memory.id}:`, err);
+      });
+    }
+
+    return memory;
+  }
+
+  async storeWithinScope(
+    input: CreateMemoryInput,
+    authorizedScope: StoreAuthorizationScope,
+  ): Promise<Memory | undefined> {
+    const normalizedOrgId = input.orgId.toLowerCase();
+    const normalizedRepoId = input.repoId.toLowerCase();
+    const normalizedAuthorizedOrgId = authorizedScope.orgId.toLowerCase();
+    const normalizedAuthorizedRepoId = authorizedScope.repoId?.toLowerCase() ?? null;
+
+    if (
+      normalizedAuthorizedOrgId !== normalizedOrgId ||
+      (normalizedAuthorizedRepoId !== null &&
+        normalizedAuthorizedRepoId !== normalizedRepoId)
+    ) {
+      return undefined;
+    }
+
+    if (!input.id) {
+      return this.store(input);
+    }
+
+    const resolvedInput = applyLifecycleDefaults(input);
+    const visibility =
+      resolvedInput.visibility === "auto" || !resolvedInput.visibility
+        ? "repo"
+        : resolvedInput.visibility;
+    const sourceRefs = resolvedInput.sourceRefs === undefined
+      ? null
+      : JSON.stringify(resolvedInput.sourceRefs);
+
+    const stored = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      INSERT INTO "memories" (
+        "id",
+        "org_id",
+        "repo_id",
+        "memory_type",
+        "visibility",
+        "text",
+        "summary",
+        "tags",
+        "source_refs",
+        "confidence",
+        "ttl_seconds",
+        "updated_at"
+      ) VALUES (
+        ${resolvedInput.id}::uuid,
+        ${normalizedOrgId},
+        ${normalizedRepoId},
+        ${resolvedInput.memoryType},
+        ${visibility},
+        ${resolvedInput.text},
+        ${resolvedInput.summary ?? null},
+        ${resolvedInput.tags ?? []}::text[],
+        ${sourceRefs}::jsonb,
+        ${resolvedInput.confidence ?? null},
+        ${resolvedInput.ttlSeconds ?? null},
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT ("id") DO UPDATE SET
+        "org_id" = EXCLUDED."org_id",
+        "repo_id" = EXCLUDED."repo_id",
+        "memory_type" = EXCLUDED."memory_type",
+        "visibility" = EXCLUDED."visibility",
+        "text" = EXCLUDED."text",
+        "summary" = COALESCE(EXCLUDED."summary", "memories"."summary"),
+        "tags" = EXCLUDED."tags",
+        "source_refs" = COALESCE(EXCLUDED."source_refs", "memories"."source_refs"),
+        "confidence" = COALESCE(EXCLUDED."confidence", "memories"."confidence"),
+        "ttl_seconds" = COALESCE(EXCLUDED."ttl_seconds", "memories"."ttl_seconds"),
+        "updated_at" = CURRENT_TIMESTAMP
+      WHERE LOWER("memories"."org_id") = ${normalizedAuthorizedOrgId}
+        AND (
+          ${normalizedAuthorizedRepoId}::text IS NULL
+          OR LOWER("memories"."repo_id") = ${normalizedAuthorizedRepoId}
+        )
+      RETURNING "id"
+    `);
+
+    if (stored.length === 0) {
+      return undefined;
+    }
+
+    const row = await this.prisma.memory.findUnique({
+      where: { id: resolvedInput.id },
+    });
+    if (!row) {
+      throw new Error("Stored memory could not be loaded");
+    }
+
+    const memory = prismaRowToMemory(row as unknown as Record<string, unknown>);
     if (this.autoEmbeddingEnabled && isOpenAIConfigured()) {
       this.generateAndStoreEmbedding(memory.id, memory.text).catch((err) => {
         console.error(`Auto-embedding failed for ${memory.id}:`, err);

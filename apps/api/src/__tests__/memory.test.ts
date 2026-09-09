@@ -10,6 +10,8 @@ function buildStore() {
     count: vi.fn(),
     getById: vi.fn(),
     store: vi.fn(),
+    storeWithinScope: vi.fn(),
+    createApiKeyLog: vi.fn().mockResolvedValue(undefined),
     validateApiKey: vi.fn().mockResolvedValue({
       id: "key-id",
       orgId: "org",
@@ -21,6 +23,8 @@ function buildStore() {
     count: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
     store: ReturnType<typeof vi.fn>;
+    storeWithinScope: ReturnType<typeof vi.fn>;
+    createApiKeyLog: ReturnType<typeof vi.fn>;
     validateApiKey: ReturnType<typeof vi.fn>;
   };
 }
@@ -134,6 +138,82 @@ describe("memory routes", () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({ error: "Forbidden" });
     expect(store.store).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("does not let a repository-scoped API key overwrite another repository's memory by ID", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.storeWithinScope.mockResolvedValue(undefined);
+    const app = await buildMemoryApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/memory",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        id: "3e7dd5df-ff40-4bc1-8419-1e165fe6c2ab",
+        orgId: "org-a",
+        repoId: "repo-a",
+        text: "replacement memory",
+        memoryType: "semantic",
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.storeWithinScope).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "3e7dd5df-ff40-4bc1-8419-1e165fe6c2ab",
+        orgId: "org-a",
+        repoId: "repo-a",
+      }),
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+    expect(store.store).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("allows an API key to update a memory within its repository scope", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.storeWithinScope.mockResolvedValue({
+      id: "3e7dd5df-ff40-4bc1-8419-1e165fe6c2ab",
+      orgId: "org-a",
+      repoId: "repo-a",
+      text: "replacement memory",
+    });
+    const app = await buildMemoryApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/memory",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        id: "3e7dd5df-ff40-4bc1-8419-1e165fe6c2ab",
+        orgId: "org-a",
+        repoId: "repo-a",
+        text: "replacement memory",
+        memoryType: "semantic",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      id: "3e7dd5df-ff40-4bc1-8419-1e165fe6c2ab",
+    });
 
     await app.close();
   });
