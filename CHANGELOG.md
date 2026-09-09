@@ -6,6 +6,15 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.4](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.3...v0.11.4) (2026-09-09)
+
+
+### Bug Fixes
+
+* **security:** patch dependency advisories ([#125](https://github.com/MiguelMedeiros/unforgit/issues/125)) ([2d1d763](https://github.com/MiguelMedeiros/unforgit/commit/2d1d763cff4a167cbd5abf652e9ced56b437c62c))
+* **website:** install locked Docker dependencies ([b33320e](https://github.com/MiguelMedeiros/unforgit/commit/b33320ef9e8d8185247cdddac0e3b52ba35f1ed3))
+* **website:** make Docker installs reproducible ([#123](https://github.com/MiguelMedeiros/unforgit/issues/123)) ([0a8c957](https://github.com/MiguelMedeiros/unforgit/commit/0a8c95710953e1cfc96c552f6ad6b027f7098927))
+
 ## [0.11.3](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.2...v0.11.3) (2026-09-07)
 
 
