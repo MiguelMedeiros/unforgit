@@ -36,7 +36,7 @@
     "unforgit-db": "workspace:*",
     "unforgit-shared": "workspace:*",
     "vite": "7.3.5",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "yaml": "^2.8.2"
   },
   "publishConfig": {
