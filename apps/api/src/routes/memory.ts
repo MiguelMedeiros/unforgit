@@ -111,7 +111,13 @@ export async function memoryRoutes(
       return reply.status(403).send({ error: "Forbidden" });
     }
 
-    const memory = await store.store(applyLifecycleDefaults(parsed.data));
+    const memory = await store.storeWithinScope(
+      applyLifecycleDefaults(parsed.data),
+      { orgId: apiKey.orgId, repoId: apiKey.repoId },
+    );
+    if (!memory) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
     scheduleLifecycle?.(parsed.data.orgId, parsed.data.repoId);
 
     if (request.apiKey) {
