@@ -1597,6 +1597,7 @@ export class RemoteStore {
   ): Promise<{ memoriesDeleted: number; linksDeleted: number; embeddingsDeleted: number }> {
     let includeEmbeddings = true;
     let includeUsage = true;
+    let transactionConflictRetries = 0;
 
     for (;;) {
       const operations = [
@@ -1649,6 +1650,13 @@ export class RemoteStore {
         }
         if (includeUsage && isMissingTableError(error, "public.memory_usage")) {
           includeUsage = false;
+          continue;
+        }
+        const errorCode = error && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+        if (errorCode === "P2034" && transactionConflictRetries < 3) {
+          transactionConflictRetries++;
           continue;
         }
         throw error;

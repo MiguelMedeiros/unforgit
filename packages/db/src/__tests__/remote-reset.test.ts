@@ -54,6 +54,30 @@ describe("RemoteStore.resetAll", () => {
     );
   });
 
+  it("retries serializable transaction conflicts", async () => {
+    const store = new RemoteStore("postgresql://user:***@localhost:5432/test");
+    const prisma = {
+      memory: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      memoryEmbedding: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      memoryUsage: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
+      memoryLink: { deleteMany: vi.fn().mockResolvedValue({ count: 4 }) },
+      tombstone: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      $transaction: vi.fn()
+        .mockRejectedValueOnce({ code: "P2034", message: "write conflict" })
+        .mockImplementationOnce(async (operations: Array<Promise<unknown>>) => Promise.all(operations)),
+      $disconnect: vi.fn(),
+    };
+
+    (store as unknown as { prisma: typeof prisma }).prisma = prisma;
+
+    await expect(store.resetAll("org", "repo")).resolves.toEqual({
+      memoriesDeleted: 2,
+      linksDeleted: 4,
+      embeddingsDeleted: 1,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
   it("ignores missing embeddings and usage tables for older schemas", async () => {
     const store = new RemoteStore("postgresql://user:pass@localhost:5432/test");
 
