@@ -1605,41 +1605,58 @@ export class RemoteStore {
       return { memoriesDeleted: 0, linksDeleted: 0, embeddingsDeleted: 0 };
     }
 
-    let embeddingsDeleted = 0;
-    try {
-      const result = await this.prisma.memoryEmbedding.deleteMany({
-        where: { memoryId: { in: memoryIds } },
-      });
-      embeddingsDeleted = result.count;
-    } catch (error) {
-      if (!isMissingTableError(error, "public.memory_embeddings")) {
+    let includeEmbeddings = true;
+    let includeUsage = true;
+
+    for (;;) {
+      const operations = [
+        ...(includeEmbeddings
+          ? [this.prisma.memoryEmbedding.deleteMany({
+              where: { memoryId: { in: memoryIds } },
+            })]
+          : []),
+        ...(includeUsage
+          ? [this.prisma.memoryUsage.deleteMany({
+              where: { memoryId: { in: memoryIds } },
+            })]
+          : []),
+        this.prisma.memoryLink.deleteMany({
+          where: { OR: [{ sourceId: { in: memoryIds } }, { targetId: { in: memoryIds } }] },
+        }),
+        this.prisma.tombstone.deleteMany({ where: { orgId, repoId } }),
+        this.prisma.memory.deleteMany({ where: { orgId, repoId } }),
+      ];
+
+      try {
+        const results = await this.prisma.$transaction(operations);
+        let resultIndex = 0;
+        const embeddingsDeleted = includeEmbeddings ? results[resultIndex++].count : 0;
+        if (includeUsage) {
+          resultIndex++;
+        }
+        const linksResult = results[resultIndex++];
+        resultIndex++; // Tombstones are deleted but not included in the public result.
+        const memoriesResult = results[resultIndex];
+
+        return {
+          memoriesDeleted: memoriesResult.count,
+          linksDeleted: linksResult.count,
+          embeddingsDeleted,
+        };
+      } catch (error) {
+        // Older remote schemas may not have these optional tables. A failed
+        // transaction is rolled back before retrying without the missing table.
+        if (includeEmbeddings && isMissingTableError(error, "public.memory_embeddings")) {
+          includeEmbeddings = false;
+          continue;
+        }
+        if (includeUsage && isMissingTableError(error, "public.memory_usage")) {
+          includeUsage = false;
+          continue;
+        }
         throw error;
       }
     }
-
-    try {
-      await this.prisma.memoryUsage.deleteMany({
-        where: { memoryId: { in: memoryIds } },
-      });
-    } catch (error) {
-      if (!isMissingTableError(error, "public.memory_usage")) {
-        throw error;
-      }
-    }
-
-    const [linksResult, , memoriesResult] = await this.prisma.$transaction([
-      this.prisma.memoryLink.deleteMany({
-        where: { OR: [{ sourceId: { in: memoryIds } }, { targetId: { in: memoryIds } }] },
-      }),
-      this.prisma.tombstone.deleteMany({ where: { orgId, repoId } }),
-      this.prisma.memory.deleteMany({ where: { orgId, repoId } }),
-    ]);
-
-    return {
-      memoriesDeleted: memoriesResult.count,
-      linksDeleted: linksResult.count,
-      embeddingsDeleted,
-    };
   }
 
   async upsertUser(input: {
