@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { RemoteStore } from "../remote.js";
 
 describe("RemoteStore.resetAll", () => {
-  it("keeps every delete in one transaction", async () => {
+  it("scopes every delete inside one serializable transaction", async () => {
     const store = new RemoteStore("postgresql://user:***@localhost:5432/test");
     const embeddingDelete = Promise.resolve({ count: 1 });
     const usageDelete = Promise.resolve({ count: 1 });
@@ -13,7 +13,6 @@ describe("RemoteStore.resetAll", () => {
 
     const prisma = {
       memory: {
-        findMany: vi.fn().mockResolvedValue([{ id: "m1" }]),
         deleteMany: vi.fn().mockReturnValue(memoryDelete),
       },
       memoryEmbedding: {
@@ -35,13 +34,24 @@ describe("RemoteStore.resetAll", () => {
     (store as unknown as { prisma: typeof prisma }).prisma = prisma;
 
     await expect(store.resetAll("org", "repo")).rejects.toThrow("transaction failed");
-    expect(prisma.$transaction).toHaveBeenCalledWith([
-      embeddingDelete,
-      usageDelete,
-      linkDelete,
-      tombstoneDelete,
-      memoryDelete,
-    ]);
+    expect(prisma.memoryEmbedding.deleteMany).toHaveBeenCalledWith({
+      where: { memory: { is: { orgId: "org", repoId: "repo" } } },
+    });
+    expect(prisma.memoryUsage.deleteMany).toHaveBeenCalledWith({
+      where: { memory: { is: { orgId: "org", repoId: "repo" } } },
+    });
+    expect(prisma.memoryLink.deleteMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { source: { is: { orgId: "org", repoId: "repo" } } },
+          { target: { is: { orgId: "org", repoId: "repo" } } },
+        ],
+      },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      [embeddingDelete, usageDelete, linkDelete, tombstoneDelete, memoryDelete],
+      { isolationLevel: "Serializable" },
+    );
   });
 
   it("ignores missing embeddings and usage tables for older schemas", async () => {
@@ -49,7 +59,6 @@ describe("RemoteStore.resetAll", () => {
 
     const prisma = {
       memory: {
-        findMany: vi.fn().mockResolvedValue([{ id: "m1" }, { id: "m2" }]),
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
       memoryEmbedding: {
@@ -81,5 +90,6 @@ describe("RemoteStore.resetAll", () => {
       linksDeleted: 3,
       embeddingsDeleted: 0,
     });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
   });
 });

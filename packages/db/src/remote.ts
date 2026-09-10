@@ -1595,16 +1595,6 @@ export class RemoteStore {
     orgId: string,
     repoId: string,
   ): Promise<{ memoriesDeleted: number; linksDeleted: number; embeddingsDeleted: number }> {
-    const memories = await this.prisma.memory.findMany({
-      where: { orgId, repoId },
-      select: { id: true },
-    });
-    const memoryIds = memories.map((m) => m.id);
-
-    if (memoryIds.length === 0) {
-      return { memoriesDeleted: 0, linksDeleted: 0, embeddingsDeleted: 0 };
-    }
-
     let includeEmbeddings = true;
     let includeUsage = true;
 
@@ -1612,23 +1602,30 @@ export class RemoteStore {
       const operations = [
         ...(includeEmbeddings
           ? [this.prisma.memoryEmbedding.deleteMany({
-              where: { memoryId: { in: memoryIds } },
+              where: { memory: { is: { orgId, repoId } } },
             })]
           : []),
         ...(includeUsage
           ? [this.prisma.memoryUsage.deleteMany({
-              where: { memoryId: { in: memoryIds } },
+              where: { memory: { is: { orgId, repoId } } },
             })]
           : []),
         this.prisma.memoryLink.deleteMany({
-          where: { OR: [{ sourceId: { in: memoryIds } }, { targetId: { in: memoryIds } }] },
+          where: {
+            OR: [
+              { source: { is: { orgId, repoId } } },
+              { target: { is: { orgId, repoId } } },
+            ],
+          },
         }),
         this.prisma.tombstone.deleteMany({ where: { orgId, repoId } }),
         this.prisma.memory.deleteMany({ where: { orgId, repoId } }),
       ];
 
       try {
-        const results = await this.prisma.$transaction(operations);
+        const results = await this.prisma.$transaction(operations, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
         let resultIndex = 0;
         const embeddingsDeleted = includeEmbeddings ? results[resultIndex++].count : 0;
         if (includeUsage) {
