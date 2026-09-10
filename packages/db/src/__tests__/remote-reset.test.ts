@@ -2,6 +2,48 @@ import { describe, it, expect, vi } from "vitest";
 import { RemoteStore } from "../remote.js";
 
 describe("RemoteStore.resetAll", () => {
+  it("keeps every delete in one transaction", async () => {
+    const store = new RemoteStore("postgresql://user:***@localhost:5432/test");
+    const embeddingDelete = Promise.resolve({ count: 1 });
+    const usageDelete = Promise.resolve({ count: 1 });
+    const linkDelete = Promise.resolve({ count: 1 });
+    const tombstoneDelete = Promise.resolve({ count: 1 });
+    const memoryDelete = Promise.resolve({ count: 1 });
+    const transactionError = new Error("transaction failed");
+
+    const prisma = {
+      memory: {
+        findMany: vi.fn().mockResolvedValue([{ id: "m1" }]),
+        deleteMany: vi.fn().mockReturnValue(memoryDelete),
+      },
+      memoryEmbedding: {
+        deleteMany: vi.fn().mockReturnValue(embeddingDelete),
+      },
+      memoryUsage: {
+        deleteMany: vi.fn().mockReturnValue(usageDelete),
+      },
+      memoryLink: {
+        deleteMany: vi.fn().mockReturnValue(linkDelete),
+      },
+      tombstone: {
+        deleteMany: vi.fn().mockReturnValue(tombstoneDelete),
+      },
+      $transaction: vi.fn().mockRejectedValue(transactionError),
+      $disconnect: vi.fn(),
+    };
+
+    (store as unknown as { prisma: typeof prisma }).prisma = prisma;
+
+    await expect(store.resetAll("org", "repo")).rejects.toThrow("transaction failed");
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      embeddingDelete,
+      usageDelete,
+      linkDelete,
+      tombstoneDelete,
+      memoryDelete,
+    ]);
+  });
+
   it("ignores missing embeddings and usage tables for older schemas", async () => {
     const store = new RemoteStore("postgresql://user:pass@localhost:5432/test");
 
