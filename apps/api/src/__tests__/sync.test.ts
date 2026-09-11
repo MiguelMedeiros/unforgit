@@ -260,6 +260,53 @@ describe("sync routes", () => {
     await app.close();
   });
 
+  it("fails closed when a sync-push target moves outside the API key scope during the write", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.getById.mockResolvedValue(undefined);
+    store.upsertFromLocal.mockResolvedValue({
+      action: "skipped",
+      conflict: false,
+      forbidden: true,
+    });
+
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/sync/push",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        id: "memory-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        memoryType: "semantic",
+        visibility: "private",
+        status: "active",
+        text: "overwritten",
+        version: 100,
+        createdAt: "2026-09-11T09:00:00.000Z",
+        updatedAt: "2026-09-11T10:00:00.000Z",
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "Forbidden" });
+    expect(store.upsertFromLocal).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "memory-id" }),
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+
+    await app.close();
+  });
+
   it("does not let a repository-scoped API key tombstone another repository's memory", async () => {
     const store = buildStore();
     store.validateApiKey.mockResolvedValue({
