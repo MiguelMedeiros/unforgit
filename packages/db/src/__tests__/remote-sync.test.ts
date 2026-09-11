@@ -40,4 +40,53 @@ describe("RemoteStore.upsertFromLocal", () => {
     });
     expect(prisma.memory.update).not.toHaveBeenCalled();
   });
+
+  it("fails closed when a memory moves outside the authorized scope before the final write", async () => {
+    const store = new RemoteStore("postgresql://user:***@localhost:5432/test");
+    const prisma = {
+      memory: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "memory-1",
+          orgId: "org-a",
+          repoId: "repo-a",
+          version: 1,
+          updatedAt: new Date("2026-09-11T10:00:00.000Z"),
+        }),
+        update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+      $disconnect: vi.fn(),
+    };
+
+    (store as unknown as { prisma: typeof prisma }).prisma = prisma;
+
+    const memory: Memory = {
+      id: "memory-1",
+      orgId: "org-a",
+      repoId: "repo-a",
+      scopeType: "repo",
+      memoryType: "semantic",
+      visibility: "repo",
+      status: "active",
+      text: "authorized local content",
+      tags: [],
+      version: 2,
+      createdAt: new Date("2026-09-11T09:00:00.000Z"),
+      updatedAt: new Date("2026-09-11T11:00:00.000Z"),
+    };
+
+    await expect(
+      store.upsertFromLocal(memory, { orgId: "org-a", repoId: "repo-a" }),
+    ).resolves.toEqual({ action: "skipped", conflict: false, forbidden: true });
+    expect(prisma.memory.update).not.toHaveBeenCalled();
+    expect(prisma.memory.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "memory-1",
+          orgId: "org-a",
+          repoId: "repo-a",
+        },
+      }),
+    );
+  });
 });

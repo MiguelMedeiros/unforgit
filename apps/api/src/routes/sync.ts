@@ -189,7 +189,14 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         updatedAt,
       };
 
-      const result = await store.upsertFromLocal(memory);
+      const result = await store.upsertFromLocal(memory, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
+
+      if (result.forbidden) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
 
       if (result.conflict) {
         const existing = await store.getById(body.id);

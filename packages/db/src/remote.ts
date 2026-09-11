@@ -952,11 +952,39 @@ export class RemoteStore {
     return rows.map((r) => prismaRowToMemory(r as unknown as Record<string, unknown>));
   }
 
-  async upsertFromLocal(memory: Memory): Promise<{ action: "created" | "updated" | "skipped"; conflict: boolean }> {
+  async upsertFromLocal(
+    memory: Memory,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<{
+    action: "created" | "updated" | "skipped";
+    conflict: boolean;
+    forbidden?: boolean;
+  }> {
     const existing = await this.prisma.memory.findUnique({ where: { id: memory.id } });
 
     const normalizedOrgId = memory.orgId.toLowerCase();
     const normalizedRepoId = memory.repoId.toLowerCase();
+    const normalizedAuthorizedOrgId = authorizedScope?.orgId.toLowerCase();
+    const normalizedAuthorizedRepoId = authorizedScope?.repoId?.toLowerCase() ?? null;
+
+    if (
+      authorizedScope &&
+      (normalizedAuthorizedOrgId !== normalizedOrgId ||
+        (normalizedAuthorizedRepoId !== null &&
+          normalizedAuthorizedRepoId !== normalizedRepoId))
+    ) {
+      return { action: "skipped", conflict: false, forbidden: true };
+    }
+
+    if (
+      existing &&
+      authorizedScope &&
+      (existing.orgId.toLowerCase() !== normalizedAuthorizedOrgId ||
+        (normalizedAuthorizedRepoId !== null &&
+          existing.repoId.toLowerCase() !== normalizedAuthorizedRepoId))
+    ) {
+      return { action: "skipped", conflict: false, forbidden: true };
+    }
 
     if (!existing) {
       await this.prisma.memory.create({
@@ -999,24 +1027,42 @@ export class RemoteStore {
       return { action: "skipped", conflict: true };
     }
 
-    await this.prisma.memory.update({
-      where: { id: memory.id },
-      data: {
-        memoryType: memory.memoryType,
-        visibility: memory.visibility,
-        status: memory.status,
-        text: memory.text,
-        summary: memory.summary,
-        tags: memory.tags ?? [],
-        sourceRefs: memory.sourceRefs as Record<string, string> | undefined,
-        confidence: memory.confidence,
-        ttlSeconds: memory.ttlSeconds,
-        supersedesId: memory.supersedesId,
-        version: Math.max(remoteVersion, localVersion) + 1,
-        deletedAt: memory.deletedAt,
-        deletedBy: memory.deletedBy,
-      },
-    });
+    const data = {
+      memoryType: memory.memoryType,
+      visibility: memory.visibility,
+      status: memory.status,
+      text: memory.text,
+      summary: memory.summary,
+      tags: memory.tags ?? [],
+      sourceRefs: memory.sourceRefs as Record<string, string> | undefined,
+      confidence: memory.confidence,
+      ttlSeconds: memory.ttlSeconds,
+      supersedesId: memory.supersedesId,
+      version: Math.max(remoteVersion, localVersion) + 1,
+      deletedAt: memory.deletedAt,
+      deletedBy: memory.deletedBy,
+    };
+
+    if (authorizedScope) {
+      const updated = await this.prisma.memory.updateMany({
+        where: {
+          id: memory.id,
+          orgId: normalizedAuthorizedOrgId,
+          ...(normalizedAuthorizedRepoId === null
+            ? {}
+            : { repoId: normalizedAuthorizedRepoId }),
+        },
+        data,
+      });
+      if (updated.count === 0) {
+        return { action: "skipped", conflict: false, forbidden: true };
+      }
+    } else {
+      await this.prisma.memory.update({
+        where: { id: memory.id },
+        data,
+      });
+    }
 
     return { action: "updated", conflict: false };
   }
