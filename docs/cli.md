@@ -266,7 +266,7 @@ unforgit dashboard --port 4848
 unforgit dashboard --workspace ~/.hermes/unforgit-memory --host 100.81.12.32
 ```
 
-The dashboard binds to `127.0.0.1:3838` by default. Binding to a specific Tailscale/LAN IP is allowed explicitly with `--host`; wildcard binds such as `0.0.0.0` require `--allow-network` so the local memory console is not accidentally exposed.
+The dashboard binds to `127.0.0.1:3838` by default. The legacy `unforgit web` command is also loopback-only. To share the dashboard on a trusted network, use `unforgit dashboard` with an explicit `--host`; wildcard binds such as `0.0.0.0` require `--allow-network` so the local memory console is not accidentally exposed.
 
 ## API Keys
 
