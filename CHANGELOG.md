@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.8](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.7...v0.11.8) (2026-09-13)
+
+
+### Bug Fixes
+
+* **cli:** bind legacy web dashboard to loopback ([#132](https://github.com/MiguelMedeiros/unforgit/issues/132)) ([6184c16](https://github.com/MiguelMedeiros/unforgit/commit/6184c16fac8124ef61bf97cbf4b50bd8e07ae4ef))
+
 ## [0.11.7](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.6...v0.11.7) (2026-09-11)
 
 
