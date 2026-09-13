@@ -47,8 +47,8 @@ export const webCommand = new Command("web")
     const hasNextBuild = fs.existsSync(path.join(webDir, ".next"));
     const cmd = hasNextBuild ? "next" : "next";
     const args = hasNextBuild
-      ? ["start", "-p", opts.port]
-      : ["dev", "-p", opts.port];
+      ? ["start", "-p", opts.port, "-H", "127.0.0.1"]
+      : ["dev", "-p", opts.port, "-H", "127.0.0.1"];
 
     const nextBin = path.join(webDir, "node_modules", ".bin", "next");
     const finalCmd = fs.existsSync(nextBin) ? nextBin : cmd;
