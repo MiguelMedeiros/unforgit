@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
 
 const { spawnMock } = vi.hoisted(() => ({
   spawnMock: vi.fn((_command: string, _args: string[], _options?: unknown) => ({
@@ -15,9 +16,20 @@ import { webCommand } from "../../commands/web.js";
 describe("web command", () => {
   afterEach(() => {
     spawnMock.mockClear();
+    vi.restoreAllMocks();
   });
 
-  it("binds the dashboard to loopback by default", async () => {
+  it.each([
+    { hasBuild: true, mode: "start" },
+    { hasBuild: false, mode: "dev" },
+  ])("binds the $mode dashboard to loopback by default", async ({ hasBuild, mode }) => {
+    vi.spyOn(fs, "existsSync").mockImplementation((candidate) => {
+      const pathname = String(candidate);
+      if (pathname.endsWith(".env")) return false;
+      if (pathname.endsWith(".next")) return hasBuild;
+      return true;
+    });
+
     await webCommand.parseAsync([
       "node",
       "unforgit-web-test",
@@ -28,7 +40,7 @@ describe("web command", () => {
 
     expect(spawnMock).toHaveBeenCalledOnce();
     expect(spawnMock.mock.calls[0]?.[1]).toEqual([
-      expect.stringMatching(/^(start|dev)$/),
+      mode,
       "-p",
       "4848",
       "-H",
