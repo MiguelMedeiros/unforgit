@@ -42,7 +42,7 @@ describe("WebLocalStore remote conflict resolution", () => {
     "preserves the newer local value for %s conflicts",
     (resolution) => {
       const result = store.upsertFromRemote(
-        memory("stale remote value", 4, new Date(local.updatedAt.getTime() - 30_000)),
+        memory("stale remote value", 4, new Date(local.updatedAt.getTime() - 300_000)),
         resolution,
       );
 
@@ -57,7 +57,7 @@ describe("WebLocalStore remote conflict resolution", () => {
 
   it("allows remote_wins to replace a newer local value", () => {
     const result = store.upsertFromRemote(
-      memory("forced remote value", 4, new Date(local.updatedAt.getTime() - 30_000)),
+      memory("forced remote value", 4, new Date(local.updatedAt.getTime() - 300_000)),
       "remote_wins",
     );
 

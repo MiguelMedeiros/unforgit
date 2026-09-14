@@ -112,3 +112,7 @@ lifecycle:
     autoRunOnRecall: true
     debounceMs: 30000
 ```
+
+Conflict handling is fail-safe: `manual` and `local_wins` preserve newer local
+content, `remote_wins` accepts the remote value, and `last_write_wins` compares
+the recorded update timestamps instead of overwriting a newer local change.

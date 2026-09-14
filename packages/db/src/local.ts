@@ -24,6 +24,7 @@ import type {
   CreateCurationSuggestionInput,
   ListCurationSuggestionsQuery,
   ReviewCurationSuggestionInput,
+  ConflictResolution,
 } from "unforgit-shared";
 import { computeCompositeScore, computeHybridScore } from "unforgit-core";
 import {
@@ -1384,7 +1385,10 @@ export class LocalStore {
     return rows.map(rowToMemory);
   }
 
-  upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
+  upsertFromRemote(
+    memory: Memory,
+    conflictResolution: ConflictResolution = "last_write_wins",
+  ): { action: "created" | "updated" | "skipped"; conflict: boolean } {
     const existing = this.getById(memory.id);
     const now = new Date().toISOString();
     const normalizedOrgId = memory.orgId.toLowerCase();
@@ -1435,6 +1439,17 @@ export class LocalStore {
     }
 
     const hasConflict = localVersion !== remoteVersion && existing.updatedAt > memory.updatedAt;
+
+    const preserveLocal =
+      hasConflict &&
+      (conflictResolution === "manual" ||
+        conflictResolution === "local_wins" ||
+        (conflictResolution === "last_write_wins" &&
+          existing.updatedAt >= memory.updatedAt));
+
+    if (preserveLocal) {
+      return { action: "skipped", conflict: true };
+    }
 
     this.db
       .prepare(

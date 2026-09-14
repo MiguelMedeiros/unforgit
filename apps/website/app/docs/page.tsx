@@ -888,6 +888,12 @@ embeddings:
                 scheduling.
               </li>
               <li>
+                <code className="text-dracula-foreground/80">sync.autoResolveConflicts</code>{" "}
+                preserves newer local content for <code>manual</code>, <code>local_wins</code>,
+                and timestamp-based <code>last_write_wins</code>; <code>remote_wins</code>{" "}
+                explicitly accepts the remote value.
+              </li>
+              <li>
                 Secrets like API keys are configured via environment variables
                 (<code className="text-dracula-foreground/80">UNFORGIT_API_KEY</code>,{" "}
                 <code className="text-dracula-foreground/80">OPENAI_API_KEY</code>),
