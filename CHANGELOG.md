@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.9](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.8...v0.11.9) (2026-09-14)
+
+
+### Bug Fixes
+
+* **sync:** preserve newer local conflict data ([#134](https://github.com/MiguelMedeiros/unforgit/issues/134)) ([92a6682](https://github.com/MiguelMedeiros/unforgit/commit/92a66829e90531e922e9d9df0100206328bd6b0b))
+
 ## [0.11.8](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.7...v0.11.8) (2026-09-13)
 
 
