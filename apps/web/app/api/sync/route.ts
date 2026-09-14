@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
       for (const rm of remoteMemories) {
         const memory = parseRemoteMemory(rm);
-        const { action, conflict } = local.upsertFromRemote(memory);
+        const { action, conflict } = local.upsertFromRemote(memory, conflictResolution);
 
         if (action === "created" || action === "updated") {
           result.pulled++;

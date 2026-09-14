@@ -11,6 +11,7 @@ import type {
   StoreStats,
   Tombstone,
   DeleteMemoryInput,
+  ConflictResolution,
 } from "./types";
 
 const SCHEMA_SQL = `
@@ -718,7 +719,10 @@ export class WebLocalStore {
     return rows.map(rowToMemory);
   }
 
-  upsertFromRemote(memory: Memory): { action: "created" | "updated" | "skipped"; conflict: boolean } {
+  upsertFromRemote(
+    memory: Memory,
+    conflictResolution: ConflictResolution = "last_write_wins",
+  ): { action: "created" | "updated" | "skipped"; conflict: boolean } {
     const existing = this.getById(memory.id);
     const now = new Date().toISOString();
     const normalizedOrgId = memory.orgId.toLowerCase();
@@ -780,11 +784,20 @@ export class WebLocalStore {
 
     const hasConflict =
       contentChanged &&
-      localVersion > 1 &&
-      remoteVersion > 1 &&
       localVersion !== remoteVersion &&
       existing.visibility === "repo" &&
-      Math.abs(existing.updatedAt.getTime() - memory.updatedAt.getTime()) < 60000;
+      existing.updatedAt > memory.updatedAt;
+
+    const preserveLocal =
+      hasConflict &&
+      (conflictResolution === "manual" ||
+        conflictResolution === "local_wins" ||
+        (conflictResolution === "last_write_wins" &&
+          existing.updatedAt >= memory.updatedAt));
+
+    if (preserveLocal) {
+      return { action: "skipped", conflict: true };
+    }
 
     this.db
       .prepare(
