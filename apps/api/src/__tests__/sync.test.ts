@@ -198,6 +198,41 @@ describe("sync routes", () => {
     await app.close();
   });
 
+  it("fails closed when a hard-delete target moves outside the API key scope during deletion", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+    });
+    store.hardDelete.mockResolvedValue(false);
+
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/memory/memory-id",
+      headers: { authorization: "Bearer valid-token" },
+      payload: { hardDelete: true },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(store.hardDelete).toHaveBeenCalledWith("memory-id", {
+      orgId: "org-a",
+      repoId: "repo-a",
+    });
+
+    await app.close();
+  });
+
   it("rejects a non-boolean hard-delete flag before calling the store", async () => {
     const store = buildStore();
     const app = await buildSyncApp(store);

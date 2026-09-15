@@ -315,7 +315,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       }
 
       if (hardDelete) {
-        const success = await store.hardDelete(id);
+        const success = await store.hardDelete(id, {
+          orgId: request.apiKey!.orgId,
+          repoId: request.apiKey!.repoId,
+        });
         if (success) {
           return reply.send({ success: true, action: "hard_deleted" });
         }

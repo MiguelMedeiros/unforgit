@@ -28,6 +28,7 @@ function buildStore(queryResult: Array<{ id: string }>) {
   const prisma = {
     $queryRaw: vi.fn().mockResolvedValue(queryResult),
     memory: {
+      deleteMany: vi.fn(),
       findUnique: vi.fn().mockResolvedValue(row),
     },
   };
@@ -120,5 +121,23 @@ describe("RemoteStore.storeWithinScope", () => {
     };
     expect(query.text).toContain("::text IS NULL");
     expect(query.values).toContain(null);
+  });
+});
+
+describe("RemoteStore.hardDelete", () => {
+  it("fails closed when the memory no longer matches the authorized repository", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.deleteMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      store.hardDelete(id, { orgId: "Org-A", repoId: "Repo-A" }),
+    ).resolves.toBe(false);
+    expect(prisma.memory.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+    });
   });
 });
