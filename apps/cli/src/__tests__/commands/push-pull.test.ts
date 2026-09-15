@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { createTempDataDir, mockFetch, restoreFetch, runCommand } from "../helpers.js";
+import {
+  createTempDataDir,
+  mockFetch,
+  restoreFetch,
+  runCommand,
+  writeConfig,
+} from "../helpers.js";
 import { LocalStore } from "unforgit-db";
 
-async function startRecordingServer(options: { beforeResponse?: () => Promise<void> } = {}): Promise<{
+async function startRecordingServer(options: {
+  beforeResponse?: () => Promise<void>;
+  responseBody?: unknown;
+  responseForRequest?: (url: string) => unknown;
+} = {}): Promise<{
   url: string;
   requests: Array<{ method?: string; url?: string; body: string }>;
   firstRequest: Promise<void>;
@@ -26,7 +36,10 @@ async function startRecordingServer(options: { beforeResponse?: () => Promise<vo
     resolveFirstRequest!();
     await options.beforeResponse?.();
     response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({ ok: true }));
+    const responseBody = options.responseForRequest
+      ? options.responseForRequest(request.url ?? "")
+      : options.responseBody;
+    response.end(JSON.stringify(responseBody ?? { ok: true }));
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -664,6 +677,201 @@ describe("push/pull logic", () => {
   });
 
   describe("pull", () => {
+    it("pulls complete remote memories from the sync API", async () => {
+      const createdAt = "2026-09-01T10:00:00.000Z";
+      const updatedAt = "2026-09-15T11:00:00.000Z";
+      const remoteMemory = {
+        id: "6da2717c-d510-44b6-a5e8-e09187eb9af8",
+        orgId: "test-org",
+        repoId: "test-repo",
+        scopeType: "repo",
+        memoryType: "semantic",
+        visibility: "repo",
+        status: "active",
+        text: "Remote memory with authoritative sync metadata",
+        summary: "Remote summary",
+        tags: ["sync"],
+        confidence: 0.9,
+        version: 7,
+        createdAt,
+        updatedAt,
+      };
+      const remote = await startRecordingServer({
+        responseForRequest: (url) => url.startsWith("/v1/sync/tombstones")
+          ? []
+          : [remoteMemory],
+      });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+
+        const result = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toHaveLength(2);
+        expect(remote.requests).toEqual(expect.arrayContaining([
+          {
+            method: "GET",
+            url: "/v1/sync/pull?orgId=test-org&repoId=test-repo",
+            body: "",
+          },
+          {
+            method: "GET",
+            url: "/v1/sync/tombstones?orgId=test-org&repoId=test-repo",
+            body: "",
+          },
+        ]));
+        expect(store.getById(remoteMemory.id)).toMatchObject({
+          ...remoteMemory,
+          createdAt: new Date(createdAt),
+          updatedAt: new Date(updatedAt),
+        });
+        expect(store.getSyncState(remoteMemory.id)).toMatchObject({
+          localVersion: 7,
+          remoteVersion: 7,
+          syncStatus: "synced",
+        });
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("applies metadata-only remote updates without inventing a version", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "semantic",
+        text: "Stable text",
+        summary: "Old summary",
+        tags: ["old"],
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      store.close();
+
+      const updatedAt = new Date(memory.updatedAt.getTime() + 60_000).toISOString();
+      const remote = await startRecordingServer({
+        responseForRequest: (url) => url.startsWith("/v1/sync/tombstones")
+          ? []
+          : [{
+              ...memory,
+              summary: "New summary",
+              tags: ["new"],
+              version: 2,
+              createdAt: memory.createdAt.toISOString(),
+              updatedAt,
+            }],
+      });
+
+      try {
+        writeConfig(tmp.configPath, {
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(store.getById(memory.id)).toMatchObject({
+          summary: "New summary",
+          tags: ["new"],
+          version: 2,
+          updatedAt: new Date(updatedAt),
+        });
+        expect(store.getSyncState(memory.id)).toMatchObject({
+          localVersion: 2,
+          remoteVersion: 2,
+          syncStatus: "synced",
+        });
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("applies remote tombstones", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "Deleted remotely",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      store.close();
+
+      const remote = await startRecordingServer({
+        responseForRequest: (url) => url.startsWith("/v1/sync/tombstones")
+          ? [{
+              id: "e3ddb07e-98ef-4507-9a40-dce1e6a60ab4",
+              memoryId: memory.id,
+              orgId: "test-org",
+              repoId: "test-repo",
+              deletedAt: "2026-09-15T12:00:00.000Z",
+              deletedBy: "remote-user",
+            }]
+          : [],
+      });
+
+      try {
+        writeConfig(tmp.configPath, {
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("1 deletions");
+        expect(store.getById(memory.id)).toMatchObject({
+          status: "deleted",
+          deletedBy: "remote-user",
+        });
+      } finally {
+        await remote.close();
+      }
+    });
+
     it("upserts a new remote memory into local store", () => {
       const remoteMemory = {
         id: "remote-mem-001",

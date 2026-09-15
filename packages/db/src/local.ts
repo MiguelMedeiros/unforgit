@@ -1390,7 +1390,6 @@ export class LocalStore {
     conflictResolution: ConflictResolution = "last_write_wins",
   ): { action: "created" | "updated" | "skipped"; conflict: boolean } {
     const existing = this.getById(memory.id);
-    const now = new Date().toISOString();
     const normalizedOrgId = memory.orgId.toLowerCase();
     const normalizedRepoId = memory.repoId.toLowerCase();
 
@@ -1424,7 +1423,7 @@ export class LocalStore {
           memory.deletedAt?.toISOString() ?? null,
           memory.deletedBy ?? null,
           memory.createdAt.toISOString(),
-          now,
+          memory.updatedAt.toISOString(),
         );
       return { action: "created", conflict: false };
     }
@@ -1475,10 +1474,10 @@ export class LocalStore {
         memory.consolidationVersion ?? null,
         memory.authorId ?? null,
         memory.authorName ?? null,
-        Math.max(remoteVersion, localVersion) + 1,
+        remoteVersion,
         memory.deletedAt?.toISOString() ?? null,
         memory.deletedBy ?? null,
-        now,
+        memory.updatedAt.toISOString(),
         memory.id,
       );
 
@@ -1613,15 +1612,18 @@ export class LocalStore {
     return transaction.immediate();
   }
 
-  markAsPulled(memoryId: string, localVersion: number): void {
+  markAsPulled(memoryId: string, remoteVersion: number): void {
     const now = new Date().toISOString();
     this.db
       .prepare(`
-        UPDATE sync_state 
-        SET sync_status = 'synced', local_version = ?, last_pulled_at = ?
+        UPDATE sync_state
+        SET sync_status = 'synced',
+            local_version = ?,
+            remote_version = ?,
+            last_pulled_at = ?
         WHERE memory_id = ?
       `)
-      .run(localVersion, now, memoryId);
+      .run(remoteVersion, remoteVersion, now, memoryId);
   }
 
   markAsConflict(memoryId: string, remoteVersion: number): void {

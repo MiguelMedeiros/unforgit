@@ -1,8 +1,10 @@
 import type {
   CreateMemoryInput,
+  Memory,
   MemoryLink,
   RecallQuery,
   RecallResult,
+  Tombstone,
 } from "unforgit-shared";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -132,6 +134,64 @@ export class RemoteClient {
       this.handleError(res, "recall", await res.text());
     }
     return res.json() as Promise<{ results: RecallResult[] }>;
+  }
+
+  async syncPull(orgId: string, repoId: string, since?: Date): Promise<Memory[]> {
+    const params = new URLSearchParams({ orgId, repoId });
+    if (since) params.set("since", since.toISOString());
+
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/sync/pull?${params.toString()}`,
+      { method: "GET", headers: this.getHeaders() },
+      "syncPull",
+    );
+    if (!res.ok) {
+      this.handleError(res, "syncPull", await res.text());
+    }
+
+    const memories = await res.json() as Array<
+      Omit<Memory, "createdAt" | "updatedAt" | "deletedAt"> & {
+        createdAt: string;
+        updatedAt: string;
+        deletedAt?: string;
+      }
+    >;
+    return memories.map((memory) => ({
+      ...memory,
+      createdAt: new Date(memory.createdAt),
+      updatedAt: new Date(memory.updatedAt),
+      deletedAt: memory.deletedAt ? new Date(memory.deletedAt) : undefined,
+    }));
+  }
+
+  async syncTombstones(
+    orgId: string,
+    repoId: string,
+    since?: Date,
+  ): Promise<Tombstone[]> {
+    const params = new URLSearchParams({ orgId, repoId });
+    if (since) params.set("since", since.toISOString());
+
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/sync/tombstones?${params.toString()}`,
+      { method: "GET", headers: this.getHeaders() },
+      "syncTombstones",
+    );
+    if (!res.ok) {
+      this.handleError(res, "syncTombstones", await res.text());
+    }
+
+    const tombstones = await res.json() as Array<
+      Omit<Tombstone, "deletedAt" | "syncedAt"> & {
+        deletedAt: string;
+        syncedAt?: string;
+      }
+    >;
+    return tombstones.map((tombstone) => ({
+      ...tombstone,
+      deletedAt: new Date(tombstone.deletedAt),
+      syncedAt: tombstone.syncedAt ? new Date(tombstone.syncedAt) : undefined,
+    }));
   }
 
   async deprecate(id: string, reason?: string): Promise<{ ok: boolean }> {
