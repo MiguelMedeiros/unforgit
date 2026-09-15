@@ -834,10 +834,23 @@ export class RemoteStore {
     }
   }
 
-  async hardDelete(id: string): Promise<boolean> {
+  async hardDelete(id: string, authorizedScope: StoreAuthorizationScope): Promise<boolean> {
     try {
-      await this.prisma.memory.delete({ where: { id } });
-      return true;
+      const result = await this.prisma.memory.deleteMany({
+        where: {
+          id,
+          orgId: { equals: authorizedScope.orgId, mode: "insensitive" },
+          ...(authorizedScope.repoId === null
+            ? {}
+            : {
+                repoId: {
+                  equals: authorizedScope.repoId,
+                  mode: "insensitive" as const,
+                },
+              }),
+        },
+      });
+      return result.count === 1;
     } catch {
       return false;
     }
