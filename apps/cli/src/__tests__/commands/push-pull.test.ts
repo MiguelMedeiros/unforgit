@@ -4,7 +4,10 @@ import { once } from "node:events";
 import { createTempDataDir, mockFetch, restoreFetch, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
 
-async function startRecordingServer(options: { beforeResponse?: () => Promise<void> } = {}): Promise<{
+async function startRecordingServer(options: {
+  beforeResponse?: () => Promise<void>;
+  responseBody?: unknown;
+} = {}): Promise<{
   url: string;
   requests: Array<{ method?: string; url?: string; body: string }>;
   firstRequest: Promise<void>;
@@ -26,7 +29,7 @@ async function startRecordingServer(options: { beforeResponse?: () => Promise<vo
     resolveFirstRequest!();
     await options.beforeResponse?.();
     response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({ ok: true }));
+    response.end(JSON.stringify(options.responseBody ?? { ok: true }));
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -664,6 +667,62 @@ describe("push/pull logic", () => {
   });
 
   describe("pull", () => {
+    it("pulls complete remote memories from the sync API", async () => {
+      const createdAt = "2026-09-01T10:00:00.000Z";
+      const updatedAt = "2026-09-15T11:00:00.000Z";
+      const remoteMemory = {
+        id: "6da2717c-d510-44b6-a5e8-e09187eb9af8",
+        orgId: "test-org",
+        repoId: "test-repo",
+        scopeType: "repo",
+        memoryType: "semantic",
+        visibility: "repo",
+        status: "active",
+        text: "Remote memory with authoritative sync metadata",
+        summary: "Remote summary",
+        tags: ["sync"],
+        confidence: 0.9,
+        version: 7,
+        createdAt,
+        updatedAt,
+      };
+      const remote = await startRecordingServer({ responseBody: [remoteMemory] });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+        });
+
+        const result = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toEqual([{
+          method: "GET",
+          url: "/v1/sync/pull?orgId=test-org&repoId=test-repo",
+          body: "",
+        }]);
+        expect(store.getById(remoteMemory.id)).toMatchObject({
+          ...remoteMemory,
+          createdAt: new Date(createdAt),
+          updatedAt: new Date(updatedAt),
+        });
+        expect(store.getSyncState(remoteMemory.id)).toMatchObject({
+          localVersion: 7,
+          remoteVersion: 7,
+          syncStatus: "synced",
+        });
+      } finally {
+        await remote.close();
+      }
+    });
+
     it("upserts a new remote memory into local store", () => {
       const remoteMemory = {
         id: "remote-mem-001",
