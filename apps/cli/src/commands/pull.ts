@@ -33,24 +33,20 @@ export const pullCommand = new Command("pull")
 
       logger.info(`Fetching from ${remote} (${config.remote.url})...`);
 
-      const response = await client.recall({
-        orgId,
-        repoId,
-        query: "*",
-        k: 1000,
-        includeDeprecated: true,
-      });
+      const [remoteMemories, remoteTombstones] = await Promise.all([
+        client.syncPull(orgId, repoId),
+        client.syncTombstones(orgId, repoId),
+      ]);
 
-      const remoteMemories = response.results;
-
-      if (remoteMemories.length === 0) {
-        logger.info("Already up to date (no memories on remote)");
+      if (remoteMemories.length === 0 && remoteTombstones.length === 0) {
+        logger.info("Already up to date (no remote changes)");
         return;
       }
 
       if (opts.dryRun) {
         let newCount = 0;
         let updateCount = 0;
+        let deletionCount = 0;
 
         for (const remoteMem of remoteMemories) {
           const localMem = store.getById(remoteMem.id);
@@ -60,10 +56,14 @@ export const pullCommand = new Command("pull")
             updateCount++;
           }
         }
+        for (const tombstone of remoteTombstones) {
+          if (store.getById(tombstone.memoryId)) deletionCount++;
+        }
 
         logger.info(`\nWould pull:`);
         logger.info(`  ${newCount} new memories`);
         logger.info(`  ${updateCount} updates`);
+        logger.info(`  ${deletionCount} deletions`);
         return;
       }
 
@@ -71,6 +71,11 @@ export const pullCommand = new Command("pull")
       let updated = 0;
       let skipped = 0;
       let conflicts = 0;
+      let deleted = 0;
+
+      for (const tombstone of remoteTombstones) {
+        if (store.applyTombstone(tombstone)) deleted++;
+      }
 
       for (const remoteMem of remoteMemories) {
         const localMem = store.getById(remoteMem.id);
@@ -78,28 +83,12 @@ export const pullCommand = new Command("pull")
         const remoteStatus = remoteMem.status ?? "active";
 
         if (!localMem) {
-          store.upsertFromRemote({
-            id: remoteMem.id,
-            orgId,
-            repoId,
-            scopeType: "repo",
-            memoryType: remoteMem.memoryType,
-            visibility: "repo",
-            status: remoteStatus,
-            text: remoteMem.text,
-            summary: remoteMem.summary,
-            tags: remoteMem.tags,
-            sourceRefs: remoteMem.sourceRefs,
-            supersedesId: remoteMem.supersedesId,
-            version: 1,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
+          store.upsertFromRemote({ ...remoteMem, status: remoteStatus });
 
           store.setSyncState({
             memoryId: remoteMem.id,
-            localVersion: 1,
-            remoteVersion: 1,
+            localVersion: remoteMem.version,
+            remoteVersion: remoteMem.version,
             lastPulledAt: new Date(),
             syncStatus: "synced",
           });
@@ -110,52 +99,41 @@ export const pullCommand = new Command("pull")
           logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
         } else {
           const syncState = store.getSyncState(remoteMem.id);
-          const localVersion = syncState?.localVersion ?? localMem.version;
-          const remoteVersion = syncState?.remoteVersion ?? 0;
 
           if (syncState?.syncStatus === "pending_push" && !opts.force) {
             conflicts++;
-            store.markAsConflict(remoteMem.id, remoteVersion + 1);
+            store.markAsConflict(remoteMem.id, remoteMem.version);
             logger.info(`  ${remoteMem.id.slice(0, 8)}... conflict (local has unpushed changes)`);
             logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
             continue;
           }
 
           const statusChanged = localMem.status !== remoteStatus;
-          const textChanged = localMem.text !== remoteMem.text;
+          const result = store.upsertFromRemote(
+            { ...remoteMem, status: remoteStatus },
+            opts.force ? "remote_wins" : "last_write_wins",
+          );
 
-          if (!textChanged && !statusChanged) {
+          if (result.conflict && result.action === "skipped") {
+            conflicts++;
+            store.markAsConflict(remoteMem.id, remoteMem.version);
+            logger.info(`  ${remoteMem.id.slice(0, 8)}... conflict (local is newer)`);
+            logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
+            continue;
+          }
+
+          if (result.action === "skipped") {
             skipped++;
             logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
             continue;
           }
 
-          if (opts.force || syncState?.syncStatus !== "pending_push") {
-            store.upsertFromRemote({
-              id: remoteMem.id,
-              orgId,
-              repoId,
-              scopeType: "repo",
-              memoryType: remoteMem.memoryType,
-              visibility: "repo",
-              status: remoteStatus,
-              text: remoteMem.text,
-              summary: remoteMem.summary,
-              tags: remoteMem.tags,
-              sourceRefs: remoteMem.sourceRefs,
-              supersedesId: remoteMem.supersedesId,
-              version: localVersion + 1,
-              createdAt: localMem.createdAt,
-              updatedAt: new Date(),
-            });
-
-            store.markAsPulled(remoteMem.id, localVersion + 1);
-            updated++;
-            const changeType = statusChanged && !textChanged ? "status updated" : "updated";
-            const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
-            logger.info(`  ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
-            logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
-          }
+          store.markAsPulled(remoteMem.id, remoteMem.version);
+          updated++;
+          const changeType = statusChanged ? "status updated" : "updated";
+          const statusNote = remoteStatus !== "active" ? ` [${remoteStatus}]` : "";
+          logger.info(`  ${remoteMem.id.slice(0, 8)}... ${changeType}${statusNote}`);
+          logger.progress(created + updated + skipped + conflicts, remoteMemories.length, "memories");
         }
       }
 
@@ -163,6 +141,7 @@ export const pullCommand = new Command("pull")
       logger.info(`Pull complete:`);
       if (created > 0) logger.info(`  ${created} new memories`);
       if (updated > 0) logger.info(`  ${updated} updates`);
+      if (deleted > 0) logger.info(`  ${deleted} deletions`);
       if (skipped > 0) logger.info(`  ${skipped} already up to date`);
       if (conflicts > 0) {
         logger.info(`  ${conflicts} conflicts (use --force to overwrite local)`);
