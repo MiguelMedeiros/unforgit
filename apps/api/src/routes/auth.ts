@@ -301,15 +301,14 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
           avatarUrl: githubUser.avatar_url,
         });
 
-        for (const repo of githubRepos) {
-          const permission = getPermissionLevel(repo.permissions);
-          await store.upsertRepoAccess({
-            userId: user.id,
+        await store.syncUserRepoAccess(
+          user.id,
+          githubRepos.map((repo) => ({
             orgId: repo.owner.login,
             repoId: repo.name,
-            permission,
-          });
-        }
+            permission: getPermissionLevel(repo.permissions),
+          })),
+        );
 
         const token = await createUserToken({
           id: user.id,

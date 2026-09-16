@@ -40,6 +40,10 @@ interface GrantRepoAccessBody {
   permission: string;
 }
 
+type AdminAuthenticatedRequest = FastifyRequest & {
+  adminUserId: string;
+};
+
 function isRepoPermission(value: string): value is "read" | "write" | "admin" {
   return ["read", "write", "admin"].includes(value);
 }
@@ -99,12 +103,14 @@ async function adminAuthPreHandler(
   const userId = await verifyAdminToken(tokenMatch[1]);
   const user = userId ? await store.getUserById(userId) : null;
 
-  if (!user?.isAdmin) {
+  if (!userId || !user?.isAdmin) {
     reply
       .status(401)
       .send({ error: "Unauthorized", message: "Invalid or expired admin token" });
     return;
   }
+
+  (request as AdminAuthenticatedRequest).adminUserId = userId;
 }
 
 function parsePositiveInteger(value: string | undefined): number | undefined {
@@ -390,6 +396,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         orgId,
         repoId,
         permission,
+        grantedBy: (request as AdminAuthenticatedRequest).adminUserId,
       });
 
       return reply.status(201).send({

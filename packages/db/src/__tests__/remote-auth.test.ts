@@ -14,6 +14,27 @@ function buildStore() {
         repoId: "allowed-repo",
         userId: "user-id",
       }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    userRepoAccess: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: "stale-access-id",
+          userId: "user-id",
+          orgId: "stale-org",
+          repoId: "stale-repo",
+          permission: "write",
+          grantedBy: null,
+        },
+      ]),
+      upsert: vi.fn().mockResolvedValue({
+        id: "current-access-id",
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "write",
+      }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
   const prisma = {
@@ -176,6 +197,76 @@ describe("RemoteStore user credential revocation", () => {
     },
   );
 
+  it("atomically replaces GitHub repository access and revokes stale keys", async () => {
+    const { store, transactionClient } = buildStore();
+
+    await store.syncUserRepoAccess("user-id", [
+      {
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        permission: "write",
+      },
+    ]);
+
+    expect(transactionClient.userRepoAccess.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_orgId_repoId: {
+          userId: "user-id",
+          orgId: "allowed-org",
+          repoId: "allowed-repo",
+        },
+      },
+      create: {
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "write",
+        grantedBy: null,
+      },
+      update: { permission: "write", grantedBy: null },
+    });
+    expect(transactionClient.apiKey.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-id",
+        orgId: "stale-org",
+        OR: [{ repoId: "stale-repo" }, { repoId: null }],
+      },
+      data: { isActive: false },
+    });
+    expect(transactionClient.userRepoAccess.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["stale-access-id"] },
+      },
+    });
+    expect(transactionClient.$queryRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves manual administrator grants during a GitHub access refresh", async () => {
+    const { store, transactionClient } = buildStore();
+    transactionClient.userRepoAccess.findMany.mockResolvedValueOnce([
+      {
+        id: "manual-access-id",
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "admin",
+        grantedBy: "admin-user-id",
+      },
+    ]);
+
+    await store.syncUserRepoAccess("user-id", [
+      {
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        permission: "read",
+      },
+    ]);
+
+    expect(transactionClient.userRepoAccess.upsert).not.toHaveBeenCalled();
+    expect(transactionClient.userRepoAccess.deleteMany).not.toHaveBeenCalled();
+    expect(transactionClient.apiKey.updateMany).not.toHaveBeenCalled();
+  });
+
   it("locks repository access while creating a user API key", async () => {
     const { store, transactionClient } = buildStore();
 
@@ -193,7 +284,7 @@ describe("RemoteStore user credential revocation", () => {
       repoId: "allowed-repo",
     });
 
-    expect(transactionClient.$queryRaw).toHaveBeenCalledOnce();
+    expect(transactionClient.$queryRaw).toHaveBeenCalledTimes(2);
     expect(transactionClient.apiKey.create).toHaveBeenCalledOnce();
   });
 
