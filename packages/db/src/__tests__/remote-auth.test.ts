@@ -284,7 +284,7 @@ describe("RemoteStore user credential revocation", () => {
       repoId: "allowed-repo",
     });
 
-    expect(transactionClient.$queryRaw).toHaveBeenCalledOnce();
+    expect(transactionClient.$queryRaw).toHaveBeenCalledTimes(2);
     expect(transactionClient.apiKey.create).toHaveBeenCalledOnce();
   });
 

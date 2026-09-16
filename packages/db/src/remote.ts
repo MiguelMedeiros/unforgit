@@ -2196,6 +2196,12 @@ export class RemoteStore {
     const normalizedRepoId = repoId.toLowerCase();
 
     const apiKey = await this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
       const access = await transaction.$queryRaw<Array<{ permission: string }>>`
         SELECT permission
         FROM user_repo_access
