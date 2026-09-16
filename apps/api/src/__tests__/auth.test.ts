@@ -70,9 +70,11 @@ describe("auth routes", () => {
     process.env.JWT_SECRET = "test-secret";
     const store = {
       upsertUser: vi.fn(),
+      syncUserRepoAccess: vi.fn(),
       upsertRepoAccess: vi.fn(),
     } as unknown as RemoteStore & {
       upsertUser: ReturnType<typeof vi.fn>;
+      syncUserRepoAccess: ReturnType<typeof vi.fn>;
       upsertRepoAccess: ReturnType<typeof vi.fn>;
     };
     vi.spyOn(globalThis, "fetch")
@@ -116,6 +118,7 @@ describe("auth routes", () => {
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toContain("error=Failed%20to%20fetch%20GitHub%20repositories");
     expect(store.upsertUser).not.toHaveBeenCalled();
+    expect(store.syncUserRepoAccess).not.toHaveBeenCalled();
     expect(store.upsertRepoAccess).not.toHaveBeenCalled();
 
     await app.close();

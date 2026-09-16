@@ -24,6 +24,7 @@ function buildStore() {
           orgId: "stale-org",
           repoId: "stale-repo",
           permission: "write",
+          grantedBy: null,
         },
       ]),
       upsert: vi.fn().mockResolvedValue({
@@ -237,6 +238,33 @@ describe("RemoteStore user credential revocation", () => {
         id: { in: ["stale-access-id"] },
       },
     });
+    expect(transactionClient.$queryRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves manual administrator grants during a GitHub access refresh", async () => {
+    const { store, transactionClient } = buildStore();
+    transactionClient.userRepoAccess.findMany.mockResolvedValueOnce([
+      {
+        id: "manual-access-id",
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "admin",
+        grantedBy: "admin-user-id",
+      },
+    ]);
+
+    await store.syncUserRepoAccess("user-id", [
+      {
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        permission: "read",
+      },
+    ]);
+
+    expect(transactionClient.userRepoAccess.upsert).not.toHaveBeenCalled();
+    expect(transactionClient.userRepoAccess.deleteMany).not.toHaveBeenCalled();
+    expect(transactionClient.apiKey.updateMany).not.toHaveBeenCalled();
   });
 
   it("locks repository access while creating a user API key", async () => {

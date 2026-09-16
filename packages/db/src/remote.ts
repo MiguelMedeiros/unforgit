@@ -1941,11 +1941,37 @@ export class RemoteStore {
     );
 
     await this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
+      await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM user_repo_access
+        WHERE user_id = ${userId}::uuid
+        FOR UPDATE
+      `;
+
       const existingAccesses = await transaction.userRepoAccess.findMany({
         where: { userId },
       });
+      const existingByScope = new Map(
+        existingAccesses.map((access) => [
+          `${access.orgId}/${access.repoId}`,
+          access,
+        ]),
+      );
 
       for (const access of normalizedAccesses) {
+        const existingAccess = existingByScope.get(
+          `${access.orgId}/${access.repoId}`,
+        );
+        if (existingAccess?.grantedBy) {
+          continue;
+        }
+
         await transaction.userRepoAccess.upsert({
           where: {
             userId_orgId_repoId: {
@@ -1980,7 +2006,9 @@ export class RemoteStore {
       }
 
       const staleAccesses = existingAccesses.filter(
-        (access) => !incomingScopes.has(`${access.orgId}/${access.repoId}`),
+        (access) =>
+          access.grantedBy === null &&
+          !incomingScopes.has(`${access.orgId}/${access.repoId}`),
       );
 
       for (const access of staleAccesses) {
