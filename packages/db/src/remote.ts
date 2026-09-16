@@ -1916,6 +1916,94 @@ export class RemoteStore {
     });
   }
 
+  async syncUserRepoAccess(
+    userId: string,
+    accesses: Array<{
+      orgId: string;
+      repoId: string;
+      permission: string;
+    }>,
+  ): Promise<void> {
+    const normalizedAccesses = Array.from(
+      new Map(
+        accesses.map((access) => {
+          const normalized = {
+            orgId: access.orgId.toLowerCase(),
+            repoId: access.repoId.toLowerCase(),
+            permission: access.permission.toLowerCase(),
+          };
+          return [`${normalized.orgId}/${normalized.repoId}`, normalized] as const;
+        }),
+      ).values(),
+    );
+    const incomingScopes = new Set(
+      normalizedAccesses.map((access) => `${access.orgId}/${access.repoId}`),
+    );
+
+    await this.prisma.$transaction(async (transaction) => {
+      const existingAccesses = await transaction.userRepoAccess.findMany({
+        where: { userId },
+      });
+
+      for (const access of normalizedAccesses) {
+        await transaction.userRepoAccess.upsert({
+          where: {
+            userId_orgId_repoId: {
+              userId,
+              orgId: access.orgId,
+              repoId: access.repoId,
+            },
+          },
+          create: {
+            userId,
+            orgId: access.orgId,
+            repoId: access.repoId,
+            permission: access.permission,
+            grantedBy: null,
+          },
+          update: {
+            permission: access.permission,
+            grantedBy: null,
+          },
+        });
+
+        if (!["write", "admin"].includes(access.permission)) {
+          await transaction.apiKey.updateMany({
+            where: {
+              userId,
+              orgId: access.orgId,
+              OR: [{ repoId: access.repoId }, { repoId: null }],
+            },
+            data: { isActive: false },
+          });
+        }
+      }
+
+      const staleAccesses = existingAccesses.filter(
+        (access) => !incomingScopes.has(`${access.orgId}/${access.repoId}`),
+      );
+
+      for (const access of staleAccesses) {
+        await transaction.apiKey.updateMany({
+          where: {
+            userId,
+            orgId: access.orgId,
+            OR: [{ repoId: access.repoId }, { repoId: null }],
+          },
+          data: { isActive: false },
+        });
+      }
+
+      if (staleAccesses.length > 0) {
+        await transaction.userRepoAccess.deleteMany({
+          where: {
+            id: { in: staleAccesses.map((access) => access.id) },
+          },
+        });
+      }
+    });
+  }
+
   async getRepoUsers(orgId: string, repoId: string): Promise<Array<{
     id: string;
     userId: string;
