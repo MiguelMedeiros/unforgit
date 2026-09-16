@@ -121,6 +121,76 @@ describe("auth routes", () => {
     await app.close();
   });
 
+  it("replaces stale repository access after a complete GitHub refresh", async () => {
+    process.env.GITHUB_CLIENT_ID = "client-id";
+    process.env.GITHUB_CLIENT_SECRET = "client-secret";
+    process.env.JWT_SECRET = "test-secret";
+    const user = {
+      id: "user-id",
+      githubId: 123,
+      githubLogin: "octocat",
+      isAdmin: false,
+    };
+    const store = {
+      upsertUser: vi.fn().mockResolvedValue(user),
+      syncUserRepoAccess: vi.fn().mockResolvedValue(undefined),
+      upsertRepoAccess: vi.fn(),
+    } as unknown as RemoteStore & {
+      upsertUser: ReturnType<typeof vi.fn>;
+      syncUserRepoAccess: ReturnType<typeof vi.fn>;
+      upsertRepoAccess: ReturnType<typeof vi.fn>;
+    };
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "github-token" })))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 123,
+            login: "octocat",
+            name: "Octo Cat",
+            email: "octocat@example.com",
+            avatar_url: "https://example.com/avatar.png",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify([
+            {
+              id: 1,
+              full_name: "Allowed-Org/Allowed-Repo",
+              owner: { login: "Allowed-Org" },
+              name: "Allowed-Repo",
+              permissions: { admin: false, push: true, pull: true },
+            },
+          ]),
+          { status: 200 },
+        ),
+      );
+    const app = await buildApp(store);
+    const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
+    const state = new URL(authResponse.headers.location as string).searchParams.get("state");
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/auth/github/callback?code=abc&state=${state}`,
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toContain("/auth/callback?token=");
+    expect(store.syncUserRepoAccess).toHaveBeenCalledWith("user-id", [
+      {
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        permission: "write",
+      },
+    ]);
+    expect(store.upsertRepoAccess).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
   it("returns a bad request instead of crashing when creating a user API key without a body", async () => {
     process.env.JWT_SECRET = "test-secret";
     const store = {

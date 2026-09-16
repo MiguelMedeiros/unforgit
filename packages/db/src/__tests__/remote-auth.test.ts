@@ -14,6 +14,26 @@ function buildStore() {
         repoId: "allowed-repo",
         userId: "user-id",
       }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    userRepoAccess: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: "stale-access-id",
+          userId: "user-id",
+          orgId: "stale-org",
+          repoId: "stale-repo",
+          permission: "write",
+        },
+      ]),
+      upsert: vi.fn().mockResolvedValue({
+        id: "current-access-id",
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "write",
+      }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
   const prisma = {
@@ -175,6 +195,49 @@ describe("RemoteStore user credential revocation", () => {
       expect(prisma.$transaction).toHaveBeenCalledOnce();
     },
   );
+
+  it("atomically replaces GitHub repository access and revokes stale keys", async () => {
+    const { store, transactionClient } = buildStore();
+
+    await store.syncUserRepoAccess("user-id", [
+      {
+        orgId: "Allowed-Org",
+        repoId: "Allowed-Repo",
+        permission: "write",
+      },
+    ]);
+
+    expect(transactionClient.userRepoAccess.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_orgId_repoId: {
+          userId: "user-id",
+          orgId: "allowed-org",
+          repoId: "allowed-repo",
+        },
+      },
+      create: {
+        userId: "user-id",
+        orgId: "allowed-org",
+        repoId: "allowed-repo",
+        permission: "write",
+        grantedBy: null,
+      },
+      update: { permission: "write", grantedBy: null },
+    });
+    expect(transactionClient.apiKey.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-id",
+        orgId: "stale-org",
+        OR: [{ repoId: "stale-repo" }, { repoId: null }],
+      },
+      data: { isActive: false },
+    });
+    expect(transactionClient.userRepoAccess.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["stale-access-id"] },
+      },
+    });
+  });
 
   it("locks repository access while creating a user API key", async () => {
     const { store, transactionClient } = buildStore();
