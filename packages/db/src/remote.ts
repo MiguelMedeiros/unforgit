@@ -1831,13 +1831,19 @@ export class RemoteStore {
 
   async deleteUser(id: string): Promise<boolean> {
     try {
-      await this.prisma.$transaction([
-        this.prisma.apiKey.updateMany({
+      await this.prisma.$transaction(async (transaction) => {
+        await transaction.$queryRaw<Array<{ id: string }>>`
+          SELECT id
+          FROM users
+          WHERE id = ${id}::uuid
+          FOR UPDATE
+        `;
+        await transaction.apiKey.updateMany({
           where: { userId: id },
           data: { isActive: false },
-        }),
-        this.prisma.user.delete({ where: { id } }),
-      ]);
+        });
+        await transaction.user.delete({ where: { id } });
+      });
       return true;
     } catch {
       return false;
