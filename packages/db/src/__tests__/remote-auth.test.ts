@@ -4,6 +4,9 @@ import { RemoteStore } from "../remote.js";
 function buildStore() {
   const transactionClient = {
     $queryRaw: vi.fn().mockResolvedValue([{ permission: "write" }]),
+    user: {
+      delete: vi.fn().mockResolvedValue({ id: "user-id" }),
+    },
     apiKey: {
       create: vi.fn().mockResolvedValue({
         id: "key-id",
@@ -134,16 +137,19 @@ describe("RemoteStore user credential revocation", () => {
     });
   });
 
-  it("deactivates a user's API keys when deleting the user", async () => {
-    const { prisma, store } = buildStore();
+  it("locks the user while deleting their API keys and account", async () => {
+    const { prisma, store, transactionClient } = buildStore();
 
     await expect(store.deleteUser("user-id")).resolves.toBe(true);
 
-    expect(prisma.apiKey.updateMany).toHaveBeenCalledWith({
+    expect(transactionClient.$queryRaw).toHaveBeenCalledOnce();
+    expect(transactionClient.apiKey.updateMany).toHaveBeenCalledWith({
       where: { userId: "user-id" },
       data: { isActive: false },
     });
-    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "user-id" } });
+    expect(transactionClient.user.delete).toHaveBeenCalledWith({
+      where: { id: "user-id" },
+    });
     expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
