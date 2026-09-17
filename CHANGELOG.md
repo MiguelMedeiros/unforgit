@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.12](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.11...v0.11.12) (2026-09-17)
+
+
+### Bug Fixes
+
+* **auth:** serialize account credential revocation ([#141](https://github.com/MiguelMedeiros/unforgit/issues/141)) ([8f53f19](https://github.com/MiguelMedeiros/unforgit/commit/8f53f1935318ad35cd8a39dafa765a545b4e6133))
+
 ## [0.11.11](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.10...v0.11.11) (2026-09-16)
 
 
