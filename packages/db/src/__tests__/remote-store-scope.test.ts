@@ -27,9 +27,22 @@ const row = {
 function buildStore(queryResult: Array<{ id: string }>) {
   const prisma = {
     $queryRaw: vi.fn().mockResolvedValue(queryResult),
+    $transaction: vi.fn(async (operation: unknown) => {
+      if (typeof operation === "function") {
+        return operation(prisma);
+      }
+      return operation;
+    }),
     memory: {
       deleteMany: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn().mockResolvedValue(row),
+      updateMany: vi.fn(),
+    },
+    tombstone: {
+      deleteMany: vi.fn(),
+      findFirst: vi.fn(),
+      upsert: vi.fn(),
     },
   };
   const store = new RemoteStore("postgresql://localhost/unforgit", {
@@ -139,5 +152,49 @@ describe("RemoteStore.hardDelete", () => {
         repoId: { equals: "Repo-A", mode: "insensitive" },
       },
     });
+  });
+});
+
+describe("RemoteStore scoped soft delete and restore", () => {
+  it("fails closed when a soft-delete target no longer matches the authorized repository", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(null);
+
+    await expect(
+      store.softDelete(
+        { id, deletedBy: "api-key" },
+        { orgId: "Org-A", repoId: "Repo-A" },
+      ),
+    ).resolves.toBe(false);
+
+    expect(prisma.memory.findFirst).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+    });
+    expect(prisma.memory.updateMany).not.toHaveBeenCalled();
+    expect(prisma.tombstone.upsert).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a restore target no longer matches the authorized repository", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(null);
+
+    await expect(
+      store.restore(id, { orgId: "Org-A", repoId: "Repo-A" }),
+    ).resolves.toBe(false);
+
+    expect(prisma.memory.findFirst).toHaveBeenCalledWith({
+      where: {
+        id,
+        status: "deleted",
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+    });
+    expect(prisma.memory.updateMany).not.toHaveBeenCalled();
+    expect(prisma.tombstone.deleteMany).not.toHaveBeenCalled();
   });
 });
