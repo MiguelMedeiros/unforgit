@@ -197,4 +197,24 @@ describe("RemoteStore scoped soft delete and restore", () => {
     expect(prisma.memory.updateMany).not.toHaveBeenCalled();
     expect(prisma.tombstone.deleteMany).not.toHaveBeenCalled();
   });
+
+  it("keeps the authorized scope when applying a tombstone to an existing memory", async () => {
+    const { store } = buildStore([]);
+    const softDelete = vi.spyOn(store, "softDelete").mockResolvedValue(false);
+    const tombstone = {
+      id: "tombstone-id",
+      memoryId: id,
+      orgId: "org-a",
+      repoId: "repo-a",
+      deletedAt: new Date("2026-09-18T12:00:00.000Z"),
+    };
+
+    await expect(
+      store.applyTombstone(tombstone, { orgId: "org-a", repoId: "repo-a" }),
+    ).resolves.toBe(false);
+    expect(softDelete).toHaveBeenCalledWith(
+      { id, deletedBy: undefined },
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+  });
 });

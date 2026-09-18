@@ -411,6 +411,46 @@ describe("sync routes", () => {
     await app.close();
   });
 
+  it("fails closed when a tombstone target moves outside the API key scope while applying it", async () => {
+    const store = buildStore();
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+    });
+    store.applyTombstone.mockResolvedValue(false);
+
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/sync/tombstones",
+      headers: { authorization: "Bearer valid-token" },
+      payload: {
+        memoryId: "memory-id",
+        orgId: "org-a",
+        repoId: "repo-a",
+        deletedAt: "2026-09-18T12:00:00.000Z",
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(store.applyTombstone).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryId: "memory-id" }),
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+
+    await app.close();
+  });
+
   it("does not let a repository-scoped API key tombstone another repository's memory", async () => {
     const store = buildStore();
     store.validateApiKey.mockResolvedValue({
