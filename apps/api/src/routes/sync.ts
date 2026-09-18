@@ -284,7 +284,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         deletedBy: body.deletedBy,
       };
 
-      const applied = await store.applyTombstone(tombstone);
+      const applied = await store.applyTombstone(tombstone, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
 
       if (applied) {
         return reply.send({ success: true });
@@ -325,7 +328,13 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(404).send({ error: "Memory not found" });
       }
 
-      const success = await store.softDelete({ id, deletedBy });
+      const success = await store.softDelete(
+        { id, deletedBy },
+        {
+          orgId: request.apiKey!.orgId,
+          repoId: request.apiKey!.repoId,
+        },
+      );
       if (success) {
         return reply.send({ success: true, action: "soft_deleted" });
       }
@@ -348,7 +357,10 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      const success = await store.restore(id);
+      const success = await store.restore(id, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
       if (success) {
         return reply.send({ success: true });
       }

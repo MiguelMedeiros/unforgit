@@ -40,9 +40,11 @@ function buildStore(queryResult: Array<{ id: string }>) {
       updateMany: vi.fn(),
     },
     tombstone: {
+      create: vi.fn(),
       deleteMany: vi.fn(),
       findFirst: vi.fn(),
       upsert: vi.fn(),
+      updateMany: vi.fn(),
     },
   };
   const store = new RemoteStore("postgresql://localhost/unforgit", {
@@ -198,6 +200,110 @@ describe("RemoteStore scoped soft delete and restore", () => {
     expect(prisma.tombstone.deleteMany).not.toHaveBeenCalled();
   });
 
+  it("soft-deletes a matching memory and creates its tombstone in one serializable transaction", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(row);
+    prisma.memory.updateMany.mockResolvedValue({ count: 1 });
+    prisma.tombstone.updateMany.mockResolvedValue({ count: 0 });
+    prisma.tombstone.create.mockResolvedValue({});
+
+    await expect(
+      store.softDelete(
+        { id, deletedBy: "api-key" },
+        { orgId: "Org-A", repoId: "Repo-A" },
+      ),
+    ).resolves.toBe(true);
+
+    expect(prisma.memory.updateMany).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+        version: 1,
+      },
+      data: {
+        status: "deleted",
+        deletedAt: expect.any(Date),
+        deletedBy: "api-key",
+        version: { increment: 1 },
+      },
+    });
+    expect(prisma.tombstone.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ orgId: "org-a", repoId: "repo-a" }),
+      }),
+    );
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { isolationLevel: "Serializable" },
+    );
+  });
+
+  it("rolls back soft deletion when the memory ID has a tombstone in another scope", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(row);
+    prisma.memory.updateMany.mockResolvedValue({ count: 1 });
+    prisma.tombstone.updateMany.mockResolvedValue({ count: 0 });
+    prisma.tombstone.create.mockRejectedValue(new Error("Unique constraint"));
+
+    await expect(
+      store.softDelete(
+        { id, deletedBy: "api-key" },
+        { orgId: "Org-A", repoId: "Repo-A" },
+      ),
+    ).resolves.toBe(false);
+
+    expect(prisma.tombstone.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          memoryId: id,
+          orgId: { equals: "org-a", mode: "insensitive" },
+          repoId: { equals: "repo-a", mode: "insensitive" },
+        },
+      }),
+    );
+    expect(prisma.tombstone.upsert).not.toHaveBeenCalled();
+  });
+
+  it("restores a matching memory and removes its tombstone in one serializable transaction", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue({ ...row, status: "deleted" });
+    prisma.memory.updateMany.mockResolvedValue({ count: 1 });
+    prisma.tombstone.findFirst.mockResolvedValue({ memoryId: id });
+    prisma.tombstone.deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      store.restore(id, { orgId: "Org-A", repoId: "Repo-A" }),
+    ).resolves.toBe(true);
+
+    expect(prisma.memory.updateMany).toHaveBeenCalledWith({
+      where: {
+        id,
+        status: "deleted",
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+        version: 1,
+      },
+      data: {
+        status: "active",
+        deletedAt: null,
+        deletedBy: null,
+        version: { increment: 1 },
+      },
+    });
+    expect(prisma.tombstone.deleteMany).toHaveBeenCalledWith({
+      where: {
+        memoryId: id,
+        orgId: { equals: "org-a", mode: "insensitive" },
+        repoId: { equals: "repo-a", mode: "insensitive" },
+      },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { isolationLevel: "Serializable" },
+    );
+  });
+
   it("keeps the authorized scope when applying a tombstone to an existing memory", async () => {
     const { store } = buildStore([]);
     const softDelete = vi.spyOn(store, "softDelete").mockResolvedValue(false);
@@ -216,5 +322,54 @@ describe("RemoteStore scoped soft delete and restore", () => {
       { id, deletedBy: undefined },
       { orgId: "org-a", repoId: "repo-a" },
     );
+  });
+
+  it("rejects a tombstone payload outside the authorized scope", async () => {
+    const { prisma, store } = buildStore([]);
+
+    await expect(
+      store.applyTombstone(
+        {
+          id: "tombstone-id",
+          memoryId: id,
+          orgId: "org-a",
+          repoId: "repo-b",
+          deletedAt: new Date("2026-09-18T12:00:00.000Z"),
+        },
+        { orgId: "org-a", repoId: "repo-a" },
+      ),
+    ).resolves.toBe(false);
+    expect(prisma.memory.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("does not overwrite an out-of-scope tombstone with the same memory ID", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findUnique.mockResolvedValue(null);
+    prisma.tombstone.updateMany.mockResolvedValue({ count: 0 });
+    prisma.tombstone.create.mockRejectedValue(new Error("Unique constraint"));
+
+    await expect(
+      store.applyTombstone(
+        {
+          id: "tombstone-id",
+          memoryId: id,
+          orgId: "org-a",
+          repoId: "repo-a",
+          deletedAt: new Date("2026-09-18T12:00:00.000Z"),
+        },
+        { orgId: "org-a", repoId: "repo-a" },
+      ),
+    ).resolves.toBe(false);
+
+    expect(prisma.tombstone.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          memoryId: id,
+          orgId: { equals: "org-a", mode: "insensitive" },
+          repoId: { equals: "repo-a", mode: "insensitive" },
+        },
+      }),
+    );
+    expect(prisma.tombstone.upsert).not.toHaveBeenCalled();
   });
 });
