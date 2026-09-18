@@ -108,6 +108,40 @@ export interface StoreAuthorizationScope {
   repoId: string | null;
 }
 
+function memoryWithinScopeWhere(
+  id: string,
+  authorizedScope?: StoreAuthorizationScope,
+): Prisma.MemoryWhereInput {
+  return {
+    id,
+    ...(authorizedScope
+      ? {
+          orgId: { equals: authorizedScope.orgId, mode: "insensitive" as const },
+          ...(authorizedScope.repoId === null
+            ? {}
+            : {
+                repoId: {
+                  equals: authorizedScope.repoId,
+                  mode: "insensitive" as const,
+                },
+              }),
+        }
+      : {}),
+  };
+}
+
+function isWithinScope(
+  orgId: string,
+  repoId: string,
+  authorizedScope: StoreAuthorizationScope,
+): boolean {
+  return (
+    orgId.toLowerCase() === authorizedScope.orgId.toLowerCase() &&
+    (authorizedScope.repoId === null ||
+      repoId.toLowerCase() === authorizedScope.repoId.toLowerCase())
+  );
+}
+
 export class RemoteStore {
   private prisma: PrismaClient;
   private autoEmbeddingEnabled: boolean;
@@ -794,41 +828,56 @@ export class RemoteStore {
     return memories;
   }
 
-  async softDelete(input: DeleteMemoryInput): Promise<boolean> {
+  async softDelete(
+    input: DeleteMemoryInput,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
-      const existing = await this.prisma.memory.findUnique({ where: { id: input.id } });
-      if (!existing) return false;
+      const deletedAt = new Date();
+      return await this.prisma.$transaction(async (transaction) => {
+        const where = memoryWithinScopeWhere(input.id, authorizedScope);
+        const existing = await transaction.memory.findFirst({ where });
+        if (!existing) return false;
 
-      const newVersion = (existing.version ?? 1) + 1;
-
-      await this.prisma.$transaction([
-        this.prisma.memory.update({
-          where: { id: input.id },
+        const updated = await transaction.memory.updateMany({
+          where: { ...where, version: existing.version ?? 1 },
           data: {
             status: "deleted",
-            deletedAt: new Date(),
+            deletedAt,
             deletedBy: input.deletedBy,
-            version: newVersion,
+            version: { increment: 1 },
           },
-        }),
-        this.prisma.tombstone.upsert({
-          where: { memoryId: input.id },
-          create: {
-            memoryId: input.id,
-            orgId: existing.orgId,
-            repoId: existing.repoId,
-            deletedAt: new Date(),
-            deletedBy: input.deletedBy,
-          },
-          update: {
-            deletedAt: new Date(),
-            deletedBy: input.deletedBy,
-            syncedAt: null,
-          },
-        }),
-      ]);
+        });
+        if (updated.count !== 1) return false;
 
-      return true;
+        const tombstoneData = {
+          deletedAt,
+          deletedBy: input.deletedBy,
+          syncedAt: null,
+        };
+        const updatedTombstone = await transaction.tombstone.updateMany({
+          where: {
+            memoryId: input.id,
+            orgId: { equals: existing.orgId, mode: "insensitive" },
+            repoId: { equals: existing.repoId, mode: "insensitive" },
+          },
+          data: tombstoneData,
+        });
+        if (updatedTombstone.count === 0) {
+          await transaction.tombstone.create({
+            data: {
+              memoryId: input.id,
+              orgId: existing.orgId,
+              repoId: existing.repoId,
+              ...tombstoneData,
+            },
+          });
+        }
+
+        return true;
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
     } catch {
       return false;
     }
@@ -856,23 +905,54 @@ export class RemoteStore {
     }
   }
 
-  async restore(id: string): Promise<boolean> {
+  async restore(
+    id: string,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
-      const result = await this.prisma.$transaction([
-        this.prisma.memory.update({
-          where: { id, status: "deleted" },
+      return await this.prisma.$transaction(async (transaction) => {
+        const where = {
+          ...memoryWithinScopeWhere(id, authorizedScope),
+          status: "deleted" as const,
+        };
+        const existing = await transaction.memory.findFirst({ where });
+        if (!existing) return false;
+
+        const tombstone = await transaction.tombstone.findFirst({
+          where: {
+            memoryId: id,
+            orgId: { equals: existing.orgId, mode: "insensitive" },
+            repoId: { equals: existing.repoId, mode: "insensitive" },
+          },
+        });
+        if (!tombstone) return false;
+
+        const updated = await transaction.memory.updateMany({
+          where: { ...where, version: existing.version ?? 1 },
           data: {
             status: "active",
             deletedAt: null,
             deletedBy: null,
             version: { increment: 1 },
           },
-        }),
-        this.prisma.tombstone.delete({
-          where: { memoryId: id },
-        }),
-      ]);
-      return result[0] !== null;
+        });
+        if (updated.count !== 1) return false;
+
+        const deleted = await transaction.tombstone.deleteMany({
+          where: {
+            memoryId: id,
+            orgId: { equals: existing.orgId, mode: "insensitive" },
+            repoId: { equals: existing.repoId, mode: "insensitive" },
+          },
+        });
+        if (deleted.count !== 1) {
+          throw new Error("Scoped tombstone disappeared during restore");
+        }
+
+        return true;
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
     } catch {
       return false;
     }
@@ -919,11 +999,56 @@ export class RemoteStore {
     }
   }
 
-  async applyTombstone(tombstone: Tombstone): Promise<boolean> {
+  async applyTombstone(
+    tombstone: Tombstone,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
+      if (
+        authorizedScope &&
+        !isWithinScope(tombstone.orgId, tombstone.repoId, authorizedScope)
+      ) {
+        return false;
+      }
+
       const existing = await this.prisma.memory.findUnique({ where: { id: tombstone.memoryId } });
 
       if (!existing) {
+        if (authorizedScope) {
+          const updated = await this.prisma.tombstone.updateMany({
+            where: {
+              memoryId: tombstone.memoryId,
+              orgId: { equals: authorizedScope.orgId, mode: "insensitive" },
+              ...(authorizedScope.repoId === null
+                ? {}
+                : {
+                    repoId: {
+                      equals: authorizedScope.repoId,
+                      mode: "insensitive" as const,
+                    },
+                  }),
+            },
+            data: {
+              deletedAt: tombstone.deletedAt,
+              deletedBy: tombstone.deletedBy,
+              syncedAt: new Date(),
+            },
+          });
+          if (updated.count === 1) return true;
+
+          await this.prisma.tombstone.create({
+            data: {
+              memoryId: tombstone.memoryId,
+              orgId: tombstone.orgId,
+              repoId: tombstone.repoId,
+              deletedAt: tombstone.deletedAt,
+              deletedBy: tombstone.deletedBy,
+              syncedAt: new Date(),
+            },
+          });
+          return true;
+        }
+
         await this.prisma.tombstone.upsert({
           where: { memoryId: tombstone.memoryId },
           create: {
@@ -946,7 +1071,7 @@ export class RemoteStore {
       return this.softDelete({
         id: tombstone.memoryId,
         deletedBy: tombstone.deletedBy,
-      });
+      }, authorizedScope);
     } catch {
       return false;
     }
