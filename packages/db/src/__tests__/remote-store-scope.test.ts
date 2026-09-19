@@ -157,6 +157,40 @@ describe("RemoteStore.hardDelete", () => {
   });
 });
 
+describe("RemoteStore.deprecate", () => {
+  it("fails closed when the memory leaves the authorized repository before the final write", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(row);
+    prisma.memory.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      store.deprecate(id, "outdated", {
+        orgId: "Org-A",
+        repoId: "Repo-A",
+      }),
+    ).resolves.toBe(false);
+
+    expect(prisma.memory.findFirst).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+    });
+    expect(prisma.memory.updateMany).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+      data: {
+        status: "deprecated",
+        sourceRefs: { deprecation_reason: "outdated" },
+      },
+    });
+  });
+});
+
 describe("RemoteStore scoped soft delete and restore", () => {
   it("fails closed when a soft-delete target no longer matches the authorized repository", async () => {
     const { prisma, store } = buildStore([]);

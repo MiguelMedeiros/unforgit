@@ -603,22 +603,29 @@ export class RemoteStore {
     return stats;
   }
 
-  async deprecate(id: string, reason?: string): Promise<boolean> {
+  async deprecate(
+    id: string,
+    reason?: string,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
-      const existing = await this.prisma.memory.findUnique({ where: { id } });
+      const where = memoryWithinScopeWhere(id, authorizedScope);
+      const existing = await this.prisma.memory.findFirst({ where });
       if (!existing) return false;
 
-      const sourceRefs = (existing.sourceRefs as Record<string, unknown>) ?? {};
+      const sourceRefs = {
+        ...((existing.sourceRefs as Record<string, unknown>) ?? {}),
+      };
       if (reason) sourceRefs.deprecation_reason = reason;
 
-      await this.prisma.memory.update({
-        where: { id },
+      const result = await this.prisma.memory.updateMany({
+        where,
         data: {
           status: "deprecated",
           sourceRefs: Object.keys(sourceRefs).length > 0 ? (sourceRefs as Record<string, string>) : undefined,
         },
       });
-      return true;
+      return result.count > 0;
     } catch {
       return false;
     }

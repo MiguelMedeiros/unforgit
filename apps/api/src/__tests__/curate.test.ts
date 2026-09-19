@@ -84,6 +84,33 @@ describe("curate routes", () => {
     await app.close();
   });
 
+  it("passes the authenticated repository scope to the deprecation write", async () => {
+    const store = buildStore();
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+    });
+    store.deprecate.mockResolvedValue(true);
+    const app = await buildCurateApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/memory/memory-id/deprecate",
+      headers: { authorization: "Bearer valid-token" },
+      payload: { reason: "outdated" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(store.deprecate).toHaveBeenCalledWith(
+      "memory-id",
+      "outdated",
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+
+    await app.close();
+  });
+
   it("does not let a repository-scoped API key reset another repository", async () => {
     const store = {
       validateApiKey: vi.fn().mockResolvedValue({
