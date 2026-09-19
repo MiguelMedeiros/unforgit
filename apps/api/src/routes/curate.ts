@@ -49,7 +49,10 @@ export async function curateRoutes(
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      const ok = await store.deprecate(id, parsed.data.reason);
+      const ok = await store.deprecate(id, parsed.data.reason, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
       if (!ok) return reply.status(404).send({ error: "Memory not found" });
       return reply.send({ ok: true });
     },
