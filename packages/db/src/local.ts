@@ -1328,17 +1328,52 @@ export class LocalStore {
     return rows.map(rowToTombstone);
   }
 
-  markTombstoneSynced(memoryId: string): boolean {
+  markTombstoneSynced(memoryId: string, expectedTombstoneId?: string): boolean {
     const now = new Date().toISOString();
-    const result = this.db
-      .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
-      .run(now, memoryId);
+    const result = expectedTombstoneId
+      ? this.db
+          .prepare(
+            "UPDATE tombstones SET synced_at = ? WHERE memory_id = ? AND id = ? AND synced_at IS NULL",
+          )
+          .run(now, memoryId, expectedTombstoneId)
+      : this.db
+          .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
+          .run(now, memoryId);
     return result.changes > 0;
   }
 
   applyTombstone(tombstone: Tombstone): boolean {
-    const memory = this.getById(tombstone.memoryId);
-    if (!memory) {
+    const now = new Date().toISOString();
+    const transaction = this.db.transaction(() => {
+      const existingRow = this.db
+        .prepare("SELECT * FROM tombstones WHERE memory_id = ?")
+        .get(tombstone.memoryId) as Record<string, unknown> | undefined;
+      const existingTombstone = existingRow ? rowToTombstone(existingRow) : undefined;
+
+      if (
+        existingTombstone &&
+        !existingTombstone.syncedAt &&
+        existingTombstone.deletedAt > tombstone.deletedAt
+      ) {
+        return false;
+      }
+
+      const memory = this.getById(tombstone.memoryId);
+      if (memory && memory.status !== "deleted") {
+        this.db
+          .prepare(
+            `UPDATE memories
+             SET status = 'deleted', deleted_at = ?, deleted_by = ?, version = version + 1, updated_at = ?
+             WHERE id = ?`,
+          )
+          .run(
+            tombstone.deletedAt.toISOString(),
+            tombstone.deletedBy ?? null,
+            now,
+            tombstone.memoryId,
+          );
+      }
+
       this.db
         .prepare(
           `INSERT OR REPLACE INTO tombstones (id, memory_id, org_id, repo_id, deleted_at, deleted_by, synced_at, created_at)
@@ -1351,16 +1386,14 @@ export class LocalStore {
           tombstone.repoId,
           tombstone.deletedAt.toISOString(),
           tombstone.deletedBy ?? null,
-          new Date().toISOString(),
-          new Date().toISOString(),
+          now,
+          now,
         );
-      return true;
-    }
 
-    return this.softDelete({
-      id: tombstone.memoryId,
-      deletedBy: tombstone.deletedBy,
+      return true;
     });
+
+    return transaction.immediate();
   }
 
   incrementVersion(id: string): number {

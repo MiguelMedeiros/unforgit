@@ -194,6 +194,28 @@ export class RemoteClient {
     }));
   }
 
+  async pushTombstone(tombstone: Tombstone): Promise<{ success: boolean }> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/v1/sync/tombstones`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          memoryId: tombstone.memoryId,
+          orgId: tombstone.orgId,
+          repoId: tombstone.repoId,
+          deletedAt: tombstone.deletedAt.toISOString(),
+          deletedBy: tombstone.deletedBy,
+        }),
+      },
+      "pushTombstone",
+    );
+    if (!res.ok) {
+      this.handleError(res, "pushTombstone", await res.text());
+    }
+    return res.json() as Promise<{ success: boolean }>;
+  }
+
   async deprecate(id: string, reason?: string): Promise<{ ok: boolean }> {
     const res = await this.fetchWithRetry(
       `${this.baseUrl}/v1/memory/${pathSegment(id)}/deprecate`,

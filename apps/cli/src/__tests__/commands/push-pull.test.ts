@@ -12,6 +12,7 @@ import { LocalStore } from "unforgit-db";
 
 async function startRecordingServer(options: {
   beforeResponse?: () => Promise<void>;
+  responseStatus?: number;
   responseBody?: unknown;
   responseForRequest?: (url: string) => unknown;
 } = {}): Promise<{
@@ -35,7 +36,7 @@ async function startRecordingServer(options: {
     });
     resolveFirstRequest!();
     await options.beforeResponse?.();
-    response.writeHead(200, { "content-type": "application/json" });
+    response.writeHead(options.responseStatus ?? 200, { "content-type": "application/json" });
     const responseBody = options.responseForRequest
       ? options.responseForRequest(request.url ?? "")
       : options.responseBody;
@@ -134,6 +135,240 @@ describe("push/pull logic", () => {
 
       expect(store.getDeprecatedMemoriesToSync("test-org", "test-repo")).toEqual([]);
       expect(store.getSyncState(memory.id)?.localVersion).toBe(memory.version + 1);
+    });
+
+    it("pushes a local soft-deletion tombstone to the remote API", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "delete after initial sync",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id, deletedBy: "local-user" })).toBe(true);
+      const [tombstone] = store.getUnsyncedTombstones("test-org", "test-repo");
+      expect(tombstone).toBeDefined();
+      store.close();
+
+      const remote = await startRecordingServer();
+      try {
+        writeConfig(tmp.configPath, {
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toContainEqual({
+          method: "POST",
+          url: "/v1/sync/tombstones",
+          body: JSON.stringify({
+            memoryId: memory.id,
+            orgId: "test-org",
+            repoId: "test-repo",
+            deletedAt: tombstone.deletedAt.toISOString(),
+            deletedBy: "local-user",
+          }),
+        });
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("keeps a local tombstone pending when the remote reports a conflict", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "remote tombstone conflict",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id })).toBe(true);
+      store.close();
+
+      const remote = await startRecordingServer({
+        responseStatus: 409,
+        responseBody: { error: "Tombstone already applied" },
+      });
+      try {
+        writeConfig(tmp.configPath, {
+          remote: { url: remote.url, orgId: "test-org", repoId: "test-repo" },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("1 error(s) during push");
+        expect(remote.requests).toHaveLength(1);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("keeps a rejected local tombstone pending", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "remote rejects deletion",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id })).toBe(true);
+      store.close();
+
+      const remote = await startRecordingServer({
+        responseStatus: 400,
+        responseBody: { error: "Invalid tombstone body" },
+      });
+      try {
+        writeConfig(tmp.configPath, {
+          remote: { url: remote.url, orgId: "test-org", repoId: "test-repo" },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("1 error(s) during push");
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("does not push a deletion for a memory the remote has never seen", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "deleted before first push",
+        visibility: "repo",
+      });
+      expect(store.softDelete({ id: memory.id })).toBe(true);
+      store.close();
+
+      const remote = await startRecordingServer();
+      try {
+        writeConfig(tmp.configPath, {
+          remote: { url: remote.url, orgId: "test-org", repoId: "test-repo" },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("Everything up-to-date");
+        expect(remote.requests).toEqual([]);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
+    });
+
+    it("keeps a newer local tombstone pending while an older deletion is in flight", async () => {
+      let releaseResponse: () => void;
+      const responseGate = new Promise<void>((resolve) => {
+        releaseResponse = resolve;
+      });
+      const remote = await startRecordingServer({ beforeResponse: () => responseGate });
+
+      try {
+        store.close();
+        tmp.cleanup();
+        tmp = createTempDataDir({
+          remote: { url: remote.url, orgId: "test-org", repoId: "test-repo" },
+        });
+        store = new LocalStore(tmp.dbPath);
+        const memory = store.store({
+          orgId: "test-org",
+          repoId: "test-repo",
+          memoryType: "episodic",
+          text: "deleted twice",
+          visibility: "repo",
+        });
+        store.markAsPushed(memory.id, memory.version);
+        expect(store.softDelete({ id: memory.id, deletedBy: "first-user" })).toBe(true);
+        const [firstTombstone] = store.getUnsyncedTombstones("test-org", "test-repo");
+        store.close();
+
+        const pushResult = runCommand(["push"], { cwd: tmp.dir });
+        await remote.firstRequest;
+        const concurrentStore = new LocalStore(tmp.dbPath);
+        expect(concurrentStore.restore(memory.id)).toBe(true);
+        expect(concurrentStore.softDelete({ id: memory.id, deletedBy: "second-user" })).toBe(true);
+        const [secondTombstone] = concurrentStore.getUnsyncedTombstones("test-org", "test-repo");
+        concurrentStore.close();
+        releaseResponse!();
+
+        expect((await pushResult).exitCode).toBe(0);
+        store = new LocalStore(tmp.dbPath);
+        expect(secondTombstone.id).not.toBe(firstTombstone.id);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([
+          expect.objectContaining({ id: secondTombstone.id, deletedBy: "second-user" }),
+        ]);
+      } finally {
+        releaseResponse!();
+        await remote.close();
+      }
     });
 
     it("keeps never-synced deprecation local", () => {
@@ -867,9 +1102,51 @@ describe("push/pull logic", () => {
           status: "deleted",
           deletedBy: "remote-user",
         });
+        const deletedVersion = store.getById(memory.id)!.version;
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
+        store.close();
+
+        const replayResult = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(replayResult.exitCode).toBe(0);
+        expect(store.getById(memory.id)!.version).toBe(deletedVersion);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
       } finally {
         await remote.close();
       }
+    });
+
+    it("keeps a newer local deletion pending when an older remote tombstone arrives", () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "local deletion wins over stale remote tombstone",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id, deletedBy: "local-user" })).toBe(true);
+      const [localTombstone] = store.getUnsyncedTombstones("test-org", "test-repo");
+      const deletedVersion = store.getById(memory.id)!.version;
+
+      const applied = store.applyTombstone({
+        id: "stale-remote-tombstone",
+        memoryId: memory.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        deletedAt: new Date(localTombstone.deletedAt.getTime() - 1_000),
+        deletedBy: "remote-user",
+      });
+
+      expect(applied).toBe(false);
+      expect(store.getById(memory.id)).toMatchObject({
+        version: deletedVersion,
+        deletedBy: "local-user",
+      });
+      expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([
+        expect.objectContaining({ id: localTombstone.id, deletedBy: "local-user" }),
+      ]);
     });
 
     it("upserts a new remote memory into local store", () => {
