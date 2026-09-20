@@ -282,6 +282,47 @@ describe("push/pull logic", () => {
       }
     });
 
+    it("does not push a deletion for a memory the remote has never seen", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "deleted before first push",
+        visibility: "repo",
+      });
+      expect(store.softDelete({ id: memory.id })).toBe(true);
+      store.close();
+
+      const remote = await startRecordingServer();
+      try {
+        writeConfig(tmp.configPath, {
+          remote: { url: remote.url, orgId: "test-org", repoId: "test-repo" },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("Everything up-to-date");
+        expect(remote.requests).toEqual([]);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toHaveLength(1);
+      } finally {
+        await remote.close();
+      }
+    });
+
     it("keeps a newer local tombstone pending while an older deletion is in flight", async () => {
       let releaseResponse: () => void;
       const responseGate = new Promise<void>((resolve) => {
