@@ -194,12 +194,12 @@ describe("push/pull logic", () => {
       }
     });
 
-    it("acknowledges a local tombstone already applied remotely", async () => {
+    it("keeps a local tombstone pending when the remote reports a conflict", async () => {
       const memory = store.store({
         orgId: "test-org",
         repoId: "test-repo",
         memoryType: "episodic",
-        text: "already deleted remotely",
+        text: "remote tombstone conflict",
         visibility: "repo",
       });
       store.markAsPushed(memory.id, memory.version);
@@ -231,8 +231,9 @@ describe("push/pull logic", () => {
         store = new LocalStore(tmp.dbPath);
 
         expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("1 error(s) during push");
         expect(remote.requests).toHaveLength(1);
-        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toHaveLength(1);
       } finally {
         await remote.close();
       }
@@ -1101,9 +1102,51 @@ describe("push/pull logic", () => {
           status: "deleted",
           deletedBy: "remote-user",
         });
+        const deletedVersion = store.getById(memory.id)!.version;
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
+        store.close();
+
+        const replayResult = await runCommand(["pull"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(replayResult.exitCode).toBe(0);
+        expect(store.getById(memory.id)!.version).toBe(deletedVersion);
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
       } finally {
         await remote.close();
       }
+    });
+
+    it("keeps a newer local deletion pending when an older remote tombstone arrives", () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "local deletion wins over stale remote tombstone",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id, deletedBy: "local-user" })).toBe(true);
+      const [localTombstone] = store.getUnsyncedTombstones("test-org", "test-repo");
+      const deletedVersion = store.getById(memory.id)!.version;
+
+      const applied = store.applyTombstone({
+        id: "stale-remote-tombstone",
+        memoryId: memory.id,
+        orgId: "test-org",
+        repoId: "test-repo",
+        deletedAt: new Date(localTombstone.deletedAt.getTime() - 1_000),
+        deletedBy: "remote-user",
+      });
+
+      expect(applied).toBe(false);
+      expect(store.getById(memory.id)).toMatchObject({
+        version: deletedVersion,
+        deletedBy: "local-user",
+      });
+      expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([
+        expect.objectContaining({ id: localTombstone.id, deletedBy: "local-user" }),
+      ]);
     });
 
     it("upserts a new remote memory into local store", () => {
