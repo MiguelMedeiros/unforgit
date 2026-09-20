@@ -1328,11 +1328,17 @@ export class LocalStore {
     return rows.map(rowToTombstone);
   }
 
-  markTombstoneSynced(memoryId: string): boolean {
+  markTombstoneSynced(memoryId: string, expectedTombstoneId?: string): boolean {
     const now = new Date().toISOString();
-    const result = this.db
-      .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
-      .run(now, memoryId);
+    const result = expectedTombstoneId
+      ? this.db
+          .prepare(
+            "UPDATE tombstones SET synced_at = ? WHERE memory_id = ? AND id = ? AND synced_at IS NULL",
+          )
+          .run(now, memoryId, expectedTombstoneId)
+      : this.db
+          .prepare("UPDATE tombstones SET synced_at = ? WHERE memory_id = ?")
+          .run(now, memoryId);
     return result.changes > 0;
   }
 

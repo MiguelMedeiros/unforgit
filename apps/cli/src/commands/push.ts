@@ -45,7 +45,7 @@ export const pushCommand = new Command("push")
         ? [...pendingPush, ...untrackedToPush.map((memory) => ({ memory, syncState: store.getSyncState(memory.id)! }))]
         : pendingPush
       ).filter(({ memory, syncState }) => {
-        if (memory.status === "deprecated") return false;
+        if (memory.status === "deprecated" || memory.status === "deleted") return false;
         if (
           memory.status === "superseded" &&
           (syncState.remoteVersion !== undefined || syncState.lastPushedAt || syncState.lastPulledAt)
@@ -61,9 +61,28 @@ export const pushCommand = new Command("push")
       const deprecatedToSync = store
         .getDeprecatedMemoriesToSync(orgId, repoId)
         .filter((memory) => memory.visibility === "repo" || opts.force);
+      const tombstonesToSync = store
+        .getUnsyncedTombstones(orgId, repoId)
+        .filter((tombstone) => {
+          if (opts.force) return true;
+          const memory = store.getById(tombstone.memoryId);
+          const syncState = store.getSyncState(tombstone.memoryId);
+          const remoteKnowsMemory = Boolean(
+            syncState?.remoteVersion != null ||
+            syncState?.lastPushedAt ||
+            syncState?.lastPulledAt,
+          );
+          return memory?.visibility === "repo" && remoteKnowsMemory;
+        });
       const linksToSync = store.getLinksToSync(orgId, repoId);
 
-      if (allToPush.length === 0 && supersededToSync.length === 0 && deprecatedToSync.length === 0 && linksToSync.length === 0) {
+      if (
+        allToPush.length === 0 &&
+        supersededToSync.length === 0 &&
+        deprecatedToSync.length === 0 &&
+        tombstonesToSync.length === 0 &&
+        linksToSync.length === 0
+      ) {
         logger.info("Everything up-to-date");
         return;
       }
@@ -89,13 +108,21 @@ export const pushCommand = new Command("push")
             logger.info(`  ${memory.id.slice(0, 8)}... -> deprecated`);
           }
         }
+        if (tombstonesToSync.length > 0) {
+          logger.info("\nWould push deletion tombstones:");
+          for (const tombstone of tombstonesToSync) {
+            logger.info(`  ${tombstone.memoryId.slice(0, 8)}... -> deleted`);
+          }
+        }
         if (linksToSync.length > 0) {
           logger.info("\nWould sync links:");
           for (const { link } of linksToSync) {
             logger.info(`  ${link.sourceId.slice(0, 8)}... -> ${link.targetId.slice(0, 8)}... (${link.linkType})`);
           }
         }
-        logger.info(`\nTotal: ${allToPush.length} memories, ${supersededToSync.length + deprecatedToSync.length} status updates, ${linksToSync.length} links`);
+        logger.info(
+          `\nTotal: ${allToPush.length} memories, ${supersededToSync.length + deprecatedToSync.length} status updates, ${tombstonesToSync.length} deletions, ${linksToSync.length} links`,
+        );
         return;
       }
 
@@ -202,6 +229,28 @@ export const pushCommand = new Command("push")
         }
       }
 
+      let tombstonesSynced = 0;
+
+      for (const tombstone of tombstonesToSync) {
+        try {
+          await client.pushTombstone(tombstone);
+          if (store.markTombstoneSynced(tombstone.memoryId, tombstone.id)) {
+            tombstonesSynced++;
+            logger.info(`  ${tombstone.memoryId.slice(0, 8)}... deletion pushed to remote`);
+          } else {
+            logger.info(
+              `  ${tombstone.memoryId.slice(0, 8)}... deletion changed locally during push; update remains pending`,
+            );
+          }
+        } catch (err) {
+          errors++;
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          logger.error(
+            `  ${tombstone.memoryId.slice(0, 8)}... failed to push deletion: ${errorMsg}`,
+          );
+        }
+      }
+
       let linksSynced = 0;
 
       for (const { link } of linksToSync) {
@@ -228,6 +277,9 @@ export const pushCommand = new Command("push")
       }
       if (deprecatedSynced > 0) {
         logger.info(`${deprecatedSynced} memory(s) marked as deprecated on remote`);
+      }
+      if (tombstonesSynced > 0) {
+        logger.info(`${tombstonesSynced} deletion(s) pushed successfully`);
       }
       if (linksSynced > 0) {
         logger.info(`${linksSynced} link(s) synced`);
