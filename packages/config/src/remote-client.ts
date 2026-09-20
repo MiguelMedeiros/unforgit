@@ -210,9 +210,6 @@ export class RemoteClient {
       },
       "pushTombstone",
     );
-    if (res.status === 409) {
-      return { success: true };
-    }
     if (!res.ok) {
       this.handleError(res, "pushTombstone", await res.text());
     }
