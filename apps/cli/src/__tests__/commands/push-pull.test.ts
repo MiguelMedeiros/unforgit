@@ -136,6 +136,63 @@ describe("push/pull logic", () => {
       expect(store.getSyncState(memory.id)?.localVersion).toBe(memory.version + 1);
     });
 
+    it("pushes a local soft-deletion tombstone to the remote API", async () => {
+      const memory = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "episodic",
+        text: "delete after initial sync",
+        visibility: "repo",
+      });
+      store.markAsPushed(memory.id, memory.version);
+      expect(store.softDelete({ id: memory.id, deletedBy: "local-user" })).toBe(true);
+      const [tombstone] = store.getUnsyncedTombstones("test-org", "test-repo");
+      expect(tombstone).toBeDefined();
+      store.close();
+
+      const remote = await startRecordingServer();
+      try {
+        writeConfig(tmp.configPath, {
+          remote: {
+            url: remote.url,
+            orgId: "test-org",
+            repoId: "test-repo",
+          },
+          defaults: { visibility: "auto", memoryType: "episodic" },
+          sync: {
+            enabled: true,
+            intervalMs: 60_000,
+            debounceMs: 5_000,
+            autoResolveConflicts: "last_write_wins",
+          },
+          embeddings: {
+            enabled: true,
+            model: "text-embedding-3-small",
+            autoGenerate: true,
+          },
+        });
+
+        const result = await runCommand(["push"], { cwd: tmp.dir });
+        store = new LocalStore(tmp.dbPath);
+
+        expect(result.exitCode).toBe(0);
+        expect(remote.requests).toContainEqual({
+          method: "POST",
+          url: "/v1/sync/tombstones",
+          body: JSON.stringify({
+            memoryId: memory.id,
+            orgId: "test-org",
+            repoId: "test-repo",
+            deletedAt: tombstone.deletedAt.toISOString(),
+            deletedBy: "local-user",
+          }),
+        });
+        expect(store.getUnsyncedTombstones("test-org", "test-repo")).toEqual([]);
+      } finally {
+        await remote.close();
+      }
+    });
+
     it("keeps never-synced deprecation local", () => {
       const memory = store.store({
         orgId: "test-org",
