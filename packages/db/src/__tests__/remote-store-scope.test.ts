@@ -191,6 +191,67 @@ describe("RemoteStore.deprecate", () => {
   });
 });
 
+describe("RemoteStore.supersede", () => {
+  it("fails closed when the source memory leaves the authorized repository before the final write", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(row);
+    prisma.memory.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      store.supersede(id, "replacement-id", {
+        orgId: "Org-A",
+        repoId: "Repo-A",
+      }),
+    ).resolves.toBe(false);
+
+    expect(prisma.memory.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "replacement-id",
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    expect(prisma.memory.updateMany).toHaveBeenCalledWith({
+      where: {
+        id,
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+      data: {
+        status: "superseded",
+        supersedesId: "replacement-id",
+      },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { isolationLevel: "Serializable" },
+    );
+  });
+
+  it("fails closed when the replacement memory leaves the authorized repository before the final write", async () => {
+    const { prisma, store } = buildStore([]);
+    prisma.memory.findFirst.mockResolvedValue(null);
+
+    await expect(
+      store.supersede(id, "replacement-id", {
+        orgId: "Org-A",
+        repoId: "Repo-A",
+      }),
+    ).resolves.toBe(false);
+
+    expect(prisma.memory.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "replacement-id",
+        orgId: { equals: "Org-A", mode: "insensitive" },
+        repoId: { equals: "Repo-A", mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    expect(prisma.memory.updateMany).not.toHaveBeenCalled();
+  });
+});
+
 describe("RemoteStore scoped soft delete and restore", () => {
   it("fails closed when a soft-delete target no longer matches the authorized repository", async () => {
     const { prisma, store } = buildStore([]);

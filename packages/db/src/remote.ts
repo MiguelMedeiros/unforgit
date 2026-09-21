@@ -631,8 +631,33 @@ export class RemoteStore {
     }
   }
 
-  async supersede(oldId: string, newId: string): Promise<boolean> {
+  async supersede(
+    oldId: string,
+    newId: string,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
+      if (authorizedScope) {
+        return await this.prisma.$transaction(async (tx) => {
+          const replacement = await tx.memory.findFirst({
+            where: memoryWithinScopeWhere(newId, authorizedScope),
+            select: { id: true },
+          });
+          if (!replacement) return false;
+
+          const result = await tx.memory.updateMany({
+            where: memoryWithinScopeWhere(oldId, authorizedScope),
+            data: {
+              status: "superseded",
+              supersedesId: newId,
+            },
+          });
+          return result.count > 0;
+        }, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      }
+
       await this.prisma.memory.update({
         where: { id: oldId },
         data: {
