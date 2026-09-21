@@ -81,7 +81,10 @@ export async function curateRoutes(
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      const ok = await store.supersede(id, parsed.data.newId);
+      const ok = await store.supersede(id, parsed.data.newId, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
       if (!ok) return reply.status(404).send({ error: "Memory not found" });
       return reply.send({ ok: true });
     },
