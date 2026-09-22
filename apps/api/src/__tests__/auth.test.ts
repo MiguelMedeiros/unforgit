@@ -40,14 +40,15 @@ describe("auth routes", () => {
     const state = new URL(location as string).searchParams.get("state");
     expect(state).toMatch(/^eyJ/);
     expect(state?.split(".")).toHaveLength(3);
-    expect(response.headers["set-cookie"]).toEqual(
-      expect.stringContaining(`unforgit_oauth_state=${state}`),
-    );
-    expect(response.headers["set-cookie"]).toEqual(
+    const setCookie = String(response.headers["set-cookie"]);
+    const cookieValue = setCookie.split(";", 1)[0].split("=", 2)[1];
+    expect(cookieValue).toMatch(/^[a-f0-9]{64}$/);
+    expect(cookieValue).not.toBe(state);
+    expect(setCookie).toEqual(
       expect.stringContaining("Path=/v1/auth/github/callback"),
     );
-    expect(response.headers["set-cookie"]).toEqual(expect.stringContaining("HttpOnly"));
-    expect(response.headers["set-cookie"]).toEqual(expect.stringContaining("SameSite=Lax"));
+    expect(setCookie).toEqual(expect.stringContaining("HttpOnly"));
+    expect(setCookie).toEqual(expect.stringContaining("SameSite=Lax"));
 
     await app.close();
   });

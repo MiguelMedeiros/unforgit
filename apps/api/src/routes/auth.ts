@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { RemoteStore } from "unforgit-db";
 
@@ -50,6 +51,10 @@ function oauthStateCookie(value: string, maxAge: number): string {
   return `${OAUTH_STATE_COOKIE}=${value}; Max-Age=${maxAge}; Path=${OAUTH_STATE_COOKIE_PATH}; HttpOnly; SameSite=Lax${secure}`;
 }
 
+function hashOAuthState(state: string): string {
+  return createHash("sha256").update(state).digest("hex");
+}
+
 function readOAuthStateCookie(cookieHeader: string | undefined): string | undefined {
   if (!cookieHeader) return undefined;
 
@@ -83,11 +88,15 @@ async function verifyOAuthState(
   state: string | undefined,
   cookieState: string | undefined,
 ): Promise<boolean> {
-  if (!state || !cookieState || state !== cookieState) return false;
+  if (!state || !cookieState || !/^[a-f0-9]{64}$/.test(cookieState)) return false;
 
   try {
     await jwtVerify(state, getOAuthStateSecret());
-    return true;
+    const expectedHash = hashOAuthState(state);
+    return timingSafeEqual(
+      new TextEncoder().encode(cookieState),
+      new TextEncoder().encode(expectedHash),
+    );
   } catch {
     return false;
   }
@@ -301,7 +310,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         authUrl.searchParams.set("redirect_uri", callbackUrl);
       }
 
-      reply.header("Set-Cookie", oauthStateCookie(state, 600));
+      reply.header("Set-Cookie", oauthStateCookie(hashOAuthState(state), 600));
       return reply.redirect(authUrl.toString());
     }
   );
