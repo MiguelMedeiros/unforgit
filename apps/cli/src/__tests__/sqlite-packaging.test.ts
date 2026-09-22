@@ -59,6 +59,9 @@ describe("SQLite packaging contract", () => {
     );
 
     expect(workflow).not.toContain("unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr || true");
+    expect(workflow).toContain(
+      "tail -f /dev/null | timeout 2s node_modules/.bin/unforgit-mcp",
+    );
     expect(workflow).toContain("mcp_status=$?");
     expect(workflow).toContain('if [ "$mcp_status" -ne 124 ]; then');
     expect(workflow).toContain("cat /tmp/unforgit-mcp.stderr >&2");

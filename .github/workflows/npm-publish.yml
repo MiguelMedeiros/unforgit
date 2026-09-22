@@ -80,7 +80,7 @@ jobs:
           test -x node_modules/.bin/unforgit-mcp
           node_modules/.bin/unforgit --version | grep -Fx "$version"
           set +e
-          timeout 2s node_modules/.bin/unforgit-mcp >/tmp/unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr
+          tail -f /dev/null | timeout 2s node_modules/.bin/unforgit-mcp >/tmp/unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr
           mcp_status=$?
           set -e
           if [ "$mcp_status" -ne 124 ]; then
