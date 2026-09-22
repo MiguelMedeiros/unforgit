@@ -29,6 +29,40 @@ interface CallbackQuery {
   state?: string;
 }
 
+const OAUTH_STATE_COOKIE = "unforgit_oauth_state";
+const OAUTH_STATE_COOKIE_PATH = "/v1/auth/github/callback";
+
+function useSecureOAuthCookie(): boolean {
+  const callbackUrl = process.env.GITHUB_CALLBACK_URL;
+  if (callbackUrl) {
+    try {
+      return new URL(callbackUrl).protocol === "https:";
+    } catch {
+      return process.env.NODE_ENV === "production";
+    }
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function oauthStateCookie(value: string, maxAge: number): string {
+  const secure = useSecureOAuthCookie() ? "; Secure" : "";
+  return `${OAUTH_STATE_COOKIE}=${value}; Max-Age=${maxAge}; Path=${OAUTH_STATE_COOKIE_PATH}; HttpOnly; SameSite=Lax${secure}`;
+}
+
+function readOAuthStateCookie(cookieHeader: string | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+
+  for (const part of cookieHeader.split(";")) {
+    const cookie = part.trim();
+    if (cookie.startsWith(`${OAUTH_STATE_COOKIE}=`)) {
+      return cookie.slice(OAUTH_STATE_COOKIE.length + 1);
+    }
+  }
+
+  return undefined;
+}
+
 function getOAuthStateSecret(): Uint8Array {
   const secret = process.env.GITHUB_CLIENT_SECRET || process.env.JWT_SECRET;
   if (!secret) {
@@ -45,8 +79,11 @@ async function createOAuthState(): Promise<string> {
     .sign(getOAuthStateSecret());
 }
 
-async function verifyOAuthState(state: string | undefined): Promise<boolean> {
-  if (!state) return false;
+async function verifyOAuthState(
+  state: string | undefined,
+  cookieState: string | undefined,
+): Promise<boolean> {
+  if (!state || !cookieState || state !== cookieState) return false;
 
   try {
     await jwtVerify(state, getOAuthStateSecret());
@@ -264,6 +301,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         authUrl.searchParams.set("redirect_uri", callbackUrl);
       }
 
+      reply.header("Set-Cookie", oauthStateCookie(state, 600));
       return reply.redirect(authUrl.toString());
     }
   );
@@ -273,6 +311,8 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
       const { code, state } = request.query;
+      const cookieState = readOAuthStateCookie(request.headers.cookie);
+      reply.header("Set-Cookie", oauthStateCookie("", 0));
 
       if (!code) {
         return reply.status(400).send({
@@ -281,7 +321,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
       }
 
-      if (!(await verifyOAuthState(state))) {
+      if (!(await verifyOAuthState(state, cookieState))) {
         return reply.status(400).send({
           error: "Bad Request",
           message: "Invalid OAuth state",

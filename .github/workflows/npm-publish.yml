@@ -79,5 +79,13 @@ jobs:
           test -x node_modules/.bin/unforgit
           test -x node_modules/.bin/unforgit-mcp
           node_modules/.bin/unforgit --version | grep -Fx "$version"
-          timeout 2s node_modules/.bin/unforgit-mcp >/tmp/unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr || true
+          set +e
+          timeout 2s node_modules/.bin/unforgit-mcp >/tmp/unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr
+          mcp_status=$?
+          set -e
+          if [ "$mcp_status" -ne 124 ]; then
+            echo "unforgit-mcp exited unexpectedly with status ${mcp_status}" >&2
+            cat /tmp/unforgit-mcp.stderr >&2
+            exit 1
+          fi
           test ! -s /tmp/unforgit-mcp.stdout

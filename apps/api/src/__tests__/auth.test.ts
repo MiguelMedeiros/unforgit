@@ -26,7 +26,7 @@ describe("auth routes", () => {
     vi.restoreAllMocks();
   });
 
-  it("redirects with a signed OAuth state token instead of a state cookie", async () => {
+  it("binds the signed OAuth state token to an HttpOnly callback cookie", async () => {
     process.env.GITHUB_CLIENT_ID = "client-id";
     process.env.GITHUB_CLIENT_SECRET = "client-secret";
     const app = await buildApp();
@@ -36,11 +36,18 @@ describe("auth routes", () => {
     expect(response.statusCode).toBe(302);
     const location = response.headers.location;
     expect(location).toEqual(expect.stringContaining("https://github.com/login/oauth/authorize"));
-    expect(response.headers["set-cookie"]).toBeUndefined();
 
     const state = new URL(location as string).searchParams.get("state");
     expect(state).toMatch(/^eyJ/);
     expect(state?.split(".")).toHaveLength(3);
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.stringContaining(`unforgit_oauth_state=${state}`),
+    );
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.stringContaining("Path=/v1/auth/github/callback"),
+    );
+    expect(response.headers["set-cookie"]).toEqual(expect.stringContaining("HttpOnly"));
+    expect(response.headers["set-cookie"]).toEqual(expect.stringContaining("SameSite=Lax"));
 
     await app.close();
   });
@@ -58,7 +65,31 @@ describe("auth routes", () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ message: "Invalid OAuth state" });
-    expect(response.headers["set-cookie"]).toBeUndefined();
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.stringContaining("unforgit_oauth_state=; Max-Age=0"),
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("rejects a valid OAuth state token from a browser that did not initiate the flow", async () => {
+    process.env.GITHUB_CLIENT_ID = "client-id";
+    process.env.GITHUB_CLIENT_SECRET = "client-secret";
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("GitHub token exchange must not run"));
+    const app = await buildApp();
+    const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
+    const state = new URL(authResponse.headers.location as string).searchParams.get("state");
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/auth/github/callback?code=abc&state=${state}`,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: "Invalid OAuth state" });
     expect(fetchSpy).not.toHaveBeenCalled();
 
     await app.close();
@@ -109,10 +140,12 @@ describe("auth routes", () => {
     const app = await buildApp(store);
     const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
     const state = new URL(authResponse.headers.location as string).searchParams.get("state");
+    const cookie = String(authResponse.headers["set-cookie"]).split(";", 1)[0];
 
     const response = await app.inject({
       method: "GET",
       url: `/v1/auth/github/callback?code=abc&state=${state}`,
+      headers: { cookie },
     });
 
     expect(response.statusCode).toBe(302);
@@ -174,14 +207,19 @@ describe("auth routes", () => {
     const app = await buildApp(store);
     const authResponse = await app.inject({ method: "GET", url: "/v1/auth/github" });
     const state = new URL(authResponse.headers.location as string).searchParams.get("state");
+    const cookie = String(authResponse.headers["set-cookie"]).split(";", 1)[0];
 
     const response = await app.inject({
       method: "GET",
       url: `/v1/auth/github/callback?code=abc&state=${state}`,
+      headers: { cookie },
     });
 
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toContain("/auth/callback?token=");
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.stringContaining("unforgit_oauth_state=; Max-Age=0"),
+    );
     expect(store.syncUserRepoAccess).toHaveBeenCalledWith("user-id", [
       {
         orgId: "Allowed-Org",
