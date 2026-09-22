@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import { timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { RemoteStore } from "unforgit-db";
 
@@ -29,6 +30,40 @@ interface CallbackQuery {
   state?: string;
 }
 
+const LOGIN_BINDING_COOKIE = "unforgit_login_binding";
+const LOGIN_BINDING_COOKIE_PATH = "/v1/auth/github/callback";
+
+function useSecureOAuthCookie(): boolean {
+  const callbackUrl = process.env.GITHUB_CALLBACK_URL;
+  if (callbackUrl) {
+    try {
+      return new URL(callbackUrl).protocol === "https:";
+    } catch {
+      return process.env.NODE_ENV === "production";
+    }
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function loginBindingCookie(value: string, maxAge: number): string {
+  const secure = useSecureOAuthCookie() ? "; Secure" : "";
+  return `${LOGIN_BINDING_COOKIE}=${value}; Max-Age=${maxAge}; Path=${LOGIN_BINDING_COOKIE_PATH}; HttpOnly; SameSite=Lax${secure}`;
+}
+
+function readLoginBindingCookie(cookieHeader: string | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+
+  for (const part of cookieHeader.split(";")) {
+    const cookie = part.trim();
+    if (cookie.startsWith(`${LOGIN_BINDING_COOKIE}=`)) {
+      return cookie.slice(LOGIN_BINDING_COOKIE.length + 1);
+    }
+  }
+
+  return undefined;
+}
+
 function getOAuthStateSecret(): Uint8Array {
   const secret = process.env.GITHUB_CLIENT_SECRET || process.env.JWT_SECRET;
   if (!secret) {
@@ -37,20 +72,29 @@ function getOAuthStateSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-async function createOAuthState(): Promise<string> {
-  return new SignJWT({ nonce: crypto.randomUUID() })
+async function createOAuthState(nonce: string): Promise<string> {
+  return new SignJWT({ nonce })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(getOAuthStateSecret());
 }
 
-async function verifyOAuthState(state: string | undefined): Promise<boolean> {
-  if (!state) return false;
+async function verifyOAuthState(
+  state: string | undefined,
+  loginBinding: string | undefined,
+): Promise<boolean> {
+  if (!state || !loginBinding) return false;
 
   try {
-    await jwtVerify(state, getOAuthStateSecret());
-    return true;
+    const { payload } = await jwtVerify(state, getOAuthStateSecret());
+    if (typeof payload.nonce !== "string" || payload.nonce.length !== loginBinding.length) {
+      return false;
+    }
+    return timingSafeEqual(
+      new TextEncoder().encode(loginBinding),
+      new TextEncoder().encode(payload.nonce),
+    );
   } catch {
     return false;
   }
@@ -253,7 +297,8 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
       }
 
-      const state = await createOAuthState();
+      const loginBinding = crypto.randomUUID();
+      const state = await createOAuthState(loginBinding);
       const scope = "read:user,user:email,repo";
 
       const authUrl = new URL("https://github.com/login/oauth/authorize");
@@ -264,6 +309,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         authUrl.searchParams.set("redirect_uri", callbackUrl);
       }
 
+      reply.header("Set-Cookie", loginBindingCookie(loginBinding, 600));
       return reply.redirect(authUrl.toString());
     }
   );
@@ -273,6 +319,8 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
       const { code, state } = request.query;
+      const loginBinding = readLoginBindingCookie(request.headers.cookie);
+      reply.header("Set-Cookie", loginBindingCookie("", 0));
 
       if (!code) {
         return reply.status(400).send({
@@ -281,7 +329,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
       }
 
-      if (!(await verifyOAuthState(state))) {
+      if (!(await verifyOAuthState(state, loginBinding))) {
         return reply.status(400).send({
           error: "Bad Request",
           message: "Invalid OAuth state",

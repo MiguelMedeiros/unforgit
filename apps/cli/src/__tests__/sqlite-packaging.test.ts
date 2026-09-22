@@ -52,6 +52,18 @@ describe("SQLite packaging contract", () => {
     expect(packedCliJob).not.toContain("run: pnpm install --frozen-lockfile");
   });
 
+  it("fails npm publication verification when the installed MCP server crashes", () => {
+    const workflow = fs.readFileSync(
+      path.resolve(".github/workflows/npm-publish.yml"),
+      "utf-8",
+    );
+
+    expect(workflow).not.toContain("unforgit-mcp.stdout 2>/tmp/unforgit-mcp.stderr || true");
+    expect(workflow).toContain("mcp_status=$?");
+    expect(workflow).toContain('if [ "$mcp_status" -ne 124 ]; then');
+    expect(workflow).toContain("cat /tmp/unforgit-mcp.stderr >&2");
+  });
+
   it("executes Windows command shims through their required shell", () => {
     const smoke = fs.readFileSync(
       path.resolve("scripts/packed-cli-smoke.mjs"),
