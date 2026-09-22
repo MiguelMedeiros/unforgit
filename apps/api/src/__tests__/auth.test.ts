@@ -42,7 +42,10 @@ describe("auth routes", () => {
     expect(state?.split(".")).toHaveLength(3);
     const setCookie = String(response.headers["set-cookie"]);
     const cookieValue = setCookie.split(";", 1)[0].split("=", 2)[1];
-    expect(cookieValue).toMatch(/^[a-f0-9]{64}$/);
+    expect(setCookie).toEqual(expect.stringContaining("unforgit_login_binding="));
+    expect(cookieValue).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(cookieValue).not.toBe(state);
     expect(setCookie).toEqual(
       expect.stringContaining("Path=/v1/auth/github/callback"),
@@ -67,7 +70,7 @@ describe("auth routes", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ message: "Invalid OAuth state" });
     expect(response.headers["set-cookie"]).toEqual(
-      expect.stringContaining("unforgit_oauth_state=; Max-Age=0"),
+      expect.stringContaining("unforgit_login_binding=; Max-Age=0"),
     );
     expect(fetchSpy).not.toHaveBeenCalled();
 
@@ -219,7 +222,7 @@ describe("auth routes", () => {
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toContain("/auth/callback?token=");
     expect(response.headers["set-cookie"]).toEqual(
-      expect.stringContaining("unforgit_oauth_state=; Max-Age=0"),
+      expect.stringContaining("unforgit_login_binding=; Max-Age=0"),
     );
     expect(store.syncUserRepoAccess).toHaveBeenCalledWith("user-id", [
       {
