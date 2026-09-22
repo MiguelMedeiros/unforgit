@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.14](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.13...v0.11.14) (2026-09-22)
+
+
+### Bug Fixes
+
+* **security:** bind GitHub OAuth callbacks to the initiating browser and fail publication verification when the MCP binary crashes ([32b66c0](https://github.com/MiguelMedeiros/unforgit/commit/32b66c0d5b2953ba83e041c6d9cd6d2d61da2a64))
+
 ## [0.11.13](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.12...v0.11.13) (2026-09-21)
 
 
