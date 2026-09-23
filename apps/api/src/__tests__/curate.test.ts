@@ -138,6 +138,31 @@ describe("curate routes", () => {
     await app.close();
   });
 
+  it("passes the authenticated repository scope to the pin write", async () => {
+    const store = buildStore();
+    store.getById.mockResolvedValue({
+      id: "memory-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+    });
+    store.pin.mockResolvedValue(true);
+    const app = await buildCurateApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/memory/memory-id/pin",
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(store.pin).toHaveBeenCalledWith(
+      "memory-id",
+      { orgId: "org-a", repoId: "repo-a" },
+    );
+
+    await app.close();
+  });
+
   it("does not let a repository-scoped API key reset another repository", async () => {
     const store = {
       validateApiKey: vi.fn().mockResolvedValue({

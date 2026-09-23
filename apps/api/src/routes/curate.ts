@@ -100,7 +100,10 @@ export async function curateRoutes(
         return reply.status(403).send({ error: "Forbidden" });
       }
 
-      const ok = await store.pin(id);
+      const ok = await store.pin(id, {
+        orgId: request.apiKey!.orgId,
+        repoId: request.apiKey!.repoId,
+      });
       if (!ok) return reply.status(404).send({ error: "Memory not found" });
       return reply.send({ ok: true });
     },
