@@ -671,20 +671,24 @@ export class RemoteStore {
     }
   }
 
-  async pin(id: string): Promise<boolean> {
+  async pin(
+    id: string,
+    authorizedScope?: StoreAuthorizationScope,
+  ): Promise<boolean> {
     try {
-      const existing = await this.prisma.memory.findUnique({ where: { id } });
+      const where = memoryWithinScopeWhere(id, authorizedScope);
+      const existing = await this.prisma.memory.findFirst({ where });
       if (!existing) return false;
 
       const tags = existing.tags.includes("pinned")
         ? existing.tags
         : [...existing.tags, "pinned"];
 
-      await this.prisma.memory.update({
-        where: { id },
+      const result = await this.prisma.memory.updateMany({
+        where,
         data: { tags },
       });
-      return true;
+      return result.count > 0;
     } catch {
       return false;
     }
