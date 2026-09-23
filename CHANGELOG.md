@@ -6,6 +6,16 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.15](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.14...v0.11.15) (2026-09-23)
+
+
+### Bug Fixes
+
+* **ci:** keep MCP stdin open during publish verification ([dbc531c](https://github.com/MiguelMedeiros/unforgit/commit/dbc531c5c3679f25b94939ef1dfc14e2b5a39f61))
+* **ci:** keep MCP stdin open during publish verification ([c649903](https://github.com/MiguelMedeiros/unforgit/commit/c6499036bfc6e7c322393914244f4b39549db68b))
+* **security:** scope remote pin writes ([3e905de](https://github.com/MiguelMedeiros/unforgit/commit/3e905de197af3d070c4a6c76b6be15ffb2aa52ec))
+* **security:** scope remote pin writes ([3c2d88b](https://github.com/MiguelMedeiros/unforgit/commit/3c2d88b734a124baaca2c9fa06096d5042822f23))
+
 ## [0.11.14](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.13...v0.11.14) (2026-09-22)
 
 
