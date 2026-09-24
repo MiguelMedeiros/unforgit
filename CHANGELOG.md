@@ -12,7 +12,6 @@
 ### Bug Fixes
 
 * **ci:** remove deprecated Node action runtime ([199d9a5](https://github.com/MiguelMedeiros/unforgit/commit/199d9a5bbf4b8aa7c6b44abcfe014ed5e1e1934f))
-* **ci:** remove deprecated Node action runtime ([ad0f978](https://github.com/MiguelMedeiros/unforgit/commit/ad0f978146edd6bba56fd7ac2d6b4d5ef329cf0b))
 
 ## [0.11.15](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.14...v0.11.15) (2026-09-23)
 
