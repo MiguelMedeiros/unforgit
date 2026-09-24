@@ -23,6 +23,14 @@ function workflowActionReferences(): Array<{ file: string; line: number; referen
   );
 }
 
+function workflowContents(): string[] {
+  const workflowsDir = path.resolve(".github/workflows");
+  return fs
+    .readdirSync(workflowsDir)
+    .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+    .map((file) => fs.readFileSync(path.join(workflowsDir, file), "utf-8"));
+}
+
 describe("GitHub Actions supply-chain contract", () => {
   it("pins every external action in every workflow to an immutable commit", () => {
     const mutableReferences = workflowActionReferences().filter(
@@ -43,6 +51,9 @@ describe("GitHub Actions supply-chain contract", () => {
     expect(releasePleaseReferences).toHaveLength(1);
     expect(releasePleaseReferences[0]?.reference).toBe(
       `googleapis/release-please-action@${releasePleaseV5Sha}`,
+    );
+    expect(workflowContents().join("\n")).not.toContain(
+      "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24",
     );
   });
 });
