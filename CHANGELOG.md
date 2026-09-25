@@ -12,7 +12,6 @@
 ### Bug Fixes
 
 * **ci:** publish npm from immutable release tag ([edf9333](https://github.com/MiguelMedeiros/unforgit/commit/edf93335bb6644d8b6ef5d6cf3eeae0431bb3bd8))
-* **ci:** publish npm from immutable release tag ([8f7fa3e](https://github.com/MiguelMedeiros/unforgit/commit/8f7fa3e33086f3a164def4ce13845e00affcedfa))
 
 ## [0.11.16](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.15...v0.11.16) (2026-09-24)
 
