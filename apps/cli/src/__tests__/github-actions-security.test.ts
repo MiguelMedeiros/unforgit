@@ -56,4 +56,17 @@ describe("GitHub Actions supply-chain contract", () => {
       "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24",
     );
   });
+
+  it("dispatches npm publication from the immutable release tag", () => {
+    const releaseWorkflow = fs.readFileSync(
+      path.resolve(".github/workflows/release.yml"),
+      "utf-8",
+    );
+    const dispatchLine = releaseWorkflow
+      .split("\n")
+      .find((line) => line.includes("gh workflow run npm-publish.yml"));
+
+    expect(dispatchLine).toContain("--ref ${{ steps.release.outputs.tag_name }}");
+    expect(dispatchLine).not.toContain("github.ref_name");
+  });
 });
