@@ -11,7 +11,6 @@
 
 ### Bug Fixes
 
-* **security:** keep OAuth tokens out of callback URLs ([6a20147](https://github.com/MiguelMedeiros/unforgit/commit/6a20147a23fd792f00709bd01bf7f6ac545c4f11))
 * **security:** keep OAuth tokens out of callback URLs ([7000f5a](https://github.com/MiguelMedeiros/unforgit/commit/7000f5addef0cc27d5dfddb5e79c7d0295c2cce8))
 
 ## [0.11.17](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.16...v0.11.17) (2026-09-25)
