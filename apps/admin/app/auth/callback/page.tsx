@@ -1,18 +1,32 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { setToken, setUser, getApiBaseUrl } from "@/lib/api";
+import { getOAuthTokenFromHash, urlWithoutHash } from "@/lib/oauth-callback";
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const callbackToken = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    if (callbackToken.current === undefined) {
+      callbackToken.current = getOAuthTokenFromHash(window.location.hash);
+    }
+
+    const token = callbackToken.current;
     const errorParam = searchParams.get("error");
+
+    if (token && window.location.hash) {
+      window.history.replaceState(
+        null,
+        "",
+        urlWithoutHash(window.location.pathname, window.location.search),
+      );
+    }
 
     if (errorParam) {
       setError(decodeURIComponent(errorParam));
