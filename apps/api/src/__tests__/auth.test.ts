@@ -220,7 +220,10 @@ describe("auth routes", () => {
     });
 
     expect(response.statusCode).toBe(302);
-    expect(response.headers.location).toContain("/auth/callback?token=");
+    const redirect = new URL(response.headers.location as string);
+    expect(redirect.pathname).toBe("/auth/callback");
+    expect(redirect.searchParams.get("token")).toBeNull();
+    expect(new URLSearchParams(redirect.hash.slice(1)).get("token")).toMatch(/^eyJ/);
     expect(response.headers["set-cookie"]).toEqual(
       expect.stringContaining("unforgit_login_binding=; Max-Age=0"),
     );

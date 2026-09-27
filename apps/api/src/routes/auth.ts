@@ -366,7 +366,7 @@ export const authRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
         });
 
         const adminUrl = process.env.ADMIN_DASHBOARD_URL || "http://localhost:3939";
-        return reply.redirect(`${adminUrl}/auth/callback?token=${token}`);
+        return reply.redirect(`${adminUrl}/auth/callback#token=${encodeURIComponent(token)}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         app.log.error(`GitHub OAuth error: ${message}`);
