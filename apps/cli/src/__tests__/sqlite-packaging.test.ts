@@ -67,6 +67,23 @@ describe("SQLite packaging contract", () => {
     expect(workflow).toContain("cat /tmp/unforgit-mcp.stderr >&2");
   });
 
+  it("waits long enough for asynchronous npm registry processing before failing verification", () => {
+    const workflow = fs.readFileSync(
+      path.resolve(".github/workflows/npm-publish.yml"),
+      "utf-8",
+    );
+    const verifyStep = workflow.slice(
+      workflow.indexOf("- name: Verify npm install includes CLI and MCP binaries"),
+    );
+    const attempts = Number(/max_attempts=(\d+)/.exec(verifyStep)?.[1]);
+    const delaySeconds = Number(/retry_delay_seconds=(\d+)/.exec(verifyStep)?.[1]);
+
+    expect(verifyStep).toContain('for attempt in $(seq 1 "$max_attempts"); do');
+    expect(verifyStep).toContain('sleep "$retry_delay_seconds"');
+    // npm can take more than five minutes to expose an accepted publish.
+    expect(attempts * delaySeconds).toBeGreaterThanOrEqual(15 * 60);
+  });
+
   it("executes Windows command shims through their required shell", () => {
     const smoke = fs.readFileSync(
       path.resolve("scripts/packed-cli-smoke.mjs"),
