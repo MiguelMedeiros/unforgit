@@ -65,16 +65,19 @@ jobs:
           tmp=$(mktemp -d)
           cd "$tmp"
           npm init -y >/dev/null
-          for attempt in $(seq 1 12); do
+          # npm processes accepted publishes asynchronously; allow up to 20 minutes.
+          max_attempts=40
+          retry_delay_seconds=30
+          for attempt in $(seq 1 "$max_attempts"); do
             if npm view "unforgit@${version}" version >/dev/null 2>&1 && npm install --prefer-online "unforgit@${version}"; then
               break
             fi
-            if [ "$attempt" -eq 12 ]; then
+            if [ "$attempt" -eq "$max_attempts" ]; then
               echo "unforgit@${version} was not installable after ${attempt} attempts" >&2
               exit 1
             fi
-            echo "unforgit@${version} not visible/installable from npm yet; retrying in 20s..."
-            sleep 20
+            echo "unforgit@${version} not visible/installable from npm yet; retrying in ${retry_delay_seconds}s..."
+            sleep "$retry_delay_seconds"
           done
           test -x node_modules/.bin/unforgit
           test -x node_modules/.bin/unforgit-mcp
