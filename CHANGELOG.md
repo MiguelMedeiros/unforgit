@@ -11,7 +11,6 @@
 
 ### Bug Fixes
 
-* **deps:** patch fast-uri and ip-address advisories ([e92d0fc](https://github.com/MiguelMedeiros/unforgit/commit/e92d0fcf087e4ed9d4e8451f4a1cfbbddcb342c9))
 * **deps:** patch fast-uri and ip-address advisories ([b8545b9](https://github.com/MiguelMedeiros/unforgit/commit/b8545b90ea09ba2dd7a1f1b9fd2e8d830190efb7))
 
 ## [0.11.18](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.17...v0.11.18) (2026-09-27)
