@@ -11,7 +11,6 @@
 
 ### Bug Fixes
 
-* **deps:** bump brace-expansion override to 5.0.12 ([b2a61d4](https://github.com/MiguelMedeiros/unforgit/commit/b2a61d4a8f01358f9e6c8ea2eba965191a5c31c3))
 * **deps:** bump brace-expansion override to 5.0.12 ([86071c2](https://github.com/MiguelMedeiros/unforgit/commit/86071c2ae13297e321bf311981b83fefdb3ad651))
 
 ## [0.11.19](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.18...v0.11.19) (2026-09-29)
