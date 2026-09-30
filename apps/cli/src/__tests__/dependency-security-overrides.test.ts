@@ -9,7 +9,18 @@ const patchedMinimums: Record<string, string> = {
   "fast-uri": "3.1.7",
   // GHSA-2vr4-cq9g-pvrc: NAT64 local-use range not classified (SSRF bypass).
   "ip-address": "10.5.1",
+  // GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr: brace
+  // expansion recursion/quadratic-time denial of service.
+  "brace-expansion": "5.0.12",
 };
+
+// Overrides may be keyed by bare name ("fast-uri") or by a selector with a
+// version range ("brace-expansion@<5.0.12").
+function overrideFor(overrides: Record<string, string>, name: string): string | undefined {
+  if (overrides[name] !== undefined) return overrides[name];
+  const key = Object.keys(overrides).find((candidate) => candidate.startsWith(`${name}@`));
+  return key === undefined ? undefined : overrides[key];
+}
 
 function compareSemver(a: string, b: string): number {
   const pa = a.split(".").map(Number);
@@ -34,9 +45,9 @@ describe("dependency security overrides", () => {
 
   for (const [name, minimum] of Object.entries(patchedMinimums)) {
     it(`does not pin ${name} below patched ${minimum}`, () => {
-      const override = overrides[name];
+      const override = overrideFor(overrides, name);
       expect(override, `${name} override`).toBeDefined();
-      const floor = override.replace(/^[\^~]/, "");
+      const floor = (override ?? "").replace(/^[\^~]/, "");
       expect(compareSemver(floor, minimum)).toBeGreaterThanOrEqual(0);
     });
 
