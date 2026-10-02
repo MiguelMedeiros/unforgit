@@ -37,6 +37,34 @@ function lockedVersions(name: string): string[] {
   return [...new Set([...lockfile.matchAll(pattern)].map((match) => match[1]))];
 }
 
+// Direct dependencies with published advisories. Each entry lists the patched
+// minimum per affected major line; locked versions on unlisted majors are not
+// affected by the advisory and are ignored.
+const directPatchedMinimums: Record<string, string[]> = {
+  // GHSA-vcvr-r3jv-pc5j: remote code execution in next/og ImageResponse
+  // (affects >=16.2.0 <16.3.6 only).
+  next: ["16.3.6"],
+  // GHSA-667r-xxjv-c9mm, GHSA-p68q-wchp-6fh7, GHSA-hwr6-493r-vm6h,
+  // GHSA-9q9j-q6p8-xq58, GHSA-4mh8-r7rc-xpvc: validation/auth bypass and
+  // HTTP/2 trailer denial of service.
+  fastify: ["5.12.5"],
+};
+
+describe("direct dependency security floors", () => {
+  for (const [name, minimums] of Object.entries(directPatchedMinimums)) {
+    it(`locks only patched ${name} versions on affected major lines`, () => {
+      const versions = lockedVersions(name);
+      expect(versions.length).toBeGreaterThan(0);
+      for (const version of versions) {
+        const major = version.split(".")[0];
+        const minimum = minimums.find((candidate) => candidate.split(".")[0] === major);
+        if (minimum === undefined) continue;
+        expect(compareSemver(version, minimum), `${name}@${version}`).toBeGreaterThanOrEqual(0);
+      }
+    });
+  }
+});
+
 describe("dependency security overrides", () => {
   const rootPackage = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf-8")) as {
     pnpm?: { overrides?: Record<string, string> };
