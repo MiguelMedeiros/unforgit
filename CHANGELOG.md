@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.21](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.20...v0.11.21) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** patch Next.js RCE and fastify validation advisories ([883e8ab](https://github.com/MiguelMedeiros/unforgit/commit/883e8abaffb693acfb50ad4e04b9e50d63aae67e))
+* **deps:** patch Next.js RCE and fastify validation advisories ([6ab79cb](https://github.com/MiguelMedeiros/unforgit/commit/6ab79cbff185740c1c741ec993149a4773386562))
+
 ## [0.11.20](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.19...v0.11.20) (2026-09-30)
 
 
