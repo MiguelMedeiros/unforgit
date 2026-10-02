@@ -11,7 +11,6 @@
 
 ### Bug Fixes
 
-* **deps:** patch Next.js RCE and fastify validation advisories ([883e8ab](https://github.com/MiguelMedeiros/unforgit/commit/883e8abaffb693acfb50ad4e04b9e50d63aae67e))
 * **deps:** patch Next.js RCE and fastify validation advisories ([6ab79cb](https://github.com/MiguelMedeiros/unforgit/commit/6ab79cbff185740c1c741ec993149a4773386562))
 
 ## [0.11.20](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.19...v0.11.20) (2026-09-30)
