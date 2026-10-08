@@ -11,7 +11,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "dotenv": "^17.3.1",
     "unforgit-config": "workspace:*",
     "unforgit-core": "workspace:*",
