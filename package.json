@@ -58,7 +58,6 @@
       "fast-uri": "3.1.8",
       "ip-address": "10.7.2",
       "hono@<4.13.5": "4.13.7",
-      "sharp@<0.35.4": "0.35.4",
       "lodash-es": "4.18.1",
       "vite@>=7.0.0 <=7.3.1": "7.3.5",
       "picomatch@>=4.0.0 <4.0.4": "4.0.4",
@@ -77,7 +76,10 @@
       "mysql2@<3.22.0": "3.24.3",
       "@humanfs/node@<0.16.8": "0.16.8",
       "fflate@<0.8.3": "0.8.3",
-      "baseline-browser-mapping@<2.11.0": "2.11.21"
+      "baseline-browser-mapping@<2.11.0": "2.11.21",
+      "sharp@<0.35.5": "0.35.5",
+      "proxy-addr@<2.0.8": "2.0.8",
+      "source-map-js@<1.2.2": "1.2.2"
     },
     "patchedDependencies": {
       "minimatch@3.1.5": "patches/minimatch@3.1.5.patch"
