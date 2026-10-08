@@ -6,6 +6,16 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.22](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.21...v0.11.22) (2026-10-08)
+
+
+### Bug Fixes
+
+* **security:** block cross-site mutations on the local dashboard API ([dae6661](https://github.com/MiguelMedeiros/unforgit/commit/dae6661f15561ab1fc91e2fd51e77a89397b0e05))
+* **security:** block cross-site mutations on the local dashboard API ([1bcfd50](https://github.com/MiguelMedeiros/unforgit/commit/1bcfd502b7136ba0e34d67417af8195c6d44421f))
+* **security:** patch proxy-addr, MCP SDK, Next.js, sharp and source-map-js advisories ([9af9de6](https://github.com/MiguelMedeiros/unforgit/commit/9af9de65ec1faba26d171866639a8f5d7f38b9ac))
+* **security:** patch proxy-addr, MCP SDK, Next.js, sharp and source-map-js advisories ([d5ecbda](https://github.com/MiguelMedeiros/unforgit/commit/d5ecbda00c86173d6419f3e3e3bbecba470a58e9))
+
 ## [0.11.21](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.20...v0.11.21) (2026-10-02)
 
 
