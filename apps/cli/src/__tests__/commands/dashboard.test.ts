@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDashboardLaunchOptions,
   assertSafeDashboardBind,
+  dashboardAllowedHosts,
   resolveDashboardAppDir,
 } from "../../commands/dashboard.js";
 
@@ -44,6 +45,21 @@ describe("dashboard command launch options", () => {
     expect(() => buildDashboardLaunchOptions({ cwd: "/repo", port: "70000" })).toThrow(
       "--port must be between 1 and 65535",
     );
+  });
+
+  it("allows a bound dashboard hostname through the DNS-rebinding host check", () => {
+    expect(dashboardAllowedHosts("one.tail1234.ts.net", undefined)).toBe("one.tail1234.ts.net");
+    expect(dashboardAllowedHosts("one.tail1234.ts.net", "dash.local")).toBe(
+      "dash.local,one.tail1234.ts.net",
+    );
+  });
+
+  it("keeps the configured host allowlist unchanged for IP and loopback binds", () => {
+    expect(dashboardAllowedHosts("127.0.0.1", undefined)).toBeUndefined();
+    expect(dashboardAllowedHosts("100.81.12.32", "dash.local")).toBe("dash.local");
+    expect(dashboardAllowedHosts("localhost", undefined)).toBeUndefined();
+    expect(dashboardAllowedHosts("::1", undefined)).toBeUndefined();
+    expect(dashboardAllowedHosts("0.0.0.0", undefined)).toBeUndefined();
   });
 
   it("resolves apps/web from both source and bundled CLI locations", () => {
