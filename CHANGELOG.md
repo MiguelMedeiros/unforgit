@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.23](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.22...v0.11.23) (2026-10-09)
+
+
+### Bug Fixes
+
+* **security:** block DNS-rebinding access to the local dashboard API ([7ac6239](https://github.com/MiguelMedeiros/unforgit/commit/7ac62396cae2c25460d9aca0286de17d78af2b9b))
+* **security:** block DNS-rebinding access to the local dashboard API ([ad40bf7](https://github.com/MiguelMedeiros/unforgit/commit/ad40bf75584282ecaf580da3627b24e5dec9651e))
+
 ## [0.11.22](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.21...v0.11.22) (2026-10-08)
 
 
