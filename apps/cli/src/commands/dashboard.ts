@@ -29,6 +29,20 @@ export function assertSafeDashboardBind(host: string, allowNetwork = false): voi
   }
 }
 
+const IP_OR_LOOPBACK_HOST = /^(\d{1,3}(\.\d{1,3}){3}|localhost|.*:.*)$/i;
+
+/**
+ * The dashboard rejects unknown Host headers to block DNS rebinding. IP and
+ * loopback binds are always accepted; a hostname bind must be allowlisted.
+ */
+export function dashboardAllowedHosts(
+  host: string,
+  configured: string | undefined,
+): string | undefined {
+  if (IP_OR_LOOPBACK_HOST.test(host)) return configured;
+  return configured ? `${configured},${host}` : host;
+}
+
 export function parseDashboardPort(port: string | number | undefined): number {
   const value = port === undefined ? 3838 : Number(port);
   if (!Number.isInteger(value) || value < 1 || value > 65535) {
@@ -109,16 +123,23 @@ Examples:
       logger.warn("Dashboard is bound to a network address. Use only on trusted private networks such as Tailscale.");
     }
 
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      UNFORGIT_WORKSPACE: launch.workspace,
+    };
+    const allowedHosts = dashboardAllowedHosts(
+      launch.host,
+      process.env.UNFORGIT_DASHBOARD_ALLOWED_HOSTS,
+    );
+    if (allowedHosts !== undefined) env.UNFORGIT_DASHBOARD_ALLOWED_HOSTS = allowedHosts;
+
     const child = spawn(
       "pnpm",
       ["exec", "next", "dev", "-p", String(launch.port), "-H", launch.host],
       {
         cwd: dashboardAppDir,
         stdio: "inherit",
-        env: {
-          ...process.env,
-          UNFORGIT_WORKSPACE: launch.workspace,
-        },
+        env,
       },
     );
 
