@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { getRemoteHeaders } from "@/lib/remote-headers";
 
 export async function POST(
   _request: NextRequest,
@@ -34,7 +35,7 @@ export async function POST(
   try {
     const res = await fetch(`${config.remote.url}/v1/memory`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getRemoteHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         orgId: memory.orgId,
         repoId: memory.repoId,

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import type { Memory, Tombstone, SyncResult, SyncConflict, ConflictResolution, LinkType } from "@/lib/types";
+import { getRemoteHeaders as remoteHeaders } from "@/lib/remote-headers";
 
 function getRemoteHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const apiKey = process.env.UNFORGIT_API_KEY;
-  if (apiKey) {
-    headers["Authorization"] = `Bearer ${apiKey}`;
-  }
-  return headers;
+  return remoteHeaders({ "Content-Type": "application/json" });
 }
 
 interface RemoteMemory {

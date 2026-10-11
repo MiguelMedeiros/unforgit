@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { getRemoteHeaders } from "@/lib/remote-headers";
 import type { ListQuery, Memory } from "@/lib/types";
 
 async function fetchRemoteMemories(
@@ -21,6 +22,7 @@ async function fetchRemoteMemories(
 
     const res = await fetch(`${remoteUrl}/v1/memories?${params.toString()}`, {
       cache: "no-store",
+      headers: getRemoteHeaders(),
     });
     if (!res.ok) return { memories: [], total: 0 };
     const data = await res.json();
