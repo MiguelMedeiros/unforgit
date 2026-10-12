@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.24](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.23...v0.11.24) (2026-10-11)
+
+
+### Bug Fixes
+
+* **dashboard:** authenticate remote API calls from memory routes ([7e7a1d9](https://github.com/MiguelMedeiros/unforgit/commit/7e7a1d9cf574d72e696da168175bde0e64688d9e))
+* **dashboard:** authenticate remote API calls from memory routes ([f17f7d4](https://github.com/MiguelMedeiros/unforgit/commit/f17f7d43b012e77d08499343d8c4c2956a39575c))
+
 ## [0.11.23](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.22...v0.11.23) (2026-10-09)
 
 
