@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.25](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.24...v0.11.25) (2026-10-13)
+
+
+### Bug Fixes
+
+* **dashboard:** report rejected remote sync responses instead of silent success ([37a883f](https://github.com/MiguelMedeiros/unforgit/commit/37a883fa1b2c4da6961bcac8f9eb8e4db999d975))
+* **dashboard:** report rejected remote sync responses instead of silent success ([6402d7c](https://github.com/MiguelMedeiros/unforgit/commit/6402d7c97afd03df8f28117f3d0a41110df99e70))
+
 ## [0.11.24](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.23...v0.11.24) (2026-10-11)
 
 
