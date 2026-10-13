@@ -48,6 +48,12 @@ interface RemoteLink {
   createdAt?: string;
 }
 
+async function remoteError(res: Response, action: string): Promise<string> {
+  const data = await res.json().catch(() => ({}));
+  const detail = typeof data?.error === "string" ? `: ${data.error}` : "";
+  return `${action} failed (HTTP ${res.status})${detail}`;
+}
+
 function parseRemoteMemory(rm: RemoteMemory): Memory {
   return {
     ...rm,
@@ -122,6 +128,11 @@ export async function POST(request: NextRequest) {
           result.deletionsPropagated++;
         }
       }
+    } else {
+      result.errors.push({
+        id: "tombstones-pull",
+        error: await remoteError(tombstonesRes, "Pull tombstones"),
+      });
     }
   } catch (err) {
     result.errors.push({
@@ -167,6 +178,11 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    } else {
+      result.errors.push({
+        id: "memories-pull",
+        error: await remoteError(pullRes, "Pull memories"),
+      });
     }
   } catch (err) {
     result.errors.push({
@@ -194,6 +210,11 @@ export async function POST(request: NextRequest) {
       if (res.ok || res.status === 409) {
         local.markTombstoneSynced(tombstone.memoryId);
         result.deletionsPropagated++;
+      } else {
+        result.errors.push({
+          id: tombstone.memoryId,
+          error: await remoteError(res, "Push tombstone"),
+        });
       }
     } catch (err) {
       result.errors.push({
@@ -295,6 +316,11 @@ export async function POST(request: NextRequest) {
           linksPulled++;
         }
       }
+    } else {
+      result.errors.push({
+        id: "links-pull",
+        error: await remoteError(linksRes, "Pull links"),
+      });
     }
   } catch (err) {
     result.errors.push({
