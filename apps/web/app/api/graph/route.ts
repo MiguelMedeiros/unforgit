@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { getRemoteHeaders } from "@/lib/remote-headers";
 import type { Memory, MemoryLink } from "@/lib/types";
 
 async function fetchRemoteGraph(
@@ -14,12 +15,15 @@ async function fetchRemoteGraph(
     params.set("limit", "1000");
     params.set("offset", "0");
 
+    const linkParams = new URLSearchParams({ orgId, repoId });
     const [memoriesRes, linksRes] = await Promise.all([
       fetch(`${remoteUrl}/v1/memories?${params.toString()}`, {
         cache: "no-store",
+        headers: getRemoteHeaders(),
       }),
-      fetch(`${remoteUrl}/v1/links?orgId=${orgId}&repoId=${repoId}`, {
+      fetch(`${remoteUrl}/v1/links?${linkParams.toString()}`, {
         cache: "no-store",
+        headers: getRemoteHeaders(),
       }),
     ]);
 

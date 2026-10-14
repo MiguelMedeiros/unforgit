@@ -35,6 +35,7 @@ import { GET as listMemories } from "../../app/api/memories/route";
 import { GET as getMemory } from "../../app/api/memories/[id]/route";
 import { POST as promoteMemory } from "../../app/api/memories/[id]/promote/route";
 import { POST as restoreMemory } from "../../app/api/memories/[id]/restore/route";
+import { GET as getGraph } from "../../app/api/graph/route";
 
 const ORIGINAL_API_KEY = process.env.UNFORGIT_API_KEY;
 let tmpDir: string;
@@ -142,6 +143,18 @@ describe("dashboard routes authenticate remote API calls", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(authHeaderOf(fetchMock.mock.calls[0])).toBe("Bearer hk_test_remote_key");
+  });
+
+  it("remote graph sends the configured API key to memories and links", async () => {
+    const res = await getGraph(
+      new NextRequest("http://localhost/api/graph?source=remote"),
+    );
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const call of fetchMock.mock.calls) {
+      expect(authHeaderOf(call)).toBe("Bearer hk_test_remote_key");
+    }
   });
 
   it("omits the Authorization header when no API key is configured", async () => {
