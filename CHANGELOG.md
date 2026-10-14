@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.26](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.25...v0.11.26) (2026-10-14)
+
+
+### Bug Fixes
+
+* **dashboard:** authenticate remote graph requests ([63fe120](https://github.com/MiguelMedeiros/unforgit/commit/63fe120ccecf1e1d0f7f17a5835432fad1582122))
+* **dashboard:** authenticate remote graph requests ([a36e319](https://github.com/MiguelMedeiros/unforgit/commit/a36e319fb5983135d1bda022cfa94a48f58ba958))
+
 ## [0.11.25](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.24...v0.11.25) (2026-10-13)
 
 
