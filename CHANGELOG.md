@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.27](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.26...v0.11.27) (2026-10-15)
+
+
+### Bug Fixes
+
+* **security:** encode memory IDs in dashboard remote proxy paths ([9f1fad8](https://github.com/MiguelMedeiros/unforgit/commit/9f1fad881b56fb88e73a32e7aac13be0de916619))
+* **security:** encode memory IDs in dashboard remote proxy paths ([65db2c1](https://github.com/MiguelMedeiros/unforgit/commit/65db2c113489b1674bfccd39d393fd1cf9b58e98))
+
 ## [0.11.26](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.25...v0.11.26) (2026-10-14)
 
 
