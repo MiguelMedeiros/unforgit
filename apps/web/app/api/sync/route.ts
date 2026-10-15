@@ -336,7 +336,7 @@ export async function POST(request: NextRequest) {
 
   for (const link of allLinks) {
     try {
-      const res = await fetch(`${config.remote.url}/v1/memory/${link.sourceId}/link`, {
+      const res = await fetch(`${config.remote.url}/v1/memory/${encodeURIComponent(link.sourceId)}/link`, {
         method: "POST",
         headers: getRemoteHeaders(),
         body: JSON.stringify({

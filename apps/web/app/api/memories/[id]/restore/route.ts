@@ -28,7 +28,7 @@ export async function POST(
   const config = getConfig();
   if (config?.remote.url) {
     try {
-      await fetch(`${config.remote.url}/v1/memory/${id}/restore`, {
+      await fetch(`${config.remote.url}/v1/memory/${encodeURIComponent(id)}/restore`, {
         method: "POST",
         headers: getRemoteHeaders({ "Content-Type": "application/json" }),
       });

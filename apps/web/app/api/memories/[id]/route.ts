@@ -4,7 +4,7 @@ import { getRemoteHeaders } from "@/lib/remote-headers";
 
 async function fetchRemoteMemory(remoteUrl: string, id: string) {
   try {
-    const res = await fetch(`${remoteUrl}/v1/memory/${id}`, {
+    const res = await fetch(`${remoteUrl}/v1/memory/${encodeURIComponent(id)}`, {
       cache: "no-store",
       headers: getRemoteHeaders(),
     });
