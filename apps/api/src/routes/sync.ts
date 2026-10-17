@@ -51,6 +51,30 @@ function hasApiKeyScope(
   );
 }
 
+const SYNC_PULL_PAGE_SIZE = 1000;
+
+// A pull without `since` is a full snapshot (first sync / `unforgit pull`),
+// so it must not stop at a single page or older memories never sync.
+async function listAllMemories(
+  store: RemoteStore,
+  orgId: string,
+  repoId: string,
+): Promise<Memory[]> {
+  const memories: Memory[] = [];
+  for (let offset = 0; ; offset += SYNC_PULL_PAGE_SIZE) {
+    const page = await store.list({
+      orgId,
+      repoId,
+      limit: SYNC_PULL_PAGE_SIZE,
+      offset,
+      sortBy: "createdAt",
+      sortOrder: "asc",
+    });
+    memories.push(...page);
+    if (page.length < SYNC_PULL_PAGE_SIZE) return memories;
+  }
+}
+
 function parseDate(value: string | undefined): Date | undefined {
   if (!value) return undefined;
 
@@ -94,12 +118,7 @@ export const syncRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
       if (sinceDate) {
         memories = await store.getModifiedSince(orgId, repoId, sinceDate);
       } else {
-        memories = await store.list({
-          orgId,
-          repoId,
-          limit: 1000,
-          offset: 0,
-        });
+        memories = await listAllMemories(store, orgId, repoId);
       }
 
       return reply.send(memories.map((m) => ({

@@ -71,6 +71,53 @@ describe("sync routes", () => {
     await app.close();
   });
 
+  it("returns the full repository snapshot on a pull without since", async () => {
+    const store = buildStore();
+    const now = new Date("2026-10-17T12:00:00.000Z");
+    const memories = Array.from({ length: 1500 }, (_, index) => ({
+      id: `memory-${index}`,
+      orgId: "org-a",
+      repoId: "repo-a",
+      scopeType: "repo",
+      memoryType: "semantic",
+      visibility: "repo",
+      status: "active",
+      text: `memory ${index}`,
+      tags: [],
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    store.validateApiKey.mockResolvedValue({
+      id: "key-id",
+      orgId: "org-a",
+      repoId: "repo-a",
+      name: "test-key",
+    });
+    store.list.mockImplementation(
+      async (query: { offset?: number; limit?: number }) => {
+        const offset = query.offset ?? 0;
+        return memories.slice(offset, offset + (query.limit ?? 50));
+      },
+    );
+    const app = Fastify();
+    app.addHook("onRequest", createAuthMiddleware(store));
+    await app.register(syncRoutes, { store });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/sync/pull?orgId=org-a&repoId=repo-a",
+      headers: { authorization: "Bearer valid-token" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Array<{ id: string }>;
+    expect(body).toHaveLength(1500);
+    expect(new Set(body.map((memory) => memory.id)).size).toBe(1500);
+
+    await app.close();
+  });
+
   it.each([
     [
       "/v1/sync/pull?orgId=org-a&repoId=repo-a&since=invalid",
