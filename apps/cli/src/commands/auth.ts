@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { loadConfig, isInitialized } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR } from "../exit-codes.js";
-import { maskKey } from "../utils.js";
+import { maskKey, probeFetch } from "../utils.js";
 
 export const authCommand = new Command("auth")
   .description("Check authentication status for remote server and APIs");
@@ -31,11 +31,11 @@ authCommand
       if (config.remote.url) {
         logger.info("\nTesting connection...");
         try {
-          const res = await fetch(`${config.remote.url}/health`);
+          const res = await probeFetch(`${config.remote.url}/health`);
           if (res.ok) {
             logger.info("  [ok] Server reachable");
 
-            const authRes = await fetch(`${config.remote.url}/v1/api-keys`, {
+            const authRes = await probeFetch(`${config.remote.url}/v1/api-keys`, {
               headers: { Authorization: `Bearer ${apiKey}` },
             });
             if (authRes.ok) {

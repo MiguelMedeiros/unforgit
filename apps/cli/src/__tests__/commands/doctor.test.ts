@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import YAML from "yaml";
 import { createTempDataDir, runCommand } from "../helpers.js";
 import { LocalStore } from "unforgit-db";
@@ -113,4 +115,30 @@ describe("doctor command", () => {
     expect(remote.message).toContain("Local memory and local embeddings still work");
     expect(remote.fix).toContain("remote.url points to localhost");
   });
+
+  it("reports a timed-out remote instead of hanging when the server never responds", async () => {
+    const server = http.createServer(() => {
+      // Accept the connection but never respond.
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address() as AddressInfo;
+
+    try {
+      tmp = createTempDataDir({ remote: { url: `http://127.0.0.1:${port}` } });
+      process.chdir(tmp.dir);
+
+      const started = Date.now();
+      const result = await runCommand(["doctor", "--json"]);
+
+      expect(Date.now() - started).toBeLessThan(14_000);
+      expect(result.exitCode).toBe(1);
+      const payload = JSON.parse(result.stdout);
+      const remote = payload.results.find((r: { check: string }) => r.check === "remote");
+      expect(remote).toMatchObject({ status: "error" });
+      expect(remote.message).toContain("timed out");
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }, 20_000);
 });

@@ -6,6 +6,27 @@ export function truncate(text: string, maxLength: number): string {
   return singleLine.slice(0, maxLength - 3) + "...";
 }
 
+export const REMOTE_PROBE_TIMEOUT_MS = 5_000;
+
+/**
+ * Bounded fetch for diagnostic probes (doctor, auth status). A remote that
+ * accepts the connection but never answers must not hang the CLI.
+ */
+export async function probeFetch(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number = REMOTE_PROBE_TIMEOUT_MS,
+): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    if (err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  }
+}
+
 export function maskKey(key: string): string {
   if (key.length <= 10) return "***";
   return `${key.slice(0, 6)}...${key.slice(-4)}`;
