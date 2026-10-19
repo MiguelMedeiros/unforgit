@@ -4,7 +4,7 @@ import { LocalStore } from "unforgit-db";
 import { RemoteClient } from "unforgit-config";
 import { logger } from "../logger.js";
 import { EXIT_CONFIG_ERROR, EXIT_ERROR } from "../exit-codes.js";
-import { isJsonMode, outputJson } from "../utils.js";
+import { isJsonMode, outputJson, probeFetch } from "../utils.js";
 import fs from "node:fs";
 import YAML from "yaml";
 import { isOpenAIConfigured, resolveEmbeddingProvider } from "unforgit-core";
@@ -193,7 +193,7 @@ export const doctorCommand = new Command("doctor")
         }
 
         try {
-          const res = await fetch(`${config.remote.url}/health`);
+          const res = await probeFetch(`${config.remote.url}/health`);
           if (res.ok) {
             results.push({ check: "remote", status: "ok", message: `Server reachable at ${config.remote.url}` });
 
