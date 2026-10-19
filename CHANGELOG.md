@@ -11,7 +11,6 @@
 
 ### Bug Fixes
 
-* **api:** return full snapshot on sync pull without since ([047270f](https://github.com/MiguelMedeiros/unforgit/commit/047270fd0d329c4db5ff845eb6981e0473a63632))
 * **api:** return full snapshot on sync pull without since ([ed37490](https://github.com/MiguelMedeiros/unforgit/commit/ed37490193f122cde68be9919fad7d2a1a89c539))
 
 ## [0.11.27](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.26...v0.11.27) (2026-10-15)
