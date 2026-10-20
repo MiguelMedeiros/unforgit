@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.29](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.28...v0.11.29) (2026-10-19)
+
+
+### Bug Fixes
+
+* **cli:** bound doctor and auth status remote probes with a timeout ([b883396](https://github.com/MiguelMedeiros/unforgit/commit/b883396ca4fedb15f3feccc32882eb981202ff9a))
+
 ## [0.11.28](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.27...v0.11.28) (2026-10-17)
 
 
