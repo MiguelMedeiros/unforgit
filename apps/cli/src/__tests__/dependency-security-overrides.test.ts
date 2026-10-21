@@ -19,6 +19,13 @@ const patchedMinimums: Record<string, string> = {
   "source-map-js": "1.2.2",
   // GHSA-wq5f-xc86-pv6w: sharp advisory fixed in 0.35.5.
   sharp: "0.35.5",
+  // GHSA-5r4p-p66f-jhc7: serveStatic decodes the request path twice, allowing
+  // middleware bypass on static paths (reached via prisma > @prisma/dev).
+  hono: "4.13.11",
+  // GHSA-587h-7wmj-h5pm, GHSA-r825-w8mm-5pxw, GHSA-698v-4r3x-3vcv: bundled
+  // launch-editor existence-check bypass and command execution for some
+  // editors.
+  vite: "7.3.7",
 };
 
 // Overrides may be keyed by bare name ("fast-uri") or by a selector with a
