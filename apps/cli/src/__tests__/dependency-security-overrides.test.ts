@@ -67,6 +67,11 @@ const directPatchedMinimums: Record<string, string[]> = {
   // GHSA-9q9j-q6p8-xq58, GHSA-4mh8-r7rc-xpvc: validation/auth bypass and
   // HTTP/2 trailer denial of service.
   fastify: ["5.12.5"],
+  // GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp: code injection via
+  // unauthenticated manual mock registration and Windows backslash traversal
+  // of the mocker redirect (dev/test only; fixed in 4.1.12).
+  vitest: ["4.1.12"],
+  "@vitest/mocker": ["4.1.12"],
 };
 
 describe("direct dependency security floors", () => {
