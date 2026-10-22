@@ -67,6 +67,11 @@ const directPatchedMinimums: Record<string, string[]> = {
   // GHSA-9q9j-q6p8-xq58, GHSA-4mh8-r7rc-xpvc: validation/auth bypass and
   // HTTP/2 trailer denial of service.
   fastify: ["5.12.5"],
+  // GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp: code injection via
+  // unauthenticated manual mock registration and Windows backslash traversal
+  // of the mocker redirect (dev/test only; fixed in 4.1.12).
+  vitest: ["4.1.12"],
+  "@vitest/mocker": ["4.1.12"],
 };
 
 describe("direct dependency security floors", () => {
@@ -116,7 +121,36 @@ describe("dependency security overrides", () => {
   };
   const overrides = rootPackage.pnpm?.overrides ?? {};
 
+  // Dependabot evaluates declared manifest specifiers, not only resolved
+  // lockfile versions, so an exact pin below the floor keeps alerts open even
+  // when an override resolves a patched version.
+  const manifestPaths: string[] = [
+    "package.json",
+    ...["apps", "packages"].flatMap((dir: string) =>
+      fs
+        .readdirSync(path.resolve(dir))
+        .map((entry: string) => path.join(dir, entry, "package.json"))
+        .filter((candidate: string) => fs.existsSync(path.resolve(candidate))),
+    ),
+  ];
+
   for (const [name, minimum] of Object.entries(patchedMinimums)) {
+    it(`does not declare ${name} below patched ${minimum} in any manifest`, () => {
+      for (const manifestPath of manifestPaths) {
+        const manifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), "utf-8")) as Record<
+          string,
+          Record<string, string> | undefined
+        >;
+        for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) {
+          const specifier = manifest[field]?.[name];
+          if (specifier === undefined) continue;
+          const declared = specifier.replace(/^[\^~]/, "");
+          if (!/^\d+\.\d+\.\d+$/.test(declared)) continue;
+          expect(compareSemver(declared, minimum), `${manifestPath} ${field}.${name}`).toBeGreaterThanOrEqual(0);
+        }
+      }
+    });
+
     it(`does not pin ${name} below patched ${minimum}`, () => {
       const override = overrideFor(overrides, name);
       expect(override, `${name} override`).toBeDefined();
