@@ -59,7 +59,11 @@ const directPatchedMinimums: Record<string, string[]> = {
   // (affects >=16.2.0 <16.3.6 only).
   // GHSA-4jqv-mc3x-m676, GHSA-mcj8-r9mp-w47p: SSG/ISR cache poisoning and
   // related issues on the 15.x line (fixed in 15.5.27).
-  next: ["16.3.6", "15.5.27"],
+  // GHSA-2464-fhr4-w9xw: unauthenticated RCE in the Image Optimizer, and
+  // GHSA-p3m5-59mp-jv5r: App Router Server Action DoS (fixed in 16.4.1 and
+  // 15.5.28). GHSA-673q-mjm6-r5xr: unauthenticated RCE via `use cache`
+  // (16.x, fixed in 16.4.1).
+  next: ["16.4.1", "15.5.28"],
   // GHSA-6qxp-vccf-f47h: OAuth client could send credentials to an
   // authorization server chosen by the MCP server.
   "@modelcontextprotocol/sdk": ["1.31.0"],
@@ -92,7 +96,7 @@ describe("direct dependency security floors", () => {
 // The website ships from its own npm lockfile (apps/website/Dockerfile runs
 // npm ci), so its resolved versions need the same advisory floors.
 const websitePatchedMinimums: Record<string, string> = {
-  next: "15.5.27",
+  next: "15.5.28",
   sharp: "0.35.5",
   "source-map-js": "1.2.2",
 };
