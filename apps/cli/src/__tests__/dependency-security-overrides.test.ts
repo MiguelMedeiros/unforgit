@@ -6,9 +6,17 @@ import { describe, expect, it } from "vitest";
 // in the lockfile. Keep this list aligned with pnpm.overrides in package.json.
 const patchedMinimums: Record<string, string> = {
   // GHSA-58mr-gqgx-xq4g: host confusion via unclosed bracket in URI authority.
-  "fast-uri": "3.1.7",
+  // GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr, GHSA-xhq7-xmqj-769h,
+  // GHSA-333x-w4r6-6crp: scheme spoofing/injection, host confusion and path
+  // equivalence (fixed in 3.1.9).
+  "fast-uri": "3.1.9",
   // GHSA-2vr4-cq9g-pvrc: NAT64 local-use range not classified (SSRF bypass).
-  "ip-address": "10.5.1",
+  // GHSA-rxp7-6hxx-x8q5: quadratic-time zone identifier matching (fixed in
+  // 10.7.4).
+  "ip-address": "10.7.4",
+  // GHSA-27r3-jxmh-p828: denial of service via trailing bytes after a
+  // compressed request body (reached via @modelcontextprotocol/sdk > express).
+  "body-parser": "2.4.0",
   // GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr: brace
   // expansion recursion/quadratic-time denial of service.
   "brace-expansion": "5.0.12",
@@ -70,7 +78,13 @@ const directPatchedMinimums: Record<string, string[]> = {
   // GHSA-667r-xxjv-c9mm, GHSA-p68q-wchp-6fh7, GHSA-hwr6-493r-vm6h,
   // GHSA-9q9j-q6p8-xq58, GHSA-4mh8-r7rc-xpvc: validation/auth bypass and
   // HTTP/2 trailer denial of service.
-  fastify: ["5.12.5"],
+  // GHSA-389g-gv7q-r4x8: header validation bypass via case-sensitive
+  // propertyNames (fixed in 5.12.6).
+  fastify: ["5.12.6"],
+  // GHSA-mrhx-c7xc-m3w5: memory exhaustion while validating oversized
+  // constrained collections (every release below 4.6.6; the 3.x line has no
+  // patched release, see the dedicated zod 3.x check below).
+  zod: ["4.6.6"],
   // GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp: code injection via
   // unauthenticated manual mock registration and Windows backslash traversal
   // of the mocker redirect (dev/test only; fixed in 4.1.12).
@@ -91,6 +105,14 @@ describe("direct dependency security floors", () => {
       }
     });
   }
+});
+
+describe("unpatched major lines", () => {
+  // GHSA-mrhx-c7xc-m3w5 has no fix on zod 3.x; puppeteer > chromium-bidi used
+  // to pull zod 3.25.x before chromium-bidi moved to zod 4.
+  it("does not lock any zod 3.x release", () => {
+    expect(lockedVersions("zod").filter((version) => version.startsWith("3."))).toEqual([]);
+  });
 });
 
 // The website ships from its own npm lockfile (apps/website/Dockerfile runs
