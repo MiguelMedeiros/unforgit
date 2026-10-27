@@ -148,6 +148,16 @@ function rowToTombstone(row: Record<string, unknown>): Tombstone {
   };
 }
 
+// Quote FTS5 terms so keywords such as AND/OR/NOT/NEAR are matched as plain
+// words instead of being parsed as query operators.
+function ftsTerm(word: string): string {
+  return `"${word.replace(/"/g, '""')}"`;
+}
+
+function ftsPrefixTerm(word: string): string {
+  return `${ftsTerm(word)}*`;
+}
+
 export class WebLocalStore {
   private db: Database.Database;
 
@@ -287,7 +297,12 @@ export class WebLocalStore {
         conditions.push("id LIKE ?");
         params.push(`${searchTerm}%`);
       } else {
-        const fts = searchTerm.replace(/[^\w\s]/g, " ").trim();
+        const fts = searchTerm
+          .replace(/[^\w\s]/g, " ")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map(ftsTerm)
+          .join(" ");
         if (fts) {
           conditions.push(
             "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
@@ -355,7 +370,12 @@ export class WebLocalStore {
         conditions.push("id LIKE ?");
         params.push(`${searchTerm}%`);
       } else {
-        const fts = searchTerm.replace(/[^\w\s]/g, " ").trim();
+        const fts = searchTerm
+          .replace(/[^\w\s]/g, " ")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map(ftsTerm)
+          .join(" ");
         if (fts) {
           conditions.push(
             "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
@@ -883,7 +903,7 @@ export class WebLocalStore {
 
     const rawQuery = query.query.replace(/[^\w\s]/g, " ").trim();
     const words = rawQuery.split(/\s+/).filter((w) => w.length >= 2);
-    const ftsQuery = words.length > 0 ? `(${words.map((w) => `${w}*`).join(" OR ")})` : "";
+    const ftsQuery = words.length > 0 ? `(${words.map(ftsPrefixTerm).join(" OR ")})` : "";
 
     const k = query.k ?? 10;
 
