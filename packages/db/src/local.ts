@@ -169,6 +169,12 @@ CREATE TABLE IF NOT EXISTS curation_suggestions (
 CREATE INDEX IF NOT EXISTS idx_curation_suggestions_repo_status ON curation_suggestions(org_id, repo_id, status, created_at);
 `;
 
+// Quote each term so FTS5 keywords such as AND/OR/NOT/NEAR are matched as
+// plain words instead of being parsed as query operators.
+function ftsPrefixTerm(word: string): string {
+  return `"${word.replace(/"/g, '""')}"*`;
+}
+
 function rowToLink(row: Record<string, unknown>): MemoryLink {
   return {
     id: row.id as string,
@@ -498,7 +504,7 @@ export class LocalStore {
     // Also filter out very short words that add noise
     const searchableWords = words.filter((w) => w.length >= 2);
     const ftsQuery = searchableWords.length > 0 
-      ? `(${searchableWords.map((w) => `${w}*`).join(" OR ")})` 
+      ? `(${searchableWords.map(ftsPrefixTerm).join(" OR ")})`
       : "";
 
     let sql: string;
@@ -653,7 +659,7 @@ export class LocalStore {
     if (query.search) {
       const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
       const searchWords = rawSearch.split(/\s+/).filter((w) => w.length >= 2);
-      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map((w) => `${w}*`).join(" OR ")})` : "";
+      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map(ftsPrefixTerm).join(" OR ")})` : "";
       if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
@@ -718,7 +724,7 @@ export class LocalStore {
     if (query.search) {
       const rawSearch = query.search.replace(/[^\w\s]/g, " ").trim();
       const searchWords = rawSearch.split(/\s+/).filter((w) => w.length >= 2);
-      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map((w) => `${w}*`).join(" OR ")})` : "";
+      const ftsSearch = searchWords.length > 0 ? `(${searchWords.map(ftsPrefixTerm).join(" OR ")})` : "";
       if (ftsSearch) {
         conditions.push(
           "rowid IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)",
