@@ -6,6 +6,14 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.33](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.32...v0.11.33) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deps:** patch qs GHSA-6pq8-jhm2-2vcw ([#194](https://github.com/MiguelMedeiros/unforgit/issues/194)) ([ff44407](https://github.com/MiguelMedeiros/unforgit/commit/ff4440712cf2f902af1eee47b0c31853909e5294))
+* **search:** treat FTS5 operator keywords in queries as plain words ([#192](https://github.com/MiguelMedeiros/unforgit/issues/192)) ([d0051ef](https://github.com/MiguelMedeiros/unforgit/commit/d0051ef1ce0fcf68f595068a15b4346c549bb5b8))
+
 ## [0.11.32](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.31...v0.11.32) (2026-10-26)
 
 
