@@ -17,6 +17,9 @@ const patchedMinimums: Record<string, string> = {
   // GHSA-27r3-jxmh-p828: denial of service via trailing bytes after a
   // compressed request body (reached via @modelcontextprotocol/sdk > express).
   "body-parser": "2.4.0",
+  // GHSA-6pq8-jhm2-2vcw: uncaught TypeError (DoS) on array elements carrying a
+  // non-callable own toString (reached via @modelcontextprotocol/sdk > express).
+  qs: "6.16.1",
   // GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr: brace
   // expansion recursion/quadratic-time denial of service.
   "brace-expansion": "5.0.12",
