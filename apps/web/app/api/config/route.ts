@@ -7,6 +7,9 @@ import {
   isInitialized,
 } from "@/lib/config";
 
+// Bound external probes so a stalled remote/OpenAI endpoint cannot hang the dashboard.
+const PROBE_TIMEOUT_MS = 3000;
+
 async function getOpenAIStatus(
   apiKey: string | undefined,
 ): Promise<"not_configured" | "valid" | "invalid"> {
@@ -18,6 +21,7 @@ async function getOpenAIStatus(
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
     return res.ok ? "valid" : "invalid";
   } catch {
@@ -35,7 +39,9 @@ export async function GET() {
   let remoteConnected = false;
   if (config?.remote.url) {
     try {
-      const res = await fetch(`${config.remote.url}/health`);
+      const res = await fetch(`${config.remote.url}/health`, {
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      });
       if (res.ok) remoteConnected = true;
     } catch {
       /* not connected */
