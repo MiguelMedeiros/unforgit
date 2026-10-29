@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
 
   if (config.remote.url) {
     try {
-      const res = await fetch(`${config.remote.url}/health`);
+      const res = await fetch(`${config.remote.url}/health`, {
+        signal: AbortSignal.timeout(3000),
+      });
       if (res.ok) remoteAvailable = true;
     } catch {
       /* remote not available */
