@@ -33,6 +33,10 @@ const patchedMinimums: Record<string, string> = {
   // GHSA-5r4p-p66f-jhc7: serveStatic decodes the request path twice, allowing
   // middleware bypass on static paths (reached via prisma > @prisma/dev).
   hono: "4.13.11",
+  // GHSA-rmxm-3fg6-px4f: serveStatic decodes the request path a second time,
+  // allowing middleware bypass on static paths (reached via prisma >
+  // @prisma/dev).
+  "@hono/node-server": "2.1.3",
   // GHSA-587h-7wmj-h5pm, GHSA-r825-w8mm-5pxw, GHSA-698v-4r3x-3vcv: bundled
   // launch-editor existence-check bypass and command execution for some
   // editors.
