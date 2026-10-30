@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.34](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.33...v0.11.34) (2026-10-29)
+
+
+### Bug Fixes
+
+* **dashboard:** bound remote and OpenAI health probes with a timeout ([#196](https://github.com/MiguelMedeiros/unforgit/issues/196)) ([4a6eb7c](https://github.com/MiguelMedeiros/unforgit/commit/4a6eb7c87fcc7dbdeeaa49cfefe69163f94b2279))
+
 ## [0.11.33](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.32...v0.11.33) (2026-10-28)
 
 
