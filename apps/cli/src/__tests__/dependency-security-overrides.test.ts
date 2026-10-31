@@ -23,6 +23,9 @@ const patchedMinimums: Record<string, string> = {
   // GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr: brace
   // expansion recursion/quadratic-time denial of service.
   "brace-expansion": "5.0.12",
+  // GHSA-g3hv-75wg-m249: denial of service via globparts amplification
+  // (every release below 11.0.1; reached via eslint and typescript-eslint).
+  minimatch: "11.0.1",
   // GHSA-jqcg-44mw-7w3h: IP spoofing via IPv4-mapped IPv6 trust subnet.
   "proxy-addr": "2.0.8",
   // GHSA-68fv-2mgg-jv7q: event-loop denial of service via indexed source-map
