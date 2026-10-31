@@ -8,7 +8,6 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.28.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches/
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 COPY tsconfig.base.json ./
@@ -46,7 +45,6 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.28.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches/
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
