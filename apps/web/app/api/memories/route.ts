@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import { getRemoteHeaders } from "@/lib/remote-headers";
+import { parsePagination } from "../../../lib/pagination";
 import type { ListQuery, Memory } from "@/lib/types";
 
 async function fetchRemoteMemories(
@@ -54,8 +55,9 @@ export async function GET(request: NextRequest) {
     | ListQuery["status"]
     | undefined;
   const tags = params.get("tags")?.split(",").filter(Boolean) ?? undefined;
-  const limit = parseInt(params.get("limit") ?? "50", 10);
-  const offset = parseInt(params.get("offset") ?? "0", 10);
+  const pagination = parsePagination(params, 50);
+  if (pagination instanceof NextResponse) return pagination;
+  const { limit, offset } = pagination;
   const sortBy =
     (params.get("sortBy") as ListQuery["sortBy"]) ?? "createdAt";
   const sortOrder =
