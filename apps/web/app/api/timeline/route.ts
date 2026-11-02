@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "../../../lib/pagination";
 import type { Memory } from "@/lib/types";
 
 interface TimelineEvent {

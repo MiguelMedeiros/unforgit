@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import { getRemoteHeaders } from "@/lib/remote-headers";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "../../../lib/pagination";
 import type { ListQuery, Memory } from "@/lib/types";
 
 async function fetchRemoteMemories(

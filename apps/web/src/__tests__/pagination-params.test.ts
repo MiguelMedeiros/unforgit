@@ -9,7 +9,6 @@ import { WebLocalStore } from "../../lib/local-store";
 const testState = vi.hoisted(() => ({ store: null as unknown }));
 
 vi.mock("@/lib/remote-headers", () => ({ getRemoteHeaders: () => ({}) }));
-vi.mock("@/lib/pagination", () => import("../../lib/pagination"));
 
 vi.mock("@/lib/stores", () => ({
   getConfig: () => ({ remote: { orgId: "test-org", repoId: "test-repo" } }),
