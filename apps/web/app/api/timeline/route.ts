@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { parsePagination } from "@/lib/pagination";
 import type { Memory } from "@/lib/types";
 
 interface TimelineEvent {
@@ -25,8 +26,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const limit = parseInt(params.get("limit") ?? "100", 10);
-  const offset = parseInt(params.get("offset") ?? "0", 10);
+  const pagination = parsePagination(params, 100);
+  if (pagination instanceof NextResponse) return pagination;
+  const { limit, offset } = pagination;
   const source = params.get("source") ?? "local";
 
   const local = getLocalStore();
