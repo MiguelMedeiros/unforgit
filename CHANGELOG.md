@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.35](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.34...v0.11.35) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** patch minimatch GHSA-g3hv-75wg-m249 ([#198](https://github.com/MiguelMedeiros/unforgit/issues/198)) ([b0a313e](https://github.com/MiguelMedeiros/unforgit/commit/b0a313ed5c80a52a05a07672523d1eb52a6ba4ac))
+
 ## [0.11.34](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.33...v0.11.34) (2026-10-29)
 
 
