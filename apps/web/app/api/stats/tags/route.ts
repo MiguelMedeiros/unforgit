@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { parseIntegerQuery } from "../../../../lib/pagination";
 
 function getTimeframeDate(timeframe: string | null): Date | undefined {
   if (!timeframe || timeframe === "all") return undefined;
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams;
-  const limit = parseInt(params.get("limit") ?? "10", 10);
+  const limit = parseIntegerQuery(params, "limit", { fallback: 10, min: 1, max: 1000 });
+  if (limit instanceof NextResponse) return limit;
   const timeframe = params.get("timeframe");
   const sinceDate = getTimeframeDate(timeframe);
 

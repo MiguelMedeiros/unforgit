@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { parseIntegerQuery } from "../../../../lib/pagination";
 
 function getTimeframeDate(timeframe: string | null): Date | undefined {
   if (!timeframe || timeframe === "all") return undefined;
@@ -46,9 +47,12 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const timeframe = params.get("timeframe");
-  const days = params.get("days") 
-    ? parseInt(params.get("days")!, 10) 
-    : getTimeframeDays(timeframe);
+  const days = parseIntegerQuery(params, "days", {
+    fallback: getTimeframeDays(timeframe),
+    min: 1,
+    max: 3650,
+  });
+  if (days instanceof NextResponse) return days;
   const sinceDate = getTimeframeDate(timeframe);
 
   const local = getLocalStore();

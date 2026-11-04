@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { parseDecimalQuery, parseIntegerQuery } from "../../../../lib/pagination";
 import type { Memory, MemoryType } from "@/lib/types";
 
 interface ConsolidationCandidate {
@@ -222,10 +223,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const threshold = parseFloat(params.get("threshold") ?? "0.4");
-  const minGroupSize = parseInt(params.get("minGroupSize") ?? "2", 10);
-  const maxGroups = parseInt(params.get("maxGroups") ?? "10", 10);
-  const offset = parseInt(params.get("offset") ?? "0", 10);
+  const threshold = parseDecimalQuery(params, "threshold", { fallback: 0.4, min: 0, max: 1 });
+  if (threshold instanceof NextResponse) return threshold;
+  const minGroupSize = parseIntegerQuery(params, "minGroupSize", { fallback: 2, min: 2, max: 1000 });
+  if (minGroupSize instanceof NextResponse) return minGroupSize;
+  const maxGroups = parseIntegerQuery(params, "maxGroups", { fallback: 10, min: 1, max: 1000 });
+  if (maxGroups instanceof NextResponse) return maxGroups;
+  const offset = parseIntegerQuery(params, "offset", { fallback: 0, min: 0 });
+  if (offset instanceof NextResponse) return offset;
   const types = parseMemoryTypes(params.get("types"));
 
   const result = findConsolidationCandidates(store, config.remote.orgId, config.remote.repoId, {
