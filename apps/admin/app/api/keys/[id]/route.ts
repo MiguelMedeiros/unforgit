@@ -30,7 +30,7 @@ export async function PATCH(
       // No body provided, will toggle status
     }
 
-    const res = await fetch(`${API_URL}/v1/admin/api-keys/${id}`, {
+    const res = await fetch(`${API_URL}/v1/admin/api-keys/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: jsonHeaders(request),
       body: JSON.stringify(body),
@@ -53,7 +53,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const res = await fetch(`${API_URL}/v1/admin/api-keys/${id}`, {
+    const res = await fetch(`${API_URL}/v1/admin/api-keys/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: authHeaders(request),
     });

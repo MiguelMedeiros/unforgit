@@ -16,7 +16,7 @@ export async function PATCH(
     );
   }
 
-  const response = await fetch(`${API_URL}/v1/admin/users/${id}/admin`, {
+  const response = await fetch(`${API_URL}/v1/admin/users/${encodeURIComponent(id)}/admin`, {
     method: "PATCH",
     headers: {
       Authorization: authHeader,

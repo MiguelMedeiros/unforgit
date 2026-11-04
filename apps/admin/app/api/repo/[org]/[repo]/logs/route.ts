@@ -35,8 +35,8 @@ export async function GET(
   const queryString = searchParams.toString();
   
   const endpoint = isAdmin 
-    ? `/v1/admin/logs/repo/${org}/${repo}` 
-    : `/v1/auth/me/logs/repo/${org}/${repo}`;
+    ? `/v1/admin/logs/repo/${encodeURIComponent(org)}/${encodeURIComponent(repo)}`
+    : `/v1/auth/me/logs/repo/${encodeURIComponent(org)}/${encodeURIComponent(repo)}`;
   const url = queryString ? `${API_URL}${endpoint}?${queryString}` : `${API_URL}${endpoint}`;
 
   const response = await fetch(url, {

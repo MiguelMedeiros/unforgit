@@ -18,7 +18,7 @@ export async function POST(
 
   const body = await request.json();
 
-  const response = await fetch(`${API_URL}/v1/admin/users/${id}/api-keys`, {
+  const response = await fetch(`${API_URL}/v1/admin/users/${encodeURIComponent(id)}/api-keys`, {
     method: "POST",
     headers: {
       Authorization: authHeader,

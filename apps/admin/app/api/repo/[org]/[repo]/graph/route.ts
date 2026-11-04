@@ -9,8 +9,8 @@ export async function GET(
   
   try {
     const [memoriesRes, linksRes] = await Promise.all([
-      proxyGet(request, `/v1/admin/repos/${org}/${repo}/memories?limit=1000&offset=0`),
-      proxyGet(request, `/v1/admin/repos/${org}/${repo}/links`),
+      proxyGet(request, `/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/memories?limit=1000&offset=0`),
+      proxyGet(request, `/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/links`),
     ]);
 
     const memoriesData = await memoriesRes.json();
