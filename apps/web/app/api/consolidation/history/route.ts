@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { parseIntegerQuery } from "../../../../lib/pagination";
 
 interface ConsolidationHistoryItem {
   id: string;
@@ -32,7 +33,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get("limit") || "50", 10);
+  const limit = parseIntegerQuery(searchParams, "limit", { fallback: 50, min: 1, max: 500 });
+  if (limit instanceof NextResponse) return limit;
   const includeDeleted = searchParams.get("includeDeleted") === "true";
 
   const statuses = includeDeleted

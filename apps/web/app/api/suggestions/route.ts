@@ -3,6 +3,7 @@ import { LocalStore } from "unforgit-db";
 import { generateSuggestions, persistReviewableSuggestions } from "unforgit-core";
 import type { CurationSuggestionStatus } from "unforgit-shared";
 import { getConfig } from "@/lib/stores";
+import { parseIntegerQuery } from "../../../lib/pagination";
 import { getDbPath } from "@/lib/config";
 
 const allowedStatuses = new Set(["pending", "approved", "rejected", "applied"]);
@@ -40,7 +41,8 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams;
-  const maxSuggestions = Number.parseInt(params.get("max") ?? "20", 10);
+  const maxSuggestions = parseIntegerQuery(params, "max", { fallback: 20, min: 1, max: 500 });
+  if (maxSuggestions instanceof NextResponse) return maxSuggestions;
 
   let statuses: CurationSuggestionStatus[];
   try {
