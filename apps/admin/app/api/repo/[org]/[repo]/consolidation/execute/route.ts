@@ -27,7 +27,7 @@ export async function POST(
   }
 
   try {
-    const res = await fetch(`${API_URL}/v1/admin/repos/${org}/${repo}/consolidation/execute`, {
+    const res = await fetch(`${API_URL}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/consolidation/execute`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

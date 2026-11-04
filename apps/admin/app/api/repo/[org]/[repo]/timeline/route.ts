@@ -44,7 +44,7 @@ export async function GET(
 
   try {
     const memoriesRes = await fetch(
-      `${getApiUrl()}/v1/admin/repos/${org}/${repo}/memories?limit=1000&offset=0`,
+      `${getApiUrl()}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/memories?limit=1000&offset=0`,
       { headers: { Authorization: authHeader } }
     );
 

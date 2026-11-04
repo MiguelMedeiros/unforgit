@@ -6,5 +6,5 @@ export async function GET(
   { params }: { params: Promise<{ org: string; repo: string }> }
 ) {
   const { org, repo } = await params;
-  return proxyGet(request, `/v1/admin/repos/${org}/${repo}/links`);
+  return proxyGet(request, `/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/links`);
 }

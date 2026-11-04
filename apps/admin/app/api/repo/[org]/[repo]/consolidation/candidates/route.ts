@@ -22,7 +22,7 @@ export async function GET(
   }
 
   try {
-    const res = await fetch(`${API_URL}/v1/admin/repos/${org}/${repo}/consolidation/candidates`, {
+    const res = await fetch(`${API_URL}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/consolidation/candidates`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

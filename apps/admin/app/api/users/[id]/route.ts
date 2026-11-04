@@ -16,7 +16,7 @@ export async function GET(
     );
   }
 
-  const response = await fetch(`${API_URL}/v1/admin/users/${id}`, {
+  const response = await fetch(`${API_URL}/v1/admin/users/${encodeURIComponent(id)}`, {
     headers: {
       Authorization: authHeader,
     },
@@ -45,7 +45,7 @@ export async function DELETE(
     );
   }
 
-  const response = await fetch(`${API_URL}/v1/admin/users/${id}`, {
+  const response = await fetch(`${API_URL}/v1/admin/users/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: {
       Authorization: authHeader,

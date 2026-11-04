@@ -28,7 +28,7 @@ export async function GET(
 
   try {
     const response = await fetch(
-      `${getApiUrl()}/v1/admin/repos/${org}/${repo}/stats/activity`,
+      `${getApiUrl()}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/stats/activity`,
       { headers: { Authorization: authHeader } }
     );
 

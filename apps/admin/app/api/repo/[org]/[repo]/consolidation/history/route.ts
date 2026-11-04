@@ -18,7 +18,7 @@ export async function GET(
   }
 
   try {
-    const res = await fetch(`${API_URL}/v1/admin/repos/${org}/${repo}/consolidation/history`, {
+    const res = await fetch(`${API_URL}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/consolidation/history`, {
       headers: {
         Authorization: authHeader,
       },
