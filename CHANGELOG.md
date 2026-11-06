@@ -6,6 +6,13 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.39](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.38...v0.11.39) (2026-11-06)
+
+
+### Bug Fixes
+
+* **dashboard:** encode sync scope query params and ignore invalid lastSyncAt ([#206](https://github.com/MiguelMedeiros/unforgit/issues/206)) ([9b74b22](https://github.com/MiguelMedeiros/unforgit/commit/9b74b2250e3d7f85bcb639b5ac9d8cb2c5ed30e2))
+
 ## [0.11.38](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.37...v0.11.38) (2026-11-04)
 
 
