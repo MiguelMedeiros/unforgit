@@ -100,7 +100,9 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const conflictResolution: ConflictResolution = body.conflictResolution ?? "last_write_wins";
-  const lastSyncAt = body.lastSyncAt ? new Date(body.lastSyncAt) : undefined;
+  const parsedLastSyncAt = body.lastSyncAt ? new Date(body.lastSyncAt) : undefined;
+  const lastSyncAt =
+    parsedLastSyncAt && !Number.isNaN(parsedLastSyncAt.getTime()) ? parsedLastSyncAt : undefined;
 
   const result: SyncResult = {
     pushed: 0,
@@ -111,11 +113,12 @@ export async function POST(request: NextRequest) {
   };
 
   const { orgId, repoId } = config.remote;
+  const scopeQuery = new URLSearchParams({ orgId, repoId }).toString();
 
   // PHASE 1: Pull tombstones from remote and apply locally
   try {
     const tombstonesRes = await fetch(
-      `${config.remote.url}/v1/sync/tombstones?orgId=${orgId}&repoId=${repoId}`,
+      `${config.remote.url}/v1/sync/tombstones?${scopeQuery}`,
       { method: "GET", headers: getRemoteHeaders() }
     );
 
@@ -143,9 +146,9 @@ export async function POST(request: NextRequest) {
 
   // PHASE 2: Pull memories from remote (modified since last sync)
   try {
-    const pullUrl = lastSyncAt
-      ? `${config.remote.url}/v1/sync/pull?orgId=${orgId}&repoId=${repoId}&since=${lastSyncAt.toISOString()}`
-      : `${config.remote.url}/v1/sync/pull?orgId=${orgId}&repoId=${repoId}`;
+    const pullParams = new URLSearchParams({ orgId, repoId });
+    if (lastSyncAt) pullParams.set("since", lastSyncAt.toISOString());
+    const pullUrl = `${config.remote.url}/v1/sync/pull?${pullParams.toString()}`;
 
     const pullRes = await fetch(pullUrl, {
       method: "GET",
@@ -297,7 +300,7 @@ export async function POST(request: NextRequest) {
   let linksPulled = 0;
   try {
     const linksRes = await fetch(
-      `${config.remote.url}/v1/sync/links?orgId=${orgId}&repoId=${repoId}`,
+      `${config.remote.url}/v1/sync/links?${scopeQuery}`,
       { method: "GET", headers: getRemoteHeaders() }
     );
 
