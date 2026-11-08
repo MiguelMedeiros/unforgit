@@ -6,12 +6,22 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const body = await request.json();
-  const newId = body.newId as string;
+  const body = (await request.json().catch(() => null)) as
+    | { newId?: unknown }
+    | null;
+  const rawNewId = body?.newId;
+  const newId = typeof rawNewId === "string" ? rawNewId.trim() : "";
 
   if (!newId) {
     return NextResponse.json(
       { error: "newId is required" },
+      { status: 400 },
+    );
+  }
+
+  if (newId === id) {
+    return NextResponse.json(
+      { error: "A memory cannot supersede itself" },
       { status: 400 },
     );
   }
@@ -23,6 +33,14 @@ export async function POST(
       { status: 503 },
     );
   }
+
+  if (!local.getById(newId)) {
+    return NextResponse.json(
+      { error: "Replacement memory not found" },
+      { status: 404 },
+    );
+  }
+
   const ok = local.supersede(id, newId);
   if (!ok)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
