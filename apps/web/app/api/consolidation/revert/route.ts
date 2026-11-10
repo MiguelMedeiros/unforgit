@@ -19,8 +19,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
-  const { consolidationId } = body;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { consolidationId } =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : {};
 
   if (!consolidationId || typeof consolidationId !== "string") {
     return NextResponse.json(
