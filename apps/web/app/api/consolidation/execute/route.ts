@@ -102,18 +102,45 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
-  const { sourceIds, model = "gpt-5.4" } = body;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { sourceIds, model = "gpt-5.4" } =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : {};
 
-  if (!sourceIds || !Array.isArray(sourceIds) || sourceIds.length < 2) {
+  if (!Array.isArray(sourceIds) || sourceIds.length < 2) {
     return NextResponse.json(
       { error: "At least 2 sourceIds are required" },
       { status: 400 },
     );
   }
 
-  const memories = sourceIds
-    .map((id: string) => store.getById(id))
+  if (!sourceIds.every((id) => typeof id === "string" && id.trim() !== "")) {
+    return NextResponse.json(
+      { error: "sourceIds must be non-empty strings" },
+      { status: 400 },
+    );
+  }
+
+  if (new Set(sourceIds).size !== sourceIds.length) {
+    return NextResponse.json(
+      { error: "sourceIds must be distinct" },
+      { status: 400 },
+    );
+  }
+
+  if (typeof model !== "string" || model.trim() === "") {
+    return NextResponse.json(
+      { error: "model must be a non-empty string" },
+      { status: 400 },
+    );
+  }
+
+  const memories = (sourceIds as string[])
+    .map((id) => store.getById(id))
     .filter((m): m is NonNullable<typeof m> => m !== undefined);
 
   if (memories.length !== sourceIds.length) {
