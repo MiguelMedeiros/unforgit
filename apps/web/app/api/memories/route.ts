@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import { getRemoteHeaders } from "@/lib/remote-headers";
 import { parsePagination } from "../../../lib/pagination";
+import { readJsonBody, validateCreateMemoryBody } from "../../../lib/memory-input";
 import type { ListQuery, Memory } from "@/lib/types";
 
 async function fetchRemoteMemories(
@@ -131,18 +132,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const validated = validateCreateMemoryBody(parsed.body);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 });
+  }
 
   const input = {
     orgId: config.remote.orgId,
     repoId: config.remote.repoId,
-    memoryType: body.memoryType ?? "episodic",
-    text: body.text,
-    summary: body.summary,
-    tags: body.tags ?? [],
-    sourceRefs: body.sourceRefs,
-    confidence: body.confidence,
-    visibility: body.visibility ?? "auto",
+    ...validated.value,
   };
 
   const local = getLocalStore();

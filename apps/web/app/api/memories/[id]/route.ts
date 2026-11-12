@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
+import { isPlainObject } from "../../../../lib/memory-input";
 import { getRemoteHeaders } from "@/lib/remote-headers";
 
 async function fetchRemoteMemory(remoteUrl: string, id: string) {
@@ -49,9 +50,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const body = await request.json().catch(() => ({}));
+  const rawBody: unknown = await request.json().catch(() => ({}));
+  const body = isPlainObject(rawBody) ? rawBody : {};
   const hardDelete = body.hardDelete === true;
-  const deletedBy = body.deletedBy as string | undefined;
+  const deletedBy = typeof body.deletedBy === "string" ? body.deletedBy : undefined;
 
   const local = getLocalStore();
   if (!local) {
