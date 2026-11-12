@@ -25,6 +25,23 @@ export async function POST(
     );
   }
 
+  // Only active private memories may be published to the shared remote.
+  // Deleted/deprecated/superseded content must never leak to the team, and
+  // already shared memories would otherwise be duplicated remotely.
+  if (memory.status !== "active") {
+    return NextResponse.json(
+      { error: `Cannot promote a ${memory.status} memory` },
+      { status: 409 },
+    );
+  }
+
+  if (memory.visibility === "repo") {
+    return NextResponse.json(
+      { error: "Memory is already shared with the repository" },
+      { status: 409 },
+    );
+  }
+
   if (!config?.remote.url) {
     return NextResponse.json(
       { error: "Remote server URL not configured" },
