@@ -3,6 +3,17 @@ import { getLocalStore, getConfig } from "@/lib/stores";
 import type { Memory, Tombstone, SyncResult, SyncConflict, ConflictResolution, LinkType } from "@/lib/types";
 import { getRemoteHeaders as remoteHeaders } from "@/lib/remote-headers";
 
+const CONFLICT_RESOLUTIONS: readonly ConflictResolution[] = [
+  "local_wins",
+  "remote_wins",
+  "last_write_wins",
+  "manual",
+];
+
+function isConflictResolution(value: unknown): value is ConflictResolution {
+  return typeof value === "string" && (CONFLICT_RESOLUTIONS as readonly string[]).includes(value);
+}
+
 function getRemoteHeaders(): Record<string, string> {
   return remoteHeaders({ "Content-Type": "application/json" });
 }
@@ -98,9 +109,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json().catch(() => ({}));
-  const conflictResolution: ConflictResolution = body.conflictResolution ?? "last_write_wins";
-  const parsedLastSyncAt = body.lastSyncAt ? new Date(body.lastSyncAt) : undefined;
+  const parsedBody: unknown = await request.json().catch(() => ({}));
+  const body: Record<string, unknown> =
+    parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)
+      ? (parsedBody as Record<string, unknown>)
+      : {};
+  const requestedResolution = body.conflictResolution ?? "last_write_wins";
+  if (!isConflictResolution(requestedResolution)) {
+    // Unknown values would silently fall through to "remote wins" and overwrite local edits.
+    return NextResponse.json(
+      {
+        error: `Invalid conflictResolution; expected one of: ${CONFLICT_RESOLUTIONS.join(", ")}`,
+      },
+      { status: 400 }
+    );
+  }
+  const conflictResolution: ConflictResolution = requestedResolution;
+  const rawLastSyncAt = body.lastSyncAt;
+  const parsedLastSyncAt =
+    typeof rawLastSyncAt === "string" || typeof rawLastSyncAt === "number"
+      ? new Date(rawLastSyncAt)
+      : undefined;
   const lastSyncAt =
     parsedLastSyncAt && !Number.isNaN(parsedLastSyncAt.getTime()) ? parsedLastSyncAt : undefined;
 
