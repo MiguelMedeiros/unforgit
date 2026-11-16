@@ -13,3 +13,9 @@ export function getRemoteHeaders(
   }
   return headers;
 }
+
+/**
+ * Upper bound for dashboard proxy calls to the remote API so a stalled
+ * remote cannot hang dashboard routes indefinitely.
+ */
+export const REMOTE_REQUEST_TIMEOUT_MS = 10_000;

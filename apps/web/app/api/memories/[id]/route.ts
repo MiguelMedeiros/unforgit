@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
 import { isPlainObject } from "../../../../lib/memory-input";
-import { getRemoteHeaders } from "@/lib/remote-headers";
+import { getRemoteHeaders, REMOTE_REQUEST_TIMEOUT_MS } from "@/lib/remote-headers";
 
 async function fetchRemoteMemory(remoteUrl: string, id: string) {
   try {
     const res = await fetch(`${remoteUrl}/v1/memory/${encodeURIComponent(id)}`, {
       cache: "no-store",
       headers: getRemoteHeaders(),
+      signal: AbortSignal.timeout(REMOTE_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const data = await res.json();

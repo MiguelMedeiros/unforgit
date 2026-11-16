@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import { getRemoteHeaders } from "@/lib/remote-headers";
+import { getRemoteHeaders, REMOTE_REQUEST_TIMEOUT_MS } from "@/lib/remote-headers";
 
 export async function POST(
   _request: NextRequest,
@@ -31,6 +31,7 @@ export async function POST(
       await fetch(`${config.remote.url}/v1/memory/${encodeURIComponent(id)}/restore`, {
         method: "POST",
         headers: getRemoteHeaders({ "Content-Type": "application/json" }),
+        signal: AbortSignal.timeout(REMOTE_REQUEST_TIMEOUT_MS),
       });
     } catch {
       // Ignore remote errors, local restore was successful
