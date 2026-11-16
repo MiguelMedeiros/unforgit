@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import { getRemoteHeaders } from "@/lib/remote-headers";
+import { getRemoteHeaders, REMOTE_REQUEST_TIMEOUT_MS } from "@/lib/remote-headers";
 import { parsePagination } from "../../../lib/pagination";
 import { readJsonBody, validateCreateMemoryBody } from "../../../lib/memory-input";
 import type { ListQuery, Memory } from "@/lib/types";
@@ -25,6 +25,7 @@ async function fetchRemoteMemories(
     const res = await fetch(`${remoteUrl}/v1/memories?${params.toString()}`, {
       cache: "no-store",
       headers: getRemoteHeaders(),
+      signal: AbortSignal.timeout(REMOTE_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return { memories: [], total: 0 };
     const data = await res.json();
