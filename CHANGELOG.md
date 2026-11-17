@@ -6,6 +6,15 @@
 
 * **cli:** require Node.js 24.15+ and use its built-in SQLite driver, removing the native `better-sqlite3` install dependency and its deprecated `prebuild-install` warning while preserving existing local database files
 
+## [0.11.43](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.42...v0.11.43) (2026-11-17)
+
+
+### Bug Fixes
+
+* **dashboard:** bound remote memory proxy requests so a stalled remote cannot hang routes ([#218](https://github.com/MiguelMedeiros/unforgit/issues/218)) ([197024d](https://github.com/MiguelMedeiros/unforgit/commit/197024d0310d08ce0b4f5a2fc5e2724bb005b26d))
+* **dashboard:** reject unknown sync conflictResolution instead of overwriting local edits ([#216](https://github.com/MiguelMedeiros/unforgit/issues/216)) ([f7f7063](https://github.com/MiguelMedeiros/unforgit/commit/f7f70633bb02f94db278c1ce1c323b0021c38166))
+* **deps:** bump next to 16.4.5 for GHSA-mfr8-8qww-v76h ([#219](https://github.com/MiguelMedeiros/unforgit/issues/219)) ([d97be15](https://github.com/MiguelMedeiros/unforgit/commit/d97be15e79501229b0152ca32b5f73f85b75f862))
+
 ## [0.11.42](https://github.com/MiguelMedeiros/unforgit/compare/v0.11.41...v0.11.42) (2026-11-13)
 
 
