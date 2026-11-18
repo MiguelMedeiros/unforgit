@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLocalStore, getConfig } from "@/lib/stores";
-import { generateEmbedding } from "unforgit-core";
+import { generateEmbedding, resolveEmbeddingProvider } from "unforgit-core";
 
 export async function POST() {
   const config = getConfig();
@@ -11,10 +11,18 @@ export async function POST() {
     );
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  // Use the same provider/model as the CLI so dashboard-generated embeddings
+  // are compatible with semantic recall (and do not require OpenAI when
+  // local embeddings are configured).
+  const embeddingConfig = {
+    provider: config.embeddings?.provider ?? "auto",
+    model: config.embeddings?.model,
+    apiKey: process.env.OPENAI_API_KEY,
+  };
+  const provider = resolveEmbeddingProvider(embeddingConfig);
+  if (!provider.available) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY not configured", success: false },
+      { error: provider.reason ?? "Embedding provider is not available", success: false },
       { status: 400 },
     );
   }
@@ -30,7 +38,8 @@ export async function POST() {
   try {
     const memories = local.getMemoriesWithoutEmbeddings(
       config.remote.orgId,
-      config.remote.repoId
+      config.remote.repoId,
+      { model: provider.model, provider: provider.provider, dimensions: provider.dimensions },
     );
 
     if (memories.length === 0) {
@@ -51,8 +60,8 @@ export async function POST() {
       await Promise.all(
         batch.map(async (memory) => {
           try {
-            const result = await generateEmbedding(memory.text, { apiKey });
-            await local.storeEmbedding(memory.id, result.embedding, result.model);
+            const result = await generateEmbedding(memory.text, embeddingConfig);
+            local.storeEmbedding(memory.id, result.embedding, result.model, result.provider);
             processed++;
           } catch (err) {
             console.error(`Embedding error for ${memory.id}:`, err);

@@ -121,4 +121,8 @@ export interface AppConfig {
     visibility: Visibility;
     memoryType: MemoryType;
   };
+  embeddings?: {
+    provider?: "auto" | "local" | "openai" | "disabled";
+    model?: string;
+  };
 }

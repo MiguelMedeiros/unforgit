@@ -1296,23 +1296,42 @@ export class WebLocalStore {
     }));
   }
 
-  getMemoriesWithoutEmbeddings(orgId: string, repoId: string): Memory[] {
-    const embeddingsTable = this.db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memory_embeddings'")
-      .all() as Array<{ name: string }>;
+  /**
+   * Active memories with no embedding, or with one that does not match the
+   * expected provider/model/dimensions (mirrors the core LocalStore so
+   * dashboard and CLI backfills agree on what needs regeneration).
+   */
+  getMemoriesWithoutEmbeddings(
+    orgId: string,
+    repoId: string,
+    expected?: { model?: string; provider?: string; dimensions?: number },
+  ): Memory[] {
+    this.ensureEmbeddingsTable();
 
-    if (embeddingsTable.length === 0) {
-      return this.list({ orgId, repoId, status: ["active"] });
+    const clauses: string[] = ["e.memory_id IS NULL"];
+    const params: unknown[] = [orgId, repoId];
+    if (expected?.model) {
+      clauses.push("e.model != ?");
+      params.push(expected.model);
+    }
+    if (expected?.provider) {
+      clauses.push("e.provider IS NULL OR e.provider != ?");
+      params.push(expected.provider);
+    }
+    if (expected?.dimensions) {
+      clauses.push("e.dimensions IS NULL OR e.dimensions != ?");
+      params.push(expected.dimensions);
     }
 
     const rows = this.db
       .prepare(`
         SELECT m.* FROM memories m
         LEFT JOIN memory_embeddings e ON m.id = e.memory_id
-        WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active' AND e.memory_id IS NULL
+        WHERE m.org_id = ? AND m.repo_id = ? AND m.status = 'active'
+          AND (${clauses.map((clause) => `(${clause})`).join(" OR ")})
         ORDER BY m.created_at DESC
       `)
-      .all(orgId, repoId) as Array<Record<string, unknown>>;
+      .all(...params) as Array<Record<string, unknown>>;
 
     return rows.map(rowToMemory);
   }
@@ -1356,15 +1375,35 @@ export class WebLocalStore {
     };
   }
 
-  storeEmbedding(memoryId: string, embedding: number[], model: string): void {
+  /**
+   * Create the embeddings table with the same columns as the core LocalStore.
+   * Semantic recall filters by `dimensions`, so rows must always record it.
+   */
+  private ensureEmbeddingsTable(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS memory_embeddings (
         memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
         embedding BLOB NOT NULL,
         model TEXT NOT NULL,
+        provider TEXT,
+        dimensions INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `);
+    const columns = (
+      this.db.prepare("PRAGMA table_info(memory_embeddings)").all() as Array<{ name: string }>
+    ).map((c) => c.name);
+    if (!columns.includes("provider")) {
+      this.db.exec("ALTER TABLE memory_embeddings ADD COLUMN provider TEXT");
+    }
+    if (!columns.includes("dimensions")) {
+      this.db.exec("ALTER TABLE memory_embeddings ADD COLUMN dimensions INTEGER");
+      this.db.exec("UPDATE memory_embeddings SET dimensions = length(embedding) / 4 WHERE dimensions IS NULL");
+    }
+  }
+
+  storeEmbedding(memoryId: string, embedding: number[], model: string, provider?: string): void {
+    this.ensureEmbeddingsTable();
 
     const buffer = Buffer.alloc(embedding.length * 4);
     for (let i = 0; i < embedding.length; i++) {
@@ -1373,10 +1412,10 @@ export class WebLocalStore {
 
     this.db
       .prepare(`
-        INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, created_at)
-        VALUES (?, ?, ?, datetime('now'))
+        INSERT OR REPLACE INTO memory_embeddings (memory_id, embedding, model, provider, dimensions, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
       `)
-      .run(memoryId, buffer, model);
+      .run(memoryId, buffer, model, provider ?? null, embedding.length);
   }
 
   getTopUsedMemories(orgId: string, repoId: string, limit: number = 10): Array<{
