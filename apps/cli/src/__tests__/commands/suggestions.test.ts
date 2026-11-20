@@ -230,4 +230,18 @@ describe("suggestions command", () => {
       checkedStore.close();
     }
   });
+
+  it.each([
+    ["generate", "--max", "abc"],
+    ["generate", "--max", "-1"],
+    ["generate", "--max", "0"],
+    ["list", "--limit", "abc"],
+    ["list", "--limit", "-1"],
+    ["list", "--limit", "2.5"],
+  ])("rejects invalid numeric option: suggestions %s %s %s", async (sub, flag, value) => {
+    const result = await runCommand(["suggestions", sub, flag, value]);
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain(`${flag} must be a positive integer`);
+  });
 });
