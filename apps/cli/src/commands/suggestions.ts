@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import type { CurationSuggestion, CurationSuggestionStatus } from "unforgit-shared";
-import { getDbPath, isInitialized, loadConfig } from "unforgit-config";
+import { getDbPath, isInitialized, loadConfig, parsePositiveInt } from "unforgit-config";
 import { LocalStore } from "unforgit-db";
 import { generateSuggestions, persistReviewableSuggestions } from "unforgit-core";
 import { logger } from "../logger.js";
@@ -57,13 +57,14 @@ export const suggestionsCommand = new Command("suggestions")
   .addCommand(
     new Command("generate")
       .description("Generate and persist pending review suggestions")
-      .option("--max <n>", "Maximum generated suggestions", (value) => Number.parseInt(value, 10), 20)
+      .option("--max <n>", "Maximum generated suggestions", "20")
       .option("--created-by <name>", "Actor name stored on generated suggestions", "cli")
       .action((opts) => {
+        const maxSuggestions = parsePositiveInt(opts.max, "max");
         const { store, orgId, repoId } = openStore();
         try {
           const generated = generateSuggestions(store, orgId, repoId, {
-            maxSuggestions: opts.max,
+            maxSuggestions,
           });
           const persisted = persistReviewableSuggestions(
             store,
@@ -91,8 +92,9 @@ export const suggestionsCommand = new Command("suggestions")
     new Command("list")
       .description("List curation suggestions by review status")
       .option("--status <statuses>", "Comma-separated statuses (default: pending)")
-      .option("--limit <n>", "Maximum suggestions to show", (value) => Number.parseInt(value, 10), 20)
+      .option("--limit <n>", "Maximum suggestions to show", "20")
       .action((opts) => {
+        const limit = parsePositiveInt(opts.limit, "limit");
         const { store, orgId, repoId } = openStore();
         try {
           const status = parseStatus(opts.status);
@@ -100,7 +102,7 @@ export const suggestionsCommand = new Command("suggestions")
             orgId,
             repoId,
             status,
-            limit: opts.limit,
+            limit,
           });
 
           if (isJsonMode()) {
