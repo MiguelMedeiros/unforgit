@@ -29,9 +29,24 @@ async function getOpenAIStatus(
   }
 }
 
+/**
+ * Legacy unforgit.yaml files may still hold secrets the CLI now ignores
+ * (`openaiApiKey`, `remote.apiKey`). Never echo them back to the browser.
+ */
+function redactLegacySecrets<T>(config: T): T {
+  if (!config || typeof config !== "object") return config;
+  const { openaiApiKey: _openaiApiKey, ...rest } = config as Record<string, unknown>;
+  const remote = rest.remote;
+  if (remote && typeof remote === "object") {
+    const { apiKey: _apiKey, ...cleanRemote } = remote as Record<string, unknown>;
+    rest.remote = cleanRemote;
+  }
+  return rest as T;
+}
+
 export async function GET() {
   const initialized = isInitialized();
-  const config = getConfig();
+  const config = redactLegacySecrets(getConfig());
   const dbPath = getDbPath();
   const dbSize = getDbFileSize();
   const workspace = getWorkspacePath();
