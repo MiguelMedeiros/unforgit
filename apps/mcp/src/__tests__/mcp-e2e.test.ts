@@ -160,6 +160,48 @@ describe("unforgit MCP server E2E", () => {
     expect(getText(followupRecall)).toContain("MCP writes should stay local-first and sync later.");
   }, 20_000);
 
+  it("prints memory IDs that sibling tools accept as input", async () => {
+    temp = createTempRepo();
+    let memoryId: string;
+    const store = new LocalStore(temp.dbPath);
+    try {
+      memoryId = store.store({
+        orgId: "test-org",
+        repoId: "test-repo",
+        memoryType: "semantic",
+        text: "Deploys go through the staging branch before production.",
+        tags: ["deploy"],
+      }).id;
+    } finally {
+      store.close();
+    }
+
+    ({ client, transport } = await connectMcp(temp.dir));
+
+    const recallText = getText(
+      await client.callTool({
+        name: "unforgit_recall",
+        arguments: { query: "staging branch", k: 5 },
+      }),
+    );
+    expect(recallText).toContain(memoryId);
+
+    const deleteText = getText(
+      await client.callTool({ name: "unforgit_delete", arguments: { memoryId } }),
+    );
+    expect(deleteText).toContain("Soft deleted");
+
+    const deletedText = getText(
+      await client.callTool({ name: "unforgit_list_deleted", arguments: {} }),
+    );
+    expect(deletedText).toContain(memoryId);
+
+    const restoreText = getText(
+      await client.callTool({ name: "unforgit_restore", arguments: { memoryId } }),
+    );
+    expect(restoreText).toContain(`Restored memory: ${memoryId}`);
+  }, 20_000);
+
   it("surfaces a clear tool error when the repository is not initialized", async () => {
     temp = {
       dir: fs.mkdtempSync(path.join(os.tmpdir(), "unforgit-mcp-uninitialized-")),

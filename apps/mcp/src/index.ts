@@ -128,7 +128,7 @@ server.tool(
           ? ` [consolidated v${r.consolidationVersion ?? 1}]`
           : "";
         const parts = [
-          `[${r.memoryType}] ${r.id.slice(0, 8)}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
+          `[${r.memoryType}] ${r.id}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
           r.text,
         ];
         if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
@@ -136,7 +136,7 @@ server.tool(
         if (expandHistory && r.sourceMemories && r.sourceMemories.length > 0) {
           parts.push("Source memories:");
           for (const src of r.sourceMemories) {
-            parts.push(`  └─ [${src.memoryType}] ${src.id.slice(0, 8)}: ${src.text.slice(0, 80)}...`);
+            parts.push(`  └─ [${src.memoryType}] ${src.id}: ${src.text.slice(0, 80)}...`);
           }
         }
 
@@ -341,7 +341,7 @@ server.tool(
         if (linkedIds.length > 0) {
           parts.push(`\nAuto-linked to ${linkedIds.length} related memories:`);
           for (const id of linkedIds) {
-            parts.push(`  → ${id.slice(0, 8)}`);
+            parts.push(`  → ${id}`);
           }
         }
       }
@@ -455,7 +455,7 @@ server.tool(
         content: [
           {
             type: "text",
-            text: `Link created: ${link.id}\n${sourceId.slice(0, 8)} --[${linkType}]--> ${targetId.slice(0, 8)}`,
+            text: `Link created: ${link.id}\n${sourceId} --[${linkType}]--> ${targetId}`,
           },
         ],
       };
@@ -486,7 +486,7 @@ server.tool(
           {
             type: "text",
             text: ok
-              ? `Link removed: ${sourceId.slice(0, 8)} --[${linkType}]--> ${targetId.slice(0, 8)}`
+              ? `Link removed: ${sourceId} --[${linkType}]--> ${targetId}`
               : "Link not found.",
           },
         ],
@@ -525,9 +525,9 @@ server.tool(
       const formatted = links.map((l) => {
         const direction =
           l.sourceId === memoryId
-            ? `--[${l.linkType}]--> ${l.targetId.slice(0, 8)}`
-            : `<--[${l.linkType}]-- ${l.sourceId.slice(0, 8)}`;
-        return `${l.id.slice(0, 8)}: ${direction}`;
+            ? `--[${l.linkType}]--> ${l.targetId}`
+            : `<--[${l.linkType}]-- ${l.sourceId}`;
+        return `${l.id}: ${direction}`;
       });
 
       return {
@@ -588,7 +588,7 @@ server.tool(
         `Consolidated memory created: ${result.consolidatedId}`,
         `Version: ${result.version}`,
         `Sources preserved: ${result.sourcesPreserved}`,
-        `Source IDs: ${result.sourceIds.map((id) => id.slice(0, 8)).join(", ")}`,
+        `Source IDs: ${result.sourceIds.join(", ")}`,
         "",
         "Original memories are now linked via 'derived_from' and marked as 'superseded'.",
         "Use unforgit_recall to search - consolidated memories are prioritized.",
@@ -642,7 +642,7 @@ server.tool(
         `Reconsolidation complete: ${result.consolidatedId}`,
         `New version: ${result.version}`,
         `Total sources: ${result.sourcesPreserved}`,
-        `Previous consolidation: ${existingConsolidationId.slice(0, 8)} (now superseded)`,
+        `Previous consolidation: ${existingConsolidationId} (now superseded)`,
         "",
         "The consolidation history is preserved. Use unforgit_history to view all versions.",
       ];
@@ -697,7 +697,7 @@ server.tool(
 
       const formatted = similar.map((r) => {
         const parts = [
-          `[${r.memoryType}] ${r.id.slice(0, 8)} (score: ${r.score.toFixed(3)})`,
+          `[${r.memoryType}] ${r.id} (score: ${r.score.toFixed(3)})`,
           r.text,
         ];
         if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
@@ -736,7 +736,7 @@ server.tool(
       }
 
       const parts: string[] = [
-        `Memory: ${memory.id.slice(0, 8)}`,
+        `Memory: ${memory.id}`,
         `Type: ${memory.memoryType}`,
         `Is Consolidation: ${memory.isConsolidation ? "Yes" : "No"}`,
       ];
@@ -748,7 +748,7 @@ server.tool(
         if (sources.length > 0) {
           parts.push("", "Source memories:");
           for (const src of sources) {
-            parts.push(`  - [${src.memoryType}] ${src.id.slice(0, 8)}: ${src.text.slice(0, 60)}...`);
+            parts.push(`  - [${src.memoryType}] ${src.id}: ${src.text.slice(0, 60)}...`);
           }
         }
 
@@ -757,7 +757,7 @@ server.tool(
         if (previousVersions.length > 0) {
           parts.push("", "Previous consolidation versions:");
           for (const prev of previousVersions) {
-            parts.push(`  - v${prev.consolidationVersion ?? 1} (${prev.id.slice(0, 8)}): ${prev.text.slice(0, 60)}...`);
+            parts.push(`  - v${prev.consolidationVersion ?? 1} (${prev.id}): ${prev.text.slice(0, 60)}...`);
           }
         }
       } else {
@@ -768,7 +768,7 @@ server.tool(
           for (const link of consolidations) {
             const consol = store.getById(link.sourceId);
             if (consol) {
-              parts.push(`  - v${consol.consolidationVersion ?? 1} (${consol.id.slice(0, 8)})`);
+              parts.push(`  - v${consol.consolidationVersion ?? 1} (${consol.id})`);
             }
           }
         }
@@ -828,7 +828,7 @@ server.tool(
 
       const action = hardDelete ? "Hard deleted" : "Soft deleted";
       const parts = [
-        `${action}: ${memoryId.slice(0, 8)}`,
+        `${action}: ${memoryId}`,
         `Type: ${memory.memoryType}`,
       ];
 
@@ -872,7 +872,7 @@ server.tool(
         content: [
           {
             type: "text",
-            text: `Restored memory: ${memoryId.slice(0, 8)}\nMemory is now active and will be synced.`,
+            text: `Restored memory: ${memoryId}\nMemory is now active and will be synced.`,
           },
         ],
       };
@@ -902,7 +902,7 @@ server.tool(
       for (const t of tombstones) {
         const syncStatus = t.syncedAt ? "synced" : "pending sync";
         parts.push(
-          `- ${t.memoryId.slice(0, 8)} (deleted at ${t.deletedAt.toISOString()}, ${syncStatus})`,
+          `- ${t.memoryId} (deleted at ${t.deletedAt.toISOString()}, ${syncStatus})`,
         );
       }
 
@@ -945,7 +945,7 @@ server.tool(
           content: [
             {
               type: "text",
-              text: `Memory ${consolidationId.slice(0, 8)} is not a consolidation.\nOnly consolidated memories can be unconsolidated.`,
+              text: `Memory ${consolidationId} is not a consolidation.\nOnly consolidated memories can be unconsolidated.`,
             },
           ],
         };
@@ -957,7 +957,7 @@ server.tool(
         .map((l) => l.targetId);
 
       const parts: string[] = [
-        `Consolidation: ${consolidationId.slice(0, 8)}`,
+        `Consolidation: ${consolidationId}`,
         `Version: ${memory.consolidationVersion ?? 1}`,
         `Source memories: ${sourceIds.length}`,
         "",
@@ -977,7 +977,7 @@ server.tool(
           const willRestore = source.status === "superseded" && source.supersedesId === consolidationId;
           const status = willRestore ? "will restore" : `${source.status} (no change)`;
           const preview = source.text.slice(0, 50) + (source.text.length > 50 ? "..." : "");
-          parts.push(`  - ${sourceId.slice(0, 8)} [${source.memoryType}] (${status})`);
+          parts.push(`  - ${sourceId} [${source.memoryType}] (${status})`);
           parts.push(`    ${preview}`);
         }
       }
@@ -1002,7 +1002,7 @@ server.tool(
         parts.push("");
         parts.push("Restored memories:");
         for (const id of result.restoredIds) {
-          parts.push(`  - ${id.slice(0, 8)}`);
+          parts.push(`  - ${id}`);
         }
       }
 
@@ -1133,7 +1133,7 @@ server.tool(
           );
 
           executed.push(
-            `[${i + 1}] Created ${execResult.consolidatedId.slice(0, 8)} from ${execResult.sourceIds.length} memories`,
+            `[${i + 1}] Created ${execResult.consolidatedId} from ${execResult.sourceIds.length} memories`,
           );
         } catch (err) {
           errors.push(
@@ -1270,7 +1270,7 @@ server.tool(
           ? ` [consolidated v${r.consolidationVersion ?? 1}]`
           : "";
         const parts = [
-          `[${r.memoryType}] ${r.id.slice(0, 8)}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
+          `[${r.memoryType}] ${r.id}${consolidationMarker} (score: ${r.score.toFixed(3)})`,
           r.text,
         ];
         if (r.tags.length > 0) parts.push(`Tags: ${r.tags.join(", ")}`);
