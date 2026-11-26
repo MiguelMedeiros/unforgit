@@ -4,6 +4,7 @@ import type {
   FastifyReply,
 } from "fastify";
 import { jwtVerify } from "jose";
+import { z } from "zod";
 import { RemoteStore } from "unforgit-db";
 import {
   isOpenAIConfigured,
@@ -11,6 +12,13 @@ import {
   executeConsolidationRemote,
   type ConsolidationCandidate,
 } from "unforgit-core";
+
+const consolidationCandidatesSchema = z.object({
+  threshold: z.number().min(0).max(1).default(0.6),
+  maxGroups: z.number().int().min(1).max(100).default(10),
+  minGroupSize: z.number().int().min(2).max(10).default(2),
+  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+});
 
 interface CreateApiKeyBody {
   name: string;
@@ -632,11 +640,17 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
     { preHandler: requireAdmin },
     async (request, reply) => {
       const { orgId, repoId } = request.params;
-      const body = (request.body ?? {}) as Record<string, unknown>;
+      const parsed = consolidationCandidatesSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: parsed.error.issues
+            .map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`)
+            .join("; "),
+        });
+      }
 
-      const threshold = typeof body.threshold === "number" ? body.threshold : 0.6;
-      const maxGroups = typeof body.maxGroups === "number" ? body.maxGroups : 10;
-      const minGroupSize = typeof body.minGroupSize === "number" ? body.minGroupSize : 2;
+      const { threshold, maxGroups, minGroupSize, offset } = parsed.data;
 
       try {
         const result = await findConsolidationCandidatesRemote(
@@ -647,6 +661,7 @@ export const adminRoutes: FastifyPluginAsync<{ store: RemoteStore }> = async (
             threshold,
             maxGroups,
             minGroupSize,
+            offset,
             excludeConsolidations: true,
           }
         );

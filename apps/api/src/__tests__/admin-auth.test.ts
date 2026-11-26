@@ -471,4 +471,71 @@ describe("admin auth", () => {
 
     await app.close();
   });
+
+  it.each([
+    [{ threshold: 2 }],
+    [{ threshold: "0.6" }],
+    [{ maxGroups: 0 }],
+    [{ maxGroups: 1.5 }],
+    [{ minGroupSize: 1 }],
+    [{ offset: -1 }],
+  ])("rejects invalid consolidation candidate options before scanning: %j", async (payload) => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/repos/org-id/repo-id/consolidation/candidates",
+      headers: adminAuthorization(token),
+      payload,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ error: "Bad Request" });
+    expect(store.list).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it("pages consolidation candidates with offset", async () => {
+    process.env.JWT_SECRET = "test-secret";
+    const store = buildStore();
+    const ids = ["a1", "a2", "b1", "b2"];
+    const pairs: Record<string, string> = { a1: "a2", a2: "a1", b1: "b2", b2: "b1" };
+    store.list.mockResolvedValue(
+      ids.map((id) => ({
+        id,
+        memoryType: "semantic",
+        text: id,
+        tags: [],
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+      })),
+    );
+    (store as unknown as { findSimilar: ReturnType<typeof vi.fn> }).findSimilar = vi.fn(
+      async ({ memoryId }: { memoryId: string }) => [
+        { id: pairs[memoryId], score: memoryId.startsWith("a") ? 0.95 : 0.9 },
+      ],
+    );
+    const token = await signAdminToken();
+    const app = await buildAdminApp(store);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/repos/org-id/repo-id/consolidation/candidates",
+      headers: adminAuthorization(token),
+      payload: { threshold: 0.5, maxGroups: 1, offset: 1 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as {
+      candidates: Array<{ memories: Array<{ id: string }> }>;
+      totalCandidateGroups: number;
+    };
+    expect(body.totalCandidateGroups).toBe(2);
+    expect(body.candidates.flatMap((c) => c.memories.map((m) => m.id)).sort()).toEqual(["b1", "b2"]);
+
+    await app.close();
+  });
 });

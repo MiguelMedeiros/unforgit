@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUrl } from "@/lib/api-proxy";
+import { parseIntegerQuery } from "../../../../../../lib/query-params";
 
 interface Memory {
   id: string;
@@ -39,8 +40,10 @@ export async function GET(
   }
 
   const url = new URL(request.url);
-  const limit = parseInt(url.searchParams.get("limit") ?? "100", 10);
-  const offset = parseInt(url.searchParams.get("offset") ?? "0", 10);
+  const limit = parseIntegerQuery(url.searchParams, "limit", { fallback: 100, min: 1, max: 1000 });
+  if (limit instanceof NextResponse) return limit;
+  const offset = parseIntegerQuery(url.searchParams, "offset", { fallback: 0, min: 0 });
+  if (offset instanceof NextResponse) return offset;
 
   try {
     const memoriesRes = await fetch(

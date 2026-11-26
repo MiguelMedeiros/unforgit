@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseDecimalQuery, parseIntegerQuery } from "../../../../../../../lib/query-params";
 
 const API_URL = process.env.API_URL || process.env.UNFORGIT_API_URL || "http://localhost:3737";
 
@@ -9,8 +10,6 @@ export async function GET(
   const { org, repo } = await params;
   const searchParams = request.nextUrl.searchParams;
   
-  const threshold = searchParams.get("threshold") || "0.6";
-  const maxGroups = searchParams.get("maxGroups") || "10";
 
   const authHeader = request.headers.get("Authorization");
 
@@ -21,6 +20,13 @@ export async function GET(
     );
   }
 
+  const threshold = parseDecimalQuery(searchParams, "threshold", { fallback: 0.6, min: 0, max: 1 });
+  if (threshold instanceof NextResponse) return threshold;
+  const maxGroups = parseIntegerQuery(searchParams, "maxGroups", { fallback: 10, min: 1, max: 100 });
+  if (maxGroups instanceof NextResponse) return maxGroups;
+  const offset = parseIntegerQuery(searchParams, "offset", { fallback: 0, min: 0 });
+  if (offset instanceof NextResponse) return offset;
+
   try {
     const res = await fetch(`${API_URL}/v1/admin/repos/${encodeURIComponent(org)}/${encodeURIComponent(repo)}/consolidation/candidates`, {
       method: "POST",
@@ -29,9 +35,10 @@ export async function GET(
         Authorization: authHeader,
       },
       body: JSON.stringify({
-        threshold: parseFloat(threshold),
-        maxGroups: parseInt(maxGroups, 10),
+        threshold,
+        maxGroups,
         minGroupSize: 2,
+        offset,
       }),
     });
 

@@ -16,6 +16,8 @@ export interface AutoConsolidateOptions {
   threshold?: number;
   minGroupSize?: number;
   maxGroups?: number;
+  /** Number of ranked candidate groups to skip (for pagination). */
+  offset?: number;
   types?: MemoryType[];
   excludeConsolidations?: boolean;
 }
@@ -50,6 +52,7 @@ export async function findConsolidationCandidatesRemote(
     threshold = 0.4,
     minGroupSize = 2,
     maxGroups = 10,
+    offset = 0,
     types,
     excludeConsolidations = true,
   } = options;
@@ -209,7 +212,7 @@ export async function findConsolidationCandidatesRemote(
   });
 
   return {
-    candidates: candidateResults.slice(0, maxGroups),
+    candidates: candidateResults.slice(offset, offset + maxGroups),
     totalMemoriesScanned: filteredMemories.length,
     totalCandidateGroups: candidateResults.length,
   };
