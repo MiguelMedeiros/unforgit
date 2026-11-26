@@ -981,12 +981,13 @@ export class LocalStore {
   }
 
   consolidateMemories(input: ConsolidateMemoriesInput): ConsolidateMemoriesResult {
-    const { sourceIds, consolidatedText, memoryType, tags, preserveOriginals = true } = input;
+    const { consolidatedText, memoryType, tags, preserveOriginals = true } = input;
+    const sourceIds = [...new Set(input.sourceIds)];
     const orgId = input.orgId.toLowerCase();
     const repoId = input.repoId.toLowerCase();
 
     if (sourceIds.length < 2) {
-      throw new Error("At least 2 source memories are required for consolidation");
+      throw new Error("At least 2 distinct source memories are required for consolidation");
     }
 
     const sourceMemories = sourceIds
@@ -1007,50 +1008,52 @@ export class LocalStore {
     const now = new Date().toISOString();
     const version = 1;
 
-    this.db
-      .prepare(
-        `INSERT INTO memories
-        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
-        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        orgId,
-        repoId,
-        inferredType,
-        inheritedVisibility,
-        consolidatedText,
-        null,
-        JSON.stringify(mergedTags),
-        JSON.stringify({ consolidated_from: sourceIds }),
-        null,
-        version,
-        now,
-        now,
-      );
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
+          VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          orgId,
+          repoId,
+          inferredType,
+          inheritedVisibility,
+          consolidatedText,
+          null,
+          JSON.stringify(mergedTags),
+          JSON.stringify({ consolidated_from: sourceIds }),
+          null,
+          version,
+          now,
+          now,
+        );
 
-    for (const sourceId of sourceIds) {
-      this.link({
-        sourceId: id,
-        targetId: sourceId,
-        linkType: "derived_from",
-        metadata: { consolidation: true },
-      });
-    }
-
-    if (!preserveOriginals) {
       for (const sourceId of sourceIds) {
-        this.supersede(sourceId, id);
+        this.link({
+          sourceId: id,
+          targetId: sourceId,
+          linkType: "derived_from",
+          metadata: { consolidation: true },
+        });
       }
-    }
 
-    if (inheritedVisibility === "repo") {
-      this.setSyncState({
-        memoryId: id,
-        localVersion: version,
-        syncStatus: "pending_push",
-      });
-    }
+      if (!preserveOriginals) {
+        for (const sourceId of sourceIds) {
+          this.supersede(sourceId, id);
+        }
+      }
+
+      if (inheritedVisibility === "repo") {
+        this.setSyncState({
+          memoryId: id,
+          localVersion: version,
+          syncStatus: "pending_push",
+        });
+      }
+    })();
 
     return {
       consolidatedId: id,
@@ -1079,8 +1082,17 @@ export class LocalStore {
       .map((l) => l.targetId);
 
     const allSourceIds = [...new Set([...existingSourceIds, ...additionalSourceIds])];
+    const newSourceIds = [...new Set(additionalSourceIds)].filter(
+      (sourceId) => !existingSourceIds.includes(sourceId),
+    );
 
-    for (const id of additionalSourceIds) {
+    if (newSourceIds.includes(existingConsolidationId)) {
+      throw new Error(
+        `Consolidation ${existingConsolidationId} cannot be an additional source of itself`,
+      );
+    }
+
+    for (const id of newSourceIds) {
       const mem = this.getById(id);
       if (!mem) {
         throw new Error(`Additional source memory not found: ${id}`);
@@ -1094,57 +1106,59 @@ export class LocalStore {
     const id = uuid();
     const now = new Date().toISOString();
 
-    this.db
-      .prepare(
-        `INSERT INTO memories
-        (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
-        VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        orgId,
-        repoId,
-        existing.memoryType,
-        inheritedVisibility,
-        newText,
-        null,
-        JSON.stringify(mergedTags),
-        JSON.stringify({
-          consolidated_from: allSourceIds,
-          previous_consolidation: existingConsolidationId,
-        }),
-        null,
-        newVersion,
-        now,
-        now,
-      );
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO memories
+          (id, org_id, repo_id, scope_type, memory_type, visibility, status, text, summary, tags, source_refs, confidence, is_consolidation, consolidation_version, created_at, updated_at)
+          VALUES (?, ?, ?, 'repo', ?, ?, 'active', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          orgId,
+          repoId,
+          existing.memoryType,
+          inheritedVisibility,
+          newText,
+          null,
+          JSON.stringify(mergedTags),
+          JSON.stringify({
+            consolidated_from: allSourceIds,
+            previous_consolidation: existingConsolidationId,
+          }),
+          null,
+          newVersion,
+          now,
+          now,
+        );
 
-    this.link({
-      sourceId: id,
-      targetId: existingConsolidationId,
-      linkType: "derived_from",
-      metadata: { reconsolidation: true, previous_version: existing.consolidationVersion ?? 1 },
-    });
-
-    for (const sourceId of additionalSourceIds) {
       this.link({
         sourceId: id,
-        targetId: sourceId,
+        targetId: existingConsolidationId,
         linkType: "derived_from",
-        metadata: { consolidation: true },
+        metadata: { reconsolidation: true, previous_version: existing.consolidationVersion ?? 1 },
       });
-      this.supersede(sourceId, id);
-    }
 
-    this.supersede(existingConsolidationId, id);
+      for (const sourceId of newSourceIds) {
+        this.link({
+          sourceId: id,
+          targetId: sourceId,
+          linkType: "derived_from",
+          metadata: { consolidation: true },
+        });
+        this.supersede(sourceId, id);
+      }
 
-    if (inheritedVisibility === "repo") {
-      this.setSyncState({
-        memoryId: id,
-        localVersion: newVersion,
-        syncStatus: "pending_push",
-      });
-    }
+      this.supersede(existingConsolidationId, id);
+
+      if (inheritedVisibility === "repo") {
+        this.setSyncState({
+          memoryId: id,
+          localVersion: newVersion,
+          syncStatus: "pending_push",
+        });
+      }
+    })();
 
     return {
       consolidatedId: id,
